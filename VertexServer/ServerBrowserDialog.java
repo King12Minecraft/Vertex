@@ -238,26 +238,76 @@ public class ServerBrowserDialog
         }
     }
 
-    private static void attemptSwitch(JDialog dialog, String host, int port)
+    private static void attemptSwitch(final JDialog dialog, final String host, final int port)
     {
         int choice = JOptionPane.showConfirmDialog(dialog,
-            "Switch to " + host + ":" + port + "? You'll be logged out of your current session.",
+            "Switch to " + host + ":" + port + "?",
             "Switch Server", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION)
         {
             return;
         }
 
-        boolean connected = NetworkManager.switchServer(host, port);
-        if (!connected)
+        final String username = Session.getCurrentAccount() != null ? Session.getCurrentAccount().getUsername() : null;
+        final String password = Session.getCurrentPassword();
+
+        Thread worker = new Thread(new Runnable()
         {
-            JOptionPane.showMessageDialog(dialog, "Could not reach " + host + ":" + port + ".",
-                "Switch Server - Failed", JOptionPane.ERROR_MESSAGE);
+            public void run()
+            {
+                boolean connected = NetworkManager.switchServer(host, port);
+                if (!connected)
+                {
+                    SwingUtilities.invokeLater(new Runnable()
+                    {
+                        public void run()
+                        {
+                            JOptionPane.showMessageDialog(dialog, "Could not reach " + host + ":" + port + ".",
+                                "Switch Server - Failed", JOptionPane.ERROR_MESSAGE);
+                        }
+                    });
+                    return;
+                }
+
+                // Seamless path: same account, same password, just re-authenticate against
+                // the new server directly rather than showing a fresh login screen. This only
+                // works if the new server actually knows this account (itself, or a satellite
+                // that can delegate to the same main) - if not, fall back to a normal logout
+                // and let the person log in (or create an account) on the new server manually.
+                Message reAuthResult = null;
+                if (username != null && password != null)
+                {
+                    Message loginReq = new Message();
+                    loginReq.setType(MessageType.LOGIN_REQUEST);
+                    loginReq.setUsername(username);
+                    loginReq.setPassword(password);
+                    reAuthResult = NetworkManager.send(loginReq);
+                }
+
+                final Message finalReAuthResult = reAuthResult;
+                SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run() { finishSwitch(dialog, finalReAuthResult); }
+                });
+            }
+        });
+        worker.start();
+    }
+
+    private static void finishSwitch(JDialog dialog, Message reAuthResult)
+    {
+        dialog.dispose();
+
+        if (reAuthResult != null && reAuthResult.isSuccess())
+        {
+            Session.login(reAuthResult.getAccount(), Session.getCurrentPassword());
+            NotificationCenter.add("Switched Server", "Now connected to " + NetworkConfig.getServerHost() + ":" + NetworkConfig.getServerPort() + ".");
             return;
         }
 
+        // Seamless re-auth wasn't possible (no cached credentials, or this account
+        // doesn't exist on the new server) - fall back to a normal fresh login.
         Session.logout();
-        dialog.dispose();
         Frame owner = (Frame) dialog.getOwner();
         if (owner != null)
         {

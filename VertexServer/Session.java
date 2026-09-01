@@ -12,6 +12,7 @@ import java.util.List;
 public class Session
 {
     private static Account currentAccount = null;
+    private static String currentPassword = null;
     private static final List<Runnable> listeners = new ArrayList<Runnable>();
 
     private Session()
@@ -21,19 +22,33 @@ public class Session
 
     public static void login(Account account)
     {
+        login(account, null);
+    }
+
+    /** Caches the password alongside the account for the lifetime of this process only (never written to disk) - lets the in-app server switcher re-authenticate against a different server without asking the person to retype their credentials. This is no meaningful new exposure: the project already sends this same password in plaintext over the login socket in the first place. */
+    public static void login(Account account, String password)
+    {
         currentAccount = account;
+        currentPassword = password;
         notifyListeners();
     }
 
     public static void logout()
     {
         currentAccount = null;
+        currentPassword = null;
         notifyListeners();
     }
 
     public static Account getCurrentAccount()
     {
         return currentAccount;
+    }
+
+    /** Null if the current session was never given a password to cache (e.g. restored some other way) - callers needing to re-authenticate should treat null as "can't do this silently, fall back to asking." */
+    public static String getCurrentPassword()
+    {
+        return currentPassword;
     }
 
     public static boolean isLoggedIn()

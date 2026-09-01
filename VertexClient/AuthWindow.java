@@ -43,9 +43,9 @@ public class AuthWindow extends JFrame
 
         LoginPanel.LoginSuccessListener onSuccess = new LoginPanel.LoginSuccessListener()
         {
-            public void onLoginSuccess(Account account)
+            public void onLoginSuccess(Account account, String password)
             {
-                Session.login(account);
+                Session.login(account, password);
                 GuestPlayTracker.flushToServer();
                 authHeader.stopAnimation();
                 AuthWindow.this.dispose();

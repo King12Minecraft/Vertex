@@ -23,7 +23,7 @@ public class LoginPanel extends RoundedPanel
     /** Implemented by AuthWindow to know when to open MainMenu. */
     public interface LoginSuccessListener
     {
-        void onLoginSuccess(Account account);
+        void onLoginSuccess(Account account, String password);
     }
 
     private final ThemedTextField usernameField;
@@ -164,7 +164,7 @@ public class LoginPanel extends RoundedPanel
                         {
                             errorLabel.setText(" ");
                             showDailyRewardPopup(LoginPanel.this, response);
-                            successListener.onLoginSuccess(response.getAccount());
+                            successListener.onLoginSuccess(response.getAccount(), password);
                         }
                         else
                         {

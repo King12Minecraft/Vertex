@@ -183,7 +183,7 @@ public class CreateAccountPanel extends RoundedPanel
                                     + "so you've been made the platform Administrator.");
                             }
                             LoginPanel.showDailyRewardPopup(self, response);
-                            successListener.onLoginSuccess(response.getAccount());
+                            successListener.onLoginSuccess(response.getAccount(), password);
                         }
                         else
                         {

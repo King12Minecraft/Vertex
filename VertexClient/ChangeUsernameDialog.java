@@ -141,7 +141,7 @@ public class ChangeUsernameDialog
                                 }
                                 else if (response.isSuccess())
                                 {
-                                    Session.login(response.getAccount());
+                                    Session.login(response.getAccount(), Session.getCurrentPassword());
                                     dialog.dispose();
                                 }
                                 else
