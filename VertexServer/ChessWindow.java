@@ -61,7 +61,7 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
     private ChessWindow(String spectateMatchId, String rematchWaitOpponent)
     {
         super(spectateMatchId != null ? "Vertex - Chess (Spectating)" : "Vertex - Chess");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);
         setIconImage(GameLogo.renderIcon(64));
         isSpectator = spectateMatchId != null;
@@ -173,11 +173,22 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         {
             public void windowClosing(WindowEvent e)
             {
+                if (matchId != null && !isSpectator)
+                {
+                    int choice = javax.swing.JOptionPane.showConfirmDialog(ChessWindow.this,
+                        "Close this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
+                        "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
+                    if (choice != javax.swing.JOptionPane.YES_OPTION)
+                    {
+                        return;
+                    }
+                }
                 if (matchId == null)
                 {
                     leaveQueue();
                 }
                 NetworkManager.removePushListener(ChessWindow.this);
+                dispose();
             }
         });
     }

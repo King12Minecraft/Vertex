@@ -80,7 +80,7 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
         boolean isRematchWait = rematchWaitOpponent != null;
         spectatorPlayerA = playerAName;
         spectatorPlayerB = playerBName;
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);
         setIconImage(GameLogo.renderIcon(64));
 
@@ -128,12 +128,31 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
         {
             public void windowClosing(WindowEvent e)
             {
+                if (matchId != null && !isSpectator)
+                {
+                    int choice = javax.swing.JOptionPane.showConfirmDialog(RockPaperScissorsWindow.this,
+                        "Close this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
+                        "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
+                    if (choice != javax.swing.JOptionPane.YES_OPTION)
+                    {
+                        return;
+                    }
+                }
                 if (!isSpectator && !vsAi && matchId == null)
                 {
                     leaveQueue();
                 }
-                recordPlayed();
+                // vsAI mode has no natural conclusion (rounds continue until closed), so this is
+                // its only real "done playing" signal - recorded here. Online mode is different:
+                // it has a genuine conclusion point (RPS_MATCH_OVER), which records the play
+                // explicitly there instead, matching Chess/Battleship's "only count real
+                // completions" design - not whatever state a mid-game close happens to leave it in.
+                if (vsAi)
+                {
+                    recordPlayed();
+                }
                 NetworkManager.removePushListener(RockPaperScissorsWindow.this);
+                dispose();
             }
         });
     }
@@ -461,6 +480,7 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
             }
 
             final String finalOpponent = opponentUsername;
+            recordPlayed();
             GameHubDialog.showWithAction(this, "Rock Paper Scissors", text, "Rematch", new Runnable()
             {
                 public void run() { requestRematch(finalOpponent); }

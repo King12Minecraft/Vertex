@@ -36,8 +36,14 @@ public class Vertex
                 {
                     public void run()
                     {
-                        AuthWindow window = new AuthWindow();
-                        window.setVisible(true);
+                        HostOrConnectDialog.show(new Runnable()
+                        {
+                            public void run()
+                            {
+                                AuthWindow window = new AuthWindow();
+                                window.setVisible(true);
+                            }
+                        });
                     }
                 });
             }

@@ -36,6 +36,7 @@ public class TetrisPanel extends JPanel
     private final TetrisGame game;
     private final Runnable onGameOver;
     private Timer timer;
+    private boolean paused = false;
 
     public TetrisPanel(TetrisGame game, Runnable onGameOver)
     {
@@ -58,6 +59,19 @@ public class TetrisPanel extends JPanel
         bindKey("UP", "rotate");
         bindKey("DOWN", "softDrop");
         bindKey("SPACE", "hardDrop");
+
+        getInputMap().put(KeyStroke.getKeyStroke("P"), "pause");
+        getActionMap().put("pause", new AbstractAction()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (!game.isGameOver())
+                {
+                    paused = !paused;
+                    repaint();
+                }
+            }
+        });
     }
 
     private void bindKey(String keyName, final String action)
@@ -67,6 +81,7 @@ public class TetrisPanel extends JPanel
         {
             public void actionPerformed(ActionEvent e)
             {
+                if (paused) return;
                 if ("moveLeft".equals(action)) game.moveLeft();
                 else if ("moveRight".equals(action)) game.moveRight();
                 else if ("rotate".equals(action)) game.rotate();
@@ -83,6 +98,7 @@ public class TetrisPanel extends JPanel
         {
             public void actionPerformed(ActionEvent e)
             {
+                if (paused) return;
                 game.tick();
                 repaint();
                 if (game.isGameOver())
@@ -164,6 +180,21 @@ public class TetrisPanel extends JPanel
             int x = previewX + nextCells[i][1] * CELL;
             int y = previewY + nextCells[i][0] * CELL;
             drawCell(g2, x, y, nextColor);
+        }
+
+        if (paused)
+        {
+            g2.setColor(new Color(0, 0, 0, 140));
+            g2.fillRect(0, 0, boardW, boardH);
+            g2.setColor(Color.WHITE);
+            g2.setFont(UITheme.FONT_HEADING);
+            String text = "PAUSED";
+            int textWidth = g2.getFontMetrics().stringWidth(text);
+            g2.drawString(text, (boardW - textWidth) / 2, boardH / 2);
+            g2.setFont(UITheme.FONT_SMALL);
+            String hint = "Press P to resume";
+            int hintWidth = g2.getFontMetrics().stringWidth(hint);
+            g2.drawString(hint, (boardW - hintWidth) / 2, boardH / 2 + 24);
         }
 
         g2.dispose();

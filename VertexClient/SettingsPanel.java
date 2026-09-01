@@ -122,26 +122,45 @@ public class SettingsPanel extends RoundedPanel
 
     private JPanel createConnectionSection()
     {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
+        JPanel col = new JPanel();
+        col.setOpaque(false);
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+        col.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel statusRow = new JPanel(new BorderLayout());
+        statusRow.setOpaque(false);
+        statusRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel label = new JLabel("Server status");
         label.setFont(UITheme.FONT_BODY);
         label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
-        row.add(label, BorderLayout.WEST);
+        statusRow.add(label, BorderLayout.WEST);
 
         ConnectionIndicator indicator = new ConnectionIndicator(NetworkManager.getState());
         JPanel indicatorWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         indicatorWrap.setOpaque(false);
         indicatorWrap.add(indicator);
-        row.add(indicatorWrap, BorderLayout.EAST);
+        statusRow.add(indicatorWrap, BorderLayout.EAST);
 
         NetworkManager.addListener(new Runnable()
         {
             public void run() { indicator.setState(NetworkManager.getState()); }
         });
 
-        return row;
+        col.add(statusRow);
+        col.add(Box.createVerticalStrut(12));
+
+        final ThemedButton switchServer = new ThemedButton("Switch Server", false);
+        switchServer.setAlignmentX(Component.LEFT_ALIGNMENT);
+        switchServer.setMaximumSize(new Dimension(220, 38));
+        switchServer.setPreferredSize(new Dimension(220, 38));
+        switchServer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { ServerBrowserDialog.show(switchServer); }
+        });
+        col.add(switchServer);
+
+        return col;
     }
 
     private JPanel createAccountSection()

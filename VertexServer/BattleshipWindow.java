@@ -87,7 +87,7 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         boolean isRematchWait = rematchWaitOpponent != null;
         spectatorPlayerA = playerAName;
         spectatorPlayerB = playerBName;
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);
         setIconImage(GameLogo.renderIcon(64));
 
@@ -131,11 +131,22 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         {
             public void windowClosing(WindowEvent e)
             {
+                if (matchId != null && !isSpectator)
+                {
+                    int choice = javax.swing.JOptionPane.showConfirmDialog(BattleshipWindow.this,
+                        "Close this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
+                        "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
+                    if (choice != javax.swing.JOptionPane.YES_OPTION)
+                    {
+                        return;
+                    }
+                }
                 if (!isSpectator && !vsAi && matchId == null)
                 {
                     leaveQueue();
                 }
                 NetworkManager.removePushListener(BattleshipWindow.this);
+                dispose();
             }
         });
     }

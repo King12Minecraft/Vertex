@@ -144,7 +144,7 @@ public class NetworkManager
         setState(ConnectionState.CONNECTING);
         try
         {
-            socket = new Socket(NetworkConfig.SERVER_HOST, NetworkConfig.SERVER_PORT);
+            socket = new Socket(NetworkConfig.getServerHost(), NetworkConfig.getServerPort());
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
             setState(ConnectionState.ONLINE);
@@ -158,6 +158,15 @@ public class NetworkManager
             setState(ConnectionState.OFFLINE);
             return false;
         }
+    }
+
+    /** Disconnects from whatever server this instance is currently talking to and connects fresh to a different one - used by the in-app server switcher. Deliberately explicit and synchronous rather than relying on the background auto-reconnect loop, which is built to retry the SAME server it just lost, not switch to a new one. */
+    public static synchronized boolean switchServer(String host, int port)
+    {
+        closeQuietly();
+        NetworkConfig.setServerHost(host);
+        NetworkConfig.setServerPort(port);
+        return connect();
     }
 
     /**

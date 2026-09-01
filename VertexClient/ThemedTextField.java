@@ -108,4 +108,11 @@ public class ThemedTextField extends RoundedPanel
         field.setText(placeholder);
         field.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
     }
+
+    /** Pre-fills real, editable text (styled like something the person typed, not the placeholder) - for cases like ConnectDialog where a sensible default should already be sitting in the field rather than requiring the person to type it from scratch. */
+    public void setValue(String value)
+    {
+        field.setText(value);
+        field.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+    }
 }

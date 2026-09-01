@@ -37,6 +37,7 @@ public class SnakePanel extends JPanel
     private List<Point> previousBody;
     private List<Point> currentBody;
     private long lastTickTime;
+    private boolean paused = false;
     private int lastTickInterval;
     private int lastScore = 0;
     private long lastEatTime = 0;
@@ -63,6 +64,10 @@ public class SnakePanel extends JPanel
         {
             public void actionPerformed(ActionEvent e)
             {
+                if (paused)
+                {
+                    return;
+                }
                 previousBody = currentBody;
                 game.tick();
                 currentBody = game.getSnakeBody();
@@ -118,6 +123,19 @@ public class SnakePanel extends JPanel
         bindKey("S", SnakeGame.Direction.DOWN);
         bindKey("A", SnakeGame.Direction.LEFT);
         bindKey("D", SnakeGame.Direction.RIGHT);
+
+        getInputMap().put(KeyStroke.getKeyStroke("P"), "pause_action");
+        getActionMap().put("pause_action", new AbstractAction()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (!game.isGameOver())
+                {
+                    paused = !paused;
+                    repaint();
+                }
+            }
+        });
     }
 
     private void bindKey(String keyName, final SnakeGame.Direction direction)
@@ -152,6 +170,21 @@ public class SnakePanel extends JPanel
         paintFood(g2);
         paintSnake(g2);
         paintEatFlash(g2);
+
+        if (paused)
+        {
+            g2.setColor(new Color(0, 0, 0, 140));
+            g2.fillRect(0, SCORE_BAR_HEIGHT, getWidth(), getHeight() - SCORE_BAR_HEIGHT);
+            g2.setColor(Color.WHITE);
+            g2.setFont(UITheme.FONT_HEADING);
+            String text = "PAUSED";
+            int textWidth = g2.getFontMetrics().stringWidth(text);
+            g2.drawString(text, (getWidth() - textWidth) / 2, getHeight() / 2);
+            g2.setFont(UITheme.FONT_SMALL);
+            String hint = "Press P to resume";
+            int hintWidth = g2.getFontMetrics().stringWidth(hint);
+            g2.drawString(hint, (getWidth() - hintWidth) / 2, getHeight() / 2 + 24);
+        }
 
         g2.dispose();
     }

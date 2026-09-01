@@ -70,6 +70,10 @@ public class Sidebar extends RoundedPanel
         {
             addNavButton("Moderation", Pages.MODERATION);
         }
+        if (PermissionManager.isAdmin(current))
+        {
+            addNavButton("Servers", Pages.SATELLITE_SERVERS);
+        }
 
         addNavButton("Settings", Pages.SETTINGS);
 

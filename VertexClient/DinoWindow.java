@@ -4,6 +4,7 @@ import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -90,6 +91,7 @@ public class DinoWindow extends JFrame
         private final DinoGame game;
         private final Runnable onGameOver;
         private Timer timer;
+        private boolean paused = false;
 
         RunPanel(DinoGame game, Runnable onGameOver)
         {
@@ -109,6 +111,19 @@ public class DinoWindow extends JFrame
         {
             bind("SPACE");
             bind("UP");
+
+            getInputMap().put(KeyStroke.getKeyStroke("P"), "pause_action");
+            getActionMap().put("pause_action", new AbstractAction()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    if (!game.isGameOver())
+                    {
+                        paused = !paused;
+                        repaint();
+                    }
+                }
+            });
         }
 
         private void bind(String keyName)
@@ -116,7 +131,7 @@ public class DinoWindow extends JFrame
             getInputMap().put(KeyStroke.getKeyStroke(keyName), keyName + "_action");
             getActionMap().put(keyName + "_action", new AbstractAction()
             {
-                public void actionPerformed(ActionEvent e) { game.jump(); }
+                public void actionPerformed(ActionEvent e) { if (!paused) game.jump(); }
             });
         }
 
@@ -126,6 +141,7 @@ public class DinoWindow extends JFrame
             {
                 public void actionPerformed(ActionEvent e)
                 {
+                    if (paused) return;
                     game.tick();
                     repaint();
                     if (game.isGameOver())
@@ -185,6 +201,21 @@ public class DinoWindow extends JFrame
             g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
             g2.setFont(UITheme.FONT_NAV_BOLD);
             g2.drawString("Score: " + game.getScore(), 12, 24);
+
+            if (paused)
+            {
+                g2.setColor(new Color(0, 0, 0, 140));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setColor(Color.WHITE);
+                g2.setFont(UITheme.FONT_HEADING);
+                String text = "PAUSED";
+                int textWidth = g2.getFontMetrics().stringWidth(text);
+                g2.drawString(text, (getWidth() - textWidth) / 2, getHeight() / 2);
+                g2.setFont(UITheme.FONT_SMALL);
+                String hint = "Press P to resume";
+                int hintWidth = g2.getFontMetrics().stringWidth(hint);
+                g2.drawString(hint, (getWidth() - hintWidth) / 2, getHeight() / 2 + 24);
+            }
 
             g2.dispose();
         }

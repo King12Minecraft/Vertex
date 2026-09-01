@@ -77,6 +77,10 @@ public class NavIcons
         {
             drawBracket(g, size);
         }
+        else if (Pages.SATELLITE_SERVERS.equals(pageKey))
+        {
+            drawServerStack(g, size);
+        }
         else
         {
             drawGamepad(g, size);
@@ -281,5 +285,19 @@ public class NavIcons
         shield.curveTo(x + w * 0.5f, s * 0.9f, x, s * 0.75f, x, s * 0.5f);
         shield.closePath();
         g.draw(shield);
+    }
+
+    /** Three stacked bars with a small dot on each - a simple, classic "server rack" visual, used for the admin-only satellite servers page. */
+    private static void drawServerStack(Graphics2D g, int s)
+    {
+        float x = s * 0.2f, w = s * 0.6f;
+        float barH = s * 0.16f;
+        float gap = s * 0.08f;
+        float[] tops = { s * 0.2f, s * 0.2f + barH + gap, s * 0.2f + (barH + gap) * 2 };
+        for (float top : tops)
+        {
+            g.draw(new java.awt.geom.RoundRectangle2D.Float(x, top, w, barH, 3f, 3f));
+            g.fillOval((int) (x + w - barH * 0.6f), (int) (top + barH * 0.3f), (int) (barH * 0.35f), (int) (barH * 0.35f));
+        }
     }
 }

@@ -86,6 +86,10 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         {
             contentPanel.add(new ModeratorPanel(), Pages.MODERATION);
         }
+        if (PermissionManager.isAdmin(current))
+        {
+            contentPanel.add(new SatelliteServersPanel(), Pages.SATELLITE_SERVERS);
+        }
 
         transitionPane = new JLayeredPane();
         transitionPane.setLayout(null);
@@ -279,6 +283,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         if (pageKey.equals(Pages.PROFILE))    return "Profile";
         if (pageKey.equals(Pages.SETTINGS))   return "Settings";
         if (pageKey.equals(Pages.MODERATION)) return "Moderation";
+        if (pageKey.equals(Pages.SATELLITE_SERVERS)) return "Servers";
         return "Games";
     }
 

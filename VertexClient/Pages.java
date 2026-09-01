@@ -19,6 +19,7 @@ public class Pages
     public static final String PROFILE    = "PROFILE";
     public static final String SETTINGS   = "SETTINGS";
     public static final String MODERATION = "MODERATION";
+    public static final String SATELLITE_SERVERS = "SATELLITE_SERVERS";
     public static final String ADMIN      = "ADMIN";
 
     private Pages()

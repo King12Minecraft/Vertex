@@ -508,4 +508,28 @@ public class Message implements Serializable
     private String replayId;
     public String getReplayId() { return replayId; }
     public void setReplayId(String replayId) { this.replayId = replayId; }
+
+    // ---- Main-server sync (satellite server <-> main server, not client-facing) ----
+    private Account syncAccount;
+    private java.util.List<String> syncRatings;
+
+    /** The canonical Account, as known by whichever end sent this - SYNC_AUTH_RESPONSE (main -> satellite, on successful delegated login) and SYNC_PUSH_REQUEST (satellite -> main, pushing whatever changed locally). */
+    public Account getSyncAccount() { return syncAccount; }
+    public void setSyncAccount(Account syncAccount) { this.syncAccount = syncAccount; }
+
+    /** That account's rating in every game it's rated in, "gameId:rating" per entry - carried alongside syncAccount in both directions, since ELO lives in LeaderboardManager separately from the Account object itself. */
+    public java.util.List<String> getSyncRatings() { return syncRatings; }
+    public void setSyncRatings(java.util.List<String> syncRatings) { this.syncRatings = syncRatings; }
+
+    // ---- Satellite registry (admin-visible list of known satellite servers) ----
+    private int satellitePort;
+    private java.util.List<String> satelliteList;
+
+    /** The satellite's own listening port, self-reported on SATELLITE_REGISTER_REQUEST - main captures the satellite's IP automatically from the socket, but has no way to know which port that satellite's OWN players actually connect to without being told directly. */
+    public int getSatellitePort() { return satellitePort; }
+    public void setSatellitePort(int satellitePort) { this.satellitePort = satellitePort; }
+
+    /** Every known satellite, "host:port|lastSeenEpochMillis" per entry - SATELLITE_LIST_RESPONSE, admin-only. */
+    public java.util.List<String> getSatelliteList() { return satelliteList; }
+    public void setSatelliteList(java.util.List<String> satelliteList) { this.satelliteList = satelliteList; }
 }
