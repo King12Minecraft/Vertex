@@ -532,4 +532,11 @@ public class Message implements Serializable
     /** Every known satellite, "host:port|lastSeenEpochMillis" per entry - SATELLITE_LIST_RESPONSE, admin-only. */
     public java.util.List<String> getSatelliteList() { return satelliteList; }
     public void setSatelliteList(java.util.List<String> satelliteList) { this.satelliteList = satelliteList; }
+
+    // ---- Cross-server friend presence (PRESENCE_UPDATE, FRIEND_LOCATION_REQUEST/RESPONSE) ----
+    private String presenceAddress;
+
+    /** On PRESENCE_UPDATE (satellite -> main): the reporting server's own "host:port", paired with username+isOnline to say "this account just came online/offline HERE". On FRIEND_LOCATION_RESPONSE (main -> whoever asked): the friend's current server address, or null if they're not online anywhere main knows about. */
+    public String getPresenceAddress() { return presenceAddress; }
+    public void setPresenceAddress(String presenceAddress) { this.presenceAddress = presenceAddress; }
 }

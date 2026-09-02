@@ -240,7 +240,13 @@ public class ServerBrowserDialog
 
     private static void attemptSwitch(final JDialog dialog, final String host, final int port)
     {
-        int choice = JOptionPane.showConfirmDialog(dialog,
+        switchTo(dialog, host, port);
+    }
+
+    /** The shared core of server-switching, usable from anywhere (this dialog's own Connect buttons, or FriendsPanel's Join button) - not just from within ServerBrowserDialog itself. anchor is only used for parenting confirm/error dialogs and, on the fallback path, finding the top-level frame to dispose; it doesn't need to be a ServerBrowserDialog at all. */
+    public static void switchTo(final Component anchor, final String host, final int port)
+    {
+        int choice = JOptionPane.showConfirmDialog(anchor,
             "Switch to " + host + ":" + port + "?",
             "Switch Server", JOptionPane.YES_NO_OPTION);
         if (choice != JOptionPane.YES_OPTION)
@@ -262,7 +268,7 @@ public class ServerBrowserDialog
                     {
                         public void run()
                         {
-                            JOptionPane.showMessageDialog(dialog, "Could not reach " + host + ":" + port + ".",
+                            JOptionPane.showMessageDialog(anchor, "Could not reach " + host + ":" + port + ".",
                                 "Switch Server - Failed", JOptionPane.ERROR_MESSAGE);
                         }
                     });
@@ -287,16 +293,19 @@ public class ServerBrowserDialog
                 final Message finalReAuthResult = reAuthResult;
                 SwingUtilities.invokeLater(new Runnable()
                 {
-                    public void run() { finishSwitch(dialog, finalReAuthResult); }
+                    public void run() { finishSwitch(anchor, finalReAuthResult); }
                 });
             }
         });
         worker.start();
     }
 
-    private static void finishSwitch(JDialog dialog, Message reAuthResult)
+    private static void finishSwitch(Component anchor, Message reAuthResult)
     {
-        dialog.dispose();
+        if (anchor instanceof JDialog)
+        {
+            ((JDialog) anchor).dispose();
+        }
 
         if (reAuthResult != null && reAuthResult.isSuccess())
         {
@@ -308,7 +317,7 @@ public class ServerBrowserDialog
         // Seamless re-auth wasn't possible (no cached credentials, or this account
         // doesn't exist on the new server) - fall back to a normal fresh login.
         Session.logout();
-        Frame owner = (Frame) dialog.getOwner();
+        java.awt.Window owner = anchor instanceof JDialog ? ((JDialog) anchor).getOwner() : SwingUtilities.getWindowAncestor(anchor);
         if (owner != null)
         {
             owner.dispose();

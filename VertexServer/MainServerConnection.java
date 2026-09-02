@@ -147,6 +147,80 @@ public class MainServerConnection
         }
     }
 
+    /** Reports a login or disconnect on this satellite to main, so PresenceRegistry there can answer "where is my friend online right now" for anyone asking. Best-effort like everything else here - a failed report just means this player briefly won't show as online to friends elsewhere, not a real problem. */
+    public boolean reportPresence(String username, int myOwnPort, boolean online)
+    {
+        Socket socket = null;
+        try
+        {
+            socket = new Socket(mainHost, mainPort);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            out.flush();
+            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+
+            Message request = new Message();
+            request.setType(MessageType.PRESENCE_UPDATE);
+            request.setUsername(username);
+            request.setSatellitePort(myOwnPort);
+            request.setOnline(online);
+            out.writeObject(request);
+            out.flush();
+
+            in.readObject();
+            return true;
+        }
+        catch (IOException e)
+        {
+            return false;
+        }
+        catch (ClassNotFoundException e)
+        {
+            return false;
+        }
+        finally
+        {
+            closeQuietly(socket);
+        }
+    }
+
+    /** Forwarded from a satellite's own FRIEND_LOCATION_REQUEST handling - asks main "where is this account online right now, if anywhere" and returns the address, or null if not found or main is unreachable. */
+    public String queryFriendLocation(String username)
+    {
+        Socket socket = null;
+        try
+        {
+            socket = new Socket(mainHost, mainPort);
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            out.flush();
+            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+
+            Message request = new Message();
+            request.setType(MessageType.FRIEND_LOCATION_REQUEST);
+            request.setUsername(username);
+            out.writeObject(request);
+            out.flush();
+
+            Object response = in.readObject();
+            if (response instanceof Message && ((Message) response).getType() == MessageType.FRIEND_LOCATION_RESPONSE)
+            {
+                return ((Message) response).getPresenceAddress();
+            }
+            return null;
+        }
+        catch (IOException e)
+        {
+            return null;
+        }
+        catch (ClassNotFoundException e)
+        {
+            return null;
+        }
+        finally
+        {
+            closeQuietly(socket);
+        }
+    }
+
     private void closeQuietly(Socket socket)
     {
         if (socket != null)

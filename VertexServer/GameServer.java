@@ -33,6 +33,7 @@ public class GameServer
     private final AchievementManager achievementManager = new AchievementManager();
     private final SyncService syncService = new SyncService(accountStore, leaderboardManager, achievementManager);
     private final SatelliteRegistry satelliteRegistry = new SatelliteRegistry();
+    private final PresenceRegistry presenceRegistry = new PresenceRegistry();
     private final PartyManager partyManager = new PartyManager(chatManager);
     private final MatchManager matchManager = new MatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final GroupChatManager groupChatManager = new GroupChatManager(chatManager);
@@ -114,7 +115,7 @@ public class GameServer
                     friendManager, moderationManager, racingMatchManager, amongUsMatchManager,
                     fightArenaMatchManager, chessMatchManager, battleshipMatchManager, rpsMatchManager,
                     leaderboardManager, partyManager, achievementManager, tournamentManager, replayManager,
-                    teamTournamentManager, mainServerConnection, satelliteRegistry);
+                    teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

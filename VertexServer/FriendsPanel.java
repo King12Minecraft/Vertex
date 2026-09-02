@@ -2,6 +2,7 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -410,9 +411,70 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         rightWrap.setOpaque(false);
         rightWrap.add(message);
         rightWrap.add(invite);
+
+        if (!isOnline)
+        {
+            ThemedButton join = new ThemedButton("Join", false);
+            join.setPreferredSize(new Dimension(70, 32));
+            join.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e) { attemptJoinFriend(username); }
+            });
+            rightWrap.add(join);
+        }
+
         row.add(rightWrap, BorderLayout.EAST);
 
         return row;
+    }
+
+    /** Looks up which server (if any) this friend is currently online at, via the main-server presence system (see PresenceRegistry/FRIEND_LOCATION_REQUEST) - main knows the full cross-server picture even if the friend is on a totally different satellite than this one. Offers to switch there if found, using the same seamless re-auth ServerBrowserDialog's switcher uses. */
+    private void attemptJoinFriend(final String username)
+    {
+        Thread worker = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.FRIEND_LOCATION_REQUEST);
+                request.setUsername(username);
+                final Message response = NetworkManager.send(request);
+
+                SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run() { handleJoinLocation(username, response); }
+                });
+            }
+        });
+        worker.start();
+    }
+
+    private void handleJoinLocation(String username, Message response)
+    {
+        String address = response != null ? response.getPresenceAddress() : null;
+        if (address == null)
+        {
+            GameHubDialog.show(this, "Join Friend", username + " doesn't appear to be online right now.");
+            return;
+        }
+
+        int colonIndex = address.lastIndexOf(':');
+        if (colonIndex <= 0)
+        {
+            return;
+        }
+        final String host = address.substring(0, colonIndex);
+        final int port = Integer.parseInt(address.substring(colonIndex + 1));
+
+        int choice = JOptionPane.showConfirmDialog(this,
+            username + " is online at " + address + ". Switch there now?",
+            "Join Friend", JOptionPane.YES_NO_OPTION);
+        if (choice != JOptionPane.YES_OPTION)
+        {
+            return;
+        }
+
+        ServerBrowserDialog.switchTo(this, host, port);
     }
 
     private JLabel mutedLabel(String text)

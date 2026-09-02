@@ -44,6 +44,7 @@ public class ClientHandler implements Runnable
     private TeamTournamentManager teamTournamentManager;
     private MainServerConnection mainServerConnection;
     private SatelliteRegistry satelliteRegistry;
+    private PresenceRegistry presenceRegistry;
 
     public ClientHandler(Socket socket, ServerAccountStore accountStore, GameRegistry gameRegistry,
                           MatchManager matchManager, ChatManager chatManager,
@@ -55,7 +56,8 @@ public class ClientHandler implements Runnable
                           RockPaperScissorsMatchManager rpsMatchManager, LeaderboardManager leaderboardManager,
                           PartyManager partyManager, AchievementManager achievementManager, TournamentManager tournamentManager,
                           ReplayManager replayManager, TeamTournamentManager teamTournamentManager,
-                          MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry)
+                          MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry,
+                          PresenceRegistry presenceRegistry)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -81,6 +83,7 @@ public class ClientHandler implements Runnable
         this.teamTournamentManager = teamTournamentManager;
         this.mainServerConnection = mainServerConnection;
         this.satelliteRegistry = satelliteRegistry;
+        this.presenceRegistry = presenceRegistry;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -172,6 +175,7 @@ public class ClientHandler implements Runnable
                 {
                     friendManager.broadcastPresenceChange(account, false);
                 }
+                reportPresenceToMain(false);
             }
 
             try { socket.close(); } catch (IOException ignored) { }
@@ -185,6 +189,8 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.SYNC_PUSH_REQUEST) return handleSyncPush(request);
         if (request.getType() == MessageType.SATELLITE_REGISTER_REQUEST) return handleSatelliteRegister(request);
         if (request.getType() == MessageType.SATELLITE_LIST_REQUEST) return handleSatelliteList();
+        if (request.getType() == MessageType.PRESENCE_UPDATE) return handlePresenceUpdate(request);
+        if (request.getType() == MessageType.FRIEND_LOCATION_REQUEST) return handleFriendLocationRequest(request);
         if (request.getType() == MessageType.CREATE_ACCOUNT_REQUEST) return handleCreateAccount(request);
         if (request.getType() == MessageType.GAME_LIST_REQUEST) return handleGameList();
         if (request.getType() == MessageType.CHANGE_USERNAME_REQUEST) return handleChangeUsername(request);
@@ -313,6 +319,7 @@ public class ClientHandler implements Runnable
             loggedInAccountId = account.getAccountId();
             chatManager.register(this, loggedInUsername);
             friendManager.broadcastPresenceChange(account, true);
+            reportPresenceToMain(true);
         }
         else
         {
@@ -320,6 +327,23 @@ public class ClientHandler implements Runnable
             response.setErrorText(describeLoginFailure(result));
         }
         return response;
+    }
+
+    /** A no-op if this server isn't a satellite (mainServerConnection null). Runs on a background thread since it's a network call and shouldn't hold up the login response the player is actually waiting on. */
+    private void reportPresenceToMain(final boolean online)
+    {
+        if (mainServerConnection == null || loggedInUsername == null)
+        {
+            return;
+        }
+        final String username = loggedInUsername;
+        final int myPort = NetworkConfig.getServerPort();
+        Thread reportThread = new Thread(new Runnable()
+        {
+            public void run() { mainServerConnection.reportPresence(username, myPort, online); }
+        });
+        reportThread.setDaemon(true);
+        reportThread.start();
     }
 
     private String describeLoginFailure(ServerAccountStore.LoginResult result)
@@ -396,6 +420,39 @@ public class ClientHandler implements Runnable
         }
         response.setSuccess(true);
         response.setSatelliteList(satelliteRegistry.listAll());
+        return response;
+    }
+
+    /** Only meaningful on the main server - a satellite reporting one of ITS players just logged in or disconnected. Captures the reporting satellite's real IP from the socket itself (never trusts a self-reported host, same reasoning as SATELLITE_REGISTER_REQUEST), paired with the port it was told directly. */
+    private Message handlePresenceUpdate(Message request)
+    {
+        String host = socket.getInetAddress().getHostAddress();
+        String address = host + ":" + request.getSatellitePort();
+        if (request.isOnline())
+        {
+            presenceRegistry.setOnline(request.getUsername(), address);
+        }
+        else
+        {
+            presenceRegistry.setOffline(request.getUsername());
+        }
+        return new Message();
+    }
+
+    /** "Where is this friend online right now, if anywhere" - answered directly if THIS server is main (it has the full picture), or forwarded to main if this is a satellite (which doesn't track anyone else's presence, only its own players). */
+    private Message handleFriendLocationRequest(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.FRIEND_LOCATION_RESPONSE);
+
+        if (mainServerConnection == null)
+        {
+            response.setPresenceAddress(presenceRegistry.getAddress(request.getUsername()));
+        }
+        else
+        {
+            response.setPresenceAddress(mainServerConnection.queryFriendLocation(request.getUsername()));
+        }
         return response;
     }
 
