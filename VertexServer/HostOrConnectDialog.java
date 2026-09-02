@@ -94,41 +94,6 @@ public class HostOrConnectDialog
     /** Asks which port to host on (same pattern ServerMain uses standalone), starts a real GameServer in-process, points NetworkConfig at "localhost" + that port, then proceeds - no ConnectDialog needed, since hosting means connecting to yourself. */
     private static void startHosting(Runnable onReady)
     {
-        String input = JOptionPane.showInputDialog(null,
-            "Which port should this server listen on?\n(Leave blank for the default, " + NetworkConfig.getServerPort() + ")",
-            "Vertex - Choose a Port", JOptionPane.QUESTION_MESSAGE);
-
-        if (input == null)
-        {
-            // Cancelled - fall back to the connect flow instead of leaving the person stuck with nothing.
-            ConnectDialog.show(onReady);
-            return;
-        }
-
-        input = input.trim();
-        if (!input.isEmpty())
-        {
-            try
-            {
-                int port = Integer.parseInt(input);
-                if (port < 1 || port > 65535)
-                {
-                    JOptionPane.showMessageDialog(null, "Port must be between 1 and 65535.",
-                        "Vertex - Invalid Port", JOptionPane.ERROR_MESSAGE);
-                    show(onReady);
-                    return;
-                }
-                NetworkConfig.setServerPort(port);
-            }
-            catch (NumberFormatException e)
-            {
-                JOptionPane.showMessageDialog(null, "That's not a valid port number.",
-                    "Vertex - Invalid Port", JOptionPane.ERROR_MESSAGE);
-                show(onReady);
-                return;
-            }
-        }
-
         GameServer server = new GameServer();
 
         String mainAddress = JOptionPane.showInputDialog(null,
