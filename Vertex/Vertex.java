@@ -49,6 +49,7 @@ public class Vertex
                     {
                         AuthWindow window = new AuthWindow();
                         window.setVisible(true);
+                        ClientUpdateChecker.checkInBackground();
                     }
                 });
             }

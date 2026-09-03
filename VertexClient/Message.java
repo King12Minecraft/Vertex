@@ -556,4 +556,16 @@ public class Message implements Serializable
     /** On PRESENCE_UPDATE (satellite -> main): the reporting server's own "host:port", paired with username+isOnline to say "this account just came online/offline HERE". On FRIEND_LOCATION_RESPONSE (main -> whoever asked): the friend's current server address, or null if they're not online anywhere main knows about. */
     public String getPresenceAddress() { return presenceAddress; }
     public void setPresenceAddress(String presenceAddress) { this.presenceAddress = presenceAddress; }
+
+    // ---- Client auto-update (see ClientUpdateChecker/ClientUpdatePackage) ----
+    private String clientJarHash;
+    private boolean updateAvailable;
+
+    /** SHA-256 hex of the jar the client was actually launched from - CLIENT_VERSION_CHECK_REQUEST. */
+    public String getClientJarHash() { return clientJarHash; }
+    public void setClientJarHash(String clientJarHash) { this.clientJarHash = clientJarHash; }
+
+    /** True if the server's own Vertex.jar hash doesn't match clientJarHash - CLIENT_VERSION_CHECK_RESPONSE. Reuses getFileData()/getFileName() (chat attachments) to carry the actual jar bytes on CLIENT_UPDATE_DOWNLOAD_RESPONSE, rather than adding another byte[] field for the same shape of thing. */
+    public boolean isUpdateAvailable() { return updateAvailable; }
+    public void setUpdateAvailable(boolean updateAvailable) { this.updateAvailable = updateAvailable; }
 }

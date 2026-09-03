@@ -272,10 +272,45 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.PARTY_JOIN_BY_CODE_REQUEST) return handlePartyJoinByCode(request);
         if (request.getType() == MessageType.PARTY_LEAVE_REQUEST) return handlePartyLeave();
         if (request.getType() == MessageType.PARTY_KICK_REQUEST) return handlePartyKick(request);
+        if (request.getType() == MessageType.CLIENT_VERSION_CHECK_REQUEST) return handleClientVersionCheck(request);
+        if (request.getType() == MessageType.CLIENT_UPDATE_DOWNLOAD_REQUEST) return handleClientUpdateDownload();
 
         Message response = new Message();
         response.setSuccess(false);
         response.setErrorText("Unknown request type.");
+        return response;
+    }
+
+    /** Lets a client ask "is there a newer Vertex.jar than the one I'm running?" - compares against whatever Vertex.jar happens to be sitting next to this server right now (see ClientUpdatePackage). If the operator hasn't put one there, this always reports up to date rather than breaking the check for anyone. */
+    private Message handleClientVersionCheck(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.CLIENT_VERSION_CHECK_RESPONSE);
+        response.setSuccess(true);
+
+        String serverHash = ClientUpdatePackage.getCurrentHash();
+        boolean available = serverHash != null && !serverHash.equals(request.getClientJarHash());
+        response.setUpdateAvailable(available);
+        return response;
+    }
+
+    /** Sends the raw bytes of whatever Vertex.jar is next to this server, for the client to stage and swap in on its next restart. Reuses fileData/fileName (chat attachments) - same "just relay bytes" shape. */
+    private Message handleClientUpdateDownload()
+    {
+        Message response = new Message();
+        response.setType(MessageType.CLIENT_UPDATE_DOWNLOAD_RESPONSE);
+
+        byte[] bytes = ClientUpdatePackage.getCurrentBytes();
+        if (bytes == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No update package is available on this server.");
+            return response;
+        }
+
+        response.setSuccess(true);
+        response.setFileData(bytes);
+        response.setFileName("Vertex.jar");
         return response;
     }
 

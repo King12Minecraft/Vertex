@@ -328,7 +328,9 @@ public class NetworkManager
         MessageType.REPLAY_LIST_RESPONSE,
         MessageType.REPLAY_RESPONSE,
         MessageType.FEEDBACK_SUBMIT_RESPONSE,
-        MessageType.FEEDBACK_LIST_RESPONSE);
+        MessageType.FEEDBACK_LIST_RESPONSE,
+        MessageType.CLIENT_VERSION_CHECK_RESPONSE,
+        MessageType.CLIENT_UPDATE_DOWNLOAD_RESPONSE);
 
     private static void routeIncoming(Message message)
     {
