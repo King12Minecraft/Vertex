@@ -23,8 +23,16 @@ import java.util.Set;
  * draw record; score-based games (Racing, Snake, Tetris, etc.) show
  * best score instead - the server decides which via
  * LEADERBOARD_RESPONSE, this panel just renders whichever it gets.
+ *
+ * Uses a plain blocking NetworkManager.send() per chip click rather
+ * than sendAsync()+PushListener - LEADERBOARD_RESPONSE is only ever a
+ * direct reply, never pushed unprompted, so there's nothing to listen
+ * for. (sendAsync()+onPush here used to be able to steal a response
+ * meant for someone else's concurrent blocking send() call, since
+ * NetworkManager's response queue has no per-request correlation -
+ * see AchievementsPanel's note for the full explanation.)
  */
-public class LeaderboardPanel extends RoundedPanel implements NetworkManager.PushListener
+public class LeaderboardPanel extends RoundedPanel
 {
     private static final Set<String> RATED_GAMES = new HashSet<String>(java.util.Arrays.asList(
         "tictactoe-online", "chess", "battleship", "rock-paper-scissors", "fight-arena"));
@@ -102,7 +110,6 @@ public class LeaderboardPanel extends RoundedPanel implements NetworkManager.Pus
 
         add(body, BorderLayout.CENTER);
 
-        NetworkManager.addPushListener(this);
         populateChips();
     }
 
@@ -138,28 +145,34 @@ public class LeaderboardPanel extends RoundedPanel implements NetworkManager.Pus
         entriesList.revalidate();
         entriesList.repaint();
 
-        Message request = new Message();
+        final Message request = new Message();
         request.setType(MessageType.LEADERBOARD_REQUEST);
         request.setGameId(gameId);
-        NetworkManager.sendAsync(request);
-    }
 
-    @Override
-    public void onPush(final Message message)
-    {
-        if (message.getType() != MessageType.LEADERBOARD_RESPONSE)
+        Thread worker = new Thread(new Runnable()
         {
-            return;
-        }
-        if (selectedGameId == null || !selectedGameId.equals(message.getGameId()))
-        {
-            return;
-        }
+            public void run()
+            {
+                final Message response = NetworkManager.send(request);
 
-        javax.swing.SwingUtilities.invokeLater(new Runnable()
-        {
-            public void run() { renderLeaderboard(message); }
+                javax.swing.SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        if (response == null || !response.isSuccess())
+                        {
+                            return;
+                        }
+                        if (selectedGameId == null || !selectedGameId.equals(response.getGameId()))
+                        {
+                            return;
+                        }
+                        renderLeaderboard(response);
+                    }
+                });
+            }
         });
+        worker.start();
     }
 
     private void renderLeaderboard(Message message)

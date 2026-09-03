@@ -22,8 +22,18 @@ import java.util.List;
  * shows each friend with an Invite button, sends PARTY_INVITE_REQUEST
  * on selection. Kept separate from FriendsPanel itself since this is a
  * transient picker, not a persistent page.
+ *
+ * Fetches with a blocking NetworkManager.send() on a background thread
+ * rather than sendAsync()+PushListener - FRIEND_LIST_RESPONSE is only
+ * ever a direct reply, never pushed unprompted, so there's nothing to
+ * listen for. (sendAsync()+onPush here used to be able to steal a
+ * response meant for someone else's concurrent blocking send() call,
+ * since NetworkManager's response queue has no per-request correlation
+ * - see AchievementsPanel's note for the full explanation. That's a
+ * real bug that could fire any time this dialog opened while another
+ * screen had a network fetch in flight.)
  */
-public class FriendPickerDialog implements NetworkManager.PushListener
+public class FriendPickerDialog
 {
     private final JDialog dialog;
     private final JPanel list;
@@ -59,12 +69,6 @@ public class FriendPickerDialog implements NetworkManager.PushListener
         ThemedScrollBarUI.apply(scroll);
         root.add(scroll, BorderLayout.CENTER);
 
-        NetworkManager.addPushListener(this);
-
-        Message request = new Message();
-        request.setType(MessageType.FRIEND_LIST_REQUEST);
-        NetworkManager.sendAsync(request);
-
         JLabel loading = new JLabel("Loading friends...");
         loading.setFont(UITheme.FONT_SMALL);
         loading.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
@@ -72,6 +76,8 @@ public class FriendPickerDialog implements NetworkManager.PushListener
 
         dialog.pack();
         dialog.setLocationRelativeTo(owner);
+
+        fetchInBackground();
     }
 
     public static void showForParty(Component anchor)
@@ -79,22 +85,30 @@ public class FriendPickerDialog implements NetworkManager.PushListener
         new FriendPickerDialog(anchor).dialog.setVisible(true);
     }
 
-    @Override
-    public void onPush(final Message message)
+    private void fetchInBackground()
     {
-        if (message.getType() != MessageType.FRIEND_LIST_RESPONSE)
+        Thread worker = new Thread(new Runnable()
         {
-            return;
-        }
-        javax.swing.SwingUtilities.invokeLater(new Runnable()
-        {
-            public void run() { render(message.getFriendUsernames()); }
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.FRIEND_LIST_REQUEST);
+                final Message response = NetworkManager.send(request);
+
+                javax.swing.SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        render(response == null || !response.isSuccess() ? null : response.getFriendUsernames());
+                    }
+                });
+            }
         });
+        worker.start();
     }
 
     private void render(List<String> friends)
     {
-        NetworkManager.removePushListener(this);
         list.removeAll();
 
         if (friends == null || friends.isEmpty())

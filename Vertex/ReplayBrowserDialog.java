@@ -22,8 +22,17 @@ import java.util.List;
  * Lists every past match the person has played (Chess only, matching
  * ReplayManager's current scope) and opens a ReplayWindow to step
  * through whichever one they pick.
+ *
+ * Fetches with a blocking NetworkManager.send() on a background thread
+ * rather than sendAsync()+PushListener - REPLAY_LIST_RESPONSE and
+ * REPLAY_RESPONSE are only ever direct replies, never pushed
+ * unprompted, so there's nothing to listen for. (sendAsync()+onPush
+ * here used to be able to steal a response meant for someone else's
+ * concurrent blocking send() call, since NetworkManager's response
+ * queue has no per-request correlation - see AchievementsPanel's note
+ * for the full explanation.)
  */
-public class ReplayBrowserDialog implements NetworkManager.PushListener
+public class ReplayBrowserDialog
 {
     private final JDialog dialog;
     private final JPanel list;
@@ -59,12 +68,6 @@ public class ReplayBrowserDialog implements NetworkManager.PushListener
         ThemedScrollBarUI.apply(scroll);
         root.add(scroll, BorderLayout.CENTER);
 
-        NetworkManager.addPushListener(this);
-
-        Message request = new Message();
-        request.setType(MessageType.REPLAY_LIST_REQUEST);
-        NetworkManager.sendAsync(request);
-
         JLabel loading = new JLabel("Loading your matches...");
         loading.setFont(UITheme.FONT_SMALL);
         loading.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
@@ -72,6 +75,8 @@ public class ReplayBrowserDialog implements NetworkManager.PushListener
 
         dialog.pack();
         dialog.setLocationRelativeTo(owner);
+
+        fetchListInBackground();
     }
 
     public static void show(Component anchor)
@@ -79,23 +84,26 @@ public class ReplayBrowserDialog implements NetworkManager.PushListener
         new ReplayBrowserDialog(anchor).dialog.setVisible(true);
     }
 
-    @Override
-    public void onPush(final Message message)
+    private void fetchListInBackground()
     {
-        if (message.getType() == MessageType.REPLAY_LIST_RESPONSE)
+        Thread worker = new Thread(new Runnable()
         {
-            javax.swing.SwingUtilities.invokeLater(new Runnable()
+            public void run()
             {
-                public void run() { renderList(message.getReplayEntries()); }
-            });
-        }
-        else if (message.getType() == MessageType.REPLAY_RESPONSE)
-        {
-            javax.swing.SwingUtilities.invokeLater(new Runnable()
-            {
-                public void run() { openReplay(message.getReplaySnapshots()); }
-            });
-        }
+                Message request = new Message();
+                request.setType(MessageType.REPLAY_LIST_REQUEST);
+                final Message response = NetworkManager.send(request);
+
+                javax.swing.SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        renderList(response == null || !response.isSuccess() ? null : response.getReplayEntries());
+                    }
+                });
+            }
+        });
+        worker.start();
     }
 
     private void renderList(List<String> entries)
@@ -181,19 +189,34 @@ public class ReplayBrowserDialog implements NetworkManager.PushListener
 
     private String pendingGameId;
 
-    private void requestReplay(String replayId, String gameId)
+    private void requestReplay(final String replayId, String gameId)
     {
         pendingGameId = gameId;
-        Message request = new Message();
-        request.setType(MessageType.REPLAY_REQUEST);
-        request.setReplayId(replayId);
-        NetworkManager.sendAsync(request);
+
+        Thread worker = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.REPLAY_REQUEST);
+                request.setReplayId(replayId);
+                final Message response = NetworkManager.send(request);
+
+                javax.swing.SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        openReplay(response == null || !response.isSuccess() ? null : response.getReplaySnapshots());
+                    }
+                });
+            }
+        });
+        worker.start();
     }
 
     /** Player names aren't re-fetched with the snapshot/round data itself, so viewers use generic labels (White/Black, Player 1/Player 2) rather than adding another round trip. */
     private void openReplay(List<String> snapshots)
     {
-        NetworkManager.removePushListener(this);
         dialog.dispose();
         if (snapshots == null || snapshots.isEmpty())
         {

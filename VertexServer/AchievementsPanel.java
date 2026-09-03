@@ -19,8 +19,22 @@ import java.util.Set;
  * what achievements exist comes from AchievementDefinitions (a
  * client-side mirror of the server's list, since the server only ever
  * sends which IDs are unlocked, not the full definitions).
+ *
+ * Fetched with a blocking NetworkManager.send() on a background thread
+ * rather than sendAsync()+PushListener - ACHIEVEMENTS_RESPONSE is only
+ * ever sent by the server as a direct reply to ACHIEVEMENTS_REQUEST,
+ * never as an unprompted push, so there's nothing to listen for here.
+ * (An earlier version of this panel did use sendAsync()+onPush, which
+ * was the actual bug: NetworkManager's pendingResponses queue has no
+ * per-request correlation, so an ACHIEVEMENTS_RESPONSE that nobody's
+ * blocking send() was waiting for would sit in that queue and get
+ * handed to whichever *unrelated* blocking call happened to poll()
+ * next - misrouting a totally different request's real response one
+ * slot further down the line, and so on for every call after it. That
+ * surfaced as things like the Games screen crashing with a
+ * NullPointerException right after login.)
  */
-public class AchievementsPanel extends RoundedPanel implements NetworkManager.PushListener
+public class AchievementsPanel extends RoundedPanel
 {
     private final JPanel list;
 
@@ -49,28 +63,34 @@ public class AchievementsPanel extends RoundedPanel implements NetworkManager.Pu
         add(scroll, BorderLayout.CENTER);
 
         renderLocked(new HashSet<String>());
-
-        NetworkManager.addPushListener(this);
-        Message request = new Message();
-        request.setType(MessageType.ACHIEVEMENTS_REQUEST);
-        NetworkManager.sendAsync(request);
+        fetchInBackground();
     }
 
-    @Override
-    public void onPush(final Message message)
+    private void fetchInBackground()
     {
-        if (message.getType() != MessageType.ACHIEVEMENTS_RESPONSE)
-        {
-            return;
-        }
-        javax.swing.SwingUtilities.invokeLater(new Runnable()
+        Thread worker = new Thread(new Runnable()
         {
             public void run()
             {
-                List<String> unlockedList = message.getUnlockedAchievementIds();
-                renderLocked(unlockedList == null ? new HashSet<String>() : new HashSet<String>(unlockedList));
+                Message request = new Message();
+                request.setType(MessageType.ACHIEVEMENTS_REQUEST);
+                final Message response = NetworkManager.send(request);
+
+                javax.swing.SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        if (response == null || !response.isSuccess())
+                        {
+                            return;
+                        }
+                        List<String> unlockedList = response.getUnlockedAchievementIds();
+                        renderLocked(unlockedList == null ? new HashSet<String>() : new HashSet<String>(unlockedList));
+                    }
+                });
             }
         });
+        worker.start();
     }
 
     private void renderLocked(Set<String> unlockedIds)

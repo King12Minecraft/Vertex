@@ -148,54 +148,33 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
         NetworkManager.sendAsync(request);
     }
 
+    /**
+     * TOURNAMENT_LIST_RESPONSE is deliberately routed as a push (see
+     * NetworkManager.RESPONSE_TYPES's note on why), so a blocking
+     * send() here would never actually get its answer that way - it
+     * would just tie up NetworkManager's one shared connection lock for
+     * a full 10-second timeout on every single login (TournamentsPanel
+     * is built eagerly at startup like every other sidebar page), and
+     * since send()/sendAsync() are both synchronized on the same lock,
+     * that also stalled every OTHER panel's own data loading behind it
+     * for as long as this call sat there waiting - GamesPanel's "Home"
+     * view included. sendAsync() is the correct call here: it just
+     * fires the request and returns immediately, and the real answer
+     * still comes back through onPush() below either way.
+     */
     private void refreshList()
     {
-        Thread worker = new Thread(new Runnable()
-        {
-            public void run()
-            {
-                Message request = new Message();
-                request.setType(MessageType.TOURNAMENT_LIST_REQUEST);
-                final Message response = NetworkManager.send(request);
-
-                SwingUtilities.invokeLater(new Runnable()
-                {
-                    public void run()
-                    {
-                        if (response != null)
-                        {
-                            renderList(response.getTournamentEntries());
-                        }
-                    }
-                });
-            }
-        });
-        worker.start();
+        Message request = new Message();
+        request.setType(MessageType.TOURNAMENT_LIST_REQUEST);
+        NetworkManager.sendAsync(request);
     }
 
+    /** See refreshList()'s note - same reasoning, TEAM_TOURNAMENT_LIST_RESPONSE is also push-only. */
     private void refreshTeamList()
     {
-        Thread worker = new Thread(new Runnable()
-        {
-            public void run()
-            {
-                Message request = new Message();
-                request.setType(MessageType.TEAM_TOURNAMENT_LIST_REQUEST);
-                final Message response = NetworkManager.send(request);
-
-                SwingUtilities.invokeLater(new Runnable()
-                {
-                    public void run()
-                    {
-                        if (response != null)
-                        {
-                            renderTeamList(response.getTournamentEntries());
-                        }
-                    }
-                });
-            }
-        });
-        worker.start();
+        Message request = new Message();
+        request.setType(MessageType.TEAM_TOURNAMENT_LIST_REQUEST);
+        NetworkManager.sendAsync(request);
     }
 
     @Override

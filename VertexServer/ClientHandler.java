@@ -1521,6 +1521,7 @@ public class ClientHandler implements Runnable
     {
         Message response = new Message();
         response.setType(MessageType.LEADERBOARD_RESPONSE);
+        response.setSuccess(true);
         response.setGameId(request.getGameId());
 
         String gameId = request.getGameId();
@@ -1595,6 +1596,7 @@ public class ClientHandler implements Runnable
     {
         Message response = new Message();
         response.setType(MessageType.ACHIEVEMENTS_RESPONSE);
+        response.setSuccess(true);
         if (loggedInAccountId != null)
         {
             response.setUnlockedAchievementIds(new java.util.ArrayList<String>(achievementManager.getUnlocked(loggedInAccountId)));
@@ -1667,6 +1669,7 @@ public class ClientHandler implements Runnable
     {
         Message response = new Message();
         response.setType(MessageType.SPECTATABLE_MATCHES_RESPONSE);
+        response.setSuccess(true);
         response.setGameId(request.getGameId());
 
         if ("chess".equals(request.getGameId()))
@@ -1711,6 +1714,7 @@ public class ClientHandler implements Runnable
     {
         Message response = new Message();
         response.setType(MessageType.REPLAY_LIST_RESPONSE);
+        response.setSuccess(true);
         response.setReplayEntries(loggedInUsername != null
             ? replayManager.listForPlayer(loggedInUsername)
             : new java.util.ArrayList<String>());
@@ -1721,6 +1725,7 @@ public class ClientHandler implements Runnable
     {
         Message response = new Message();
         response.setType(MessageType.REPLAY_RESPONSE);
+        response.setSuccess(true);
         response.setReplayId(request.getReplayId());
 
         ReplayManager.Replay replay = replayManager.get(request.getReplayId());

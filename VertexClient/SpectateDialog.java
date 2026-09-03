@@ -21,8 +21,16 @@ import java.util.List;
  * join one as a read-only watcher. Chess-only for now, matching the
  * server side (see ClientHandler.handleSpectatableMatches) - other
  * turn-based games would extend the same way later.
+ *
+ * Fetches with a blocking NetworkManager.send() on a background thread
+ * rather than sendAsync()+PushListener - SPECTATABLE_MATCHES_RESPONSE
+ * is only ever a direct reply, never pushed unprompted, so there's
+ * nothing to listen for. (sendAsync()+onPush here used to be able to
+ * steal a response meant for someone else's concurrent blocking send()
+ * call, since NetworkManager's response queue has no per-request
+ * correlation - see AchievementsPanel's note for the full explanation.)
  */
-public class SpectateDialog implements NetworkManager.PushListener
+public class SpectateDialog
 {
     private final JDialog dialog;
     private final JPanel list;
@@ -60,13 +68,6 @@ public class SpectateDialog implements NetworkManager.PushListener
         ThemedScrollBarUI.apply(scroll);
         root.add(scroll, BorderLayout.CENTER);
 
-        NetworkManager.addPushListener(this);
-
-        Message request = new Message();
-        request.setType(MessageType.SPECTATABLE_MATCHES_REQUEST);
-        request.setGameId(gameId);
-        NetworkManager.sendAsync(request);
-
         JLabel loading = new JLabel("Looking for live matches...");
         loading.setFont(UITheme.FONT_SMALL);
         loading.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
@@ -74,6 +75,8 @@ public class SpectateDialog implements NetworkManager.PushListener
 
         dialog.pack();
         dialog.setLocationRelativeTo(owner);
+
+        fetchInBackground();
     }
 
     public static void show(Component anchor, String gameId)
@@ -81,22 +84,31 @@ public class SpectateDialog implements NetworkManager.PushListener
         new SpectateDialog(anchor, gameId).dialog.setVisible(true);
     }
 
-    @Override
-    public void onPush(final Message message)
+    private void fetchInBackground()
     {
-        if (message.getType() != MessageType.SPECTATABLE_MATCHES_RESPONSE || !gameId.equals(message.getGameId()))
+        Thread worker = new Thread(new Runnable()
         {
-            return;
-        }
-        javax.swing.SwingUtilities.invokeLater(new Runnable()
-        {
-            public void run() { render(message.getSpectatableMatches()); }
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.SPECTATABLE_MATCHES_REQUEST);
+                request.setGameId(gameId);
+                final Message response = NetworkManager.send(request);
+
+                javax.swing.SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        render(response == null || !response.isSuccess() ? null : response.getSpectatableMatches());
+                    }
+                });
+            }
         });
+        worker.start();
     }
 
     private void render(List<String> matches)
     {
-        NetworkManager.removePushListener(this);
         list.removeAll();
 
         if (matches == null || matches.isEmpty())

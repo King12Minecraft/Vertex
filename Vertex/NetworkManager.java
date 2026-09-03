@@ -274,6 +274,28 @@ public class NetworkManager
      * either way - so routing them as push keeps the live broadcast
      * working, and the panel's own direct request just quietly times out
      * in the background after already being satisfied by the push.
+     *
+     * IMPORTANT - being IN this set only means "if a blocking send() is
+     * ever waiting for one, this is the type it should get." It is NOT
+     * safe for a type in here to ALSO be requested via sendAsync() from
+     * somewhere else, expecting to catch the reply via onPush() instead:
+     * pendingResponses is one shared FIFO queue with no per-request
+     * correlation, so that reply would get offered into the queue same
+     * as any real blocking reply, and whichever *unrelated* send() call
+     * happens to poll() next would receive it instead of its own answer
+     * - which then bumps that call's real answer to the next poller, and
+     * so on, cascading. This actually happened (ACHIEVEMENTS_RESPONSE,
+     * FRIEND_LIST_RESPONSE, LEADERBOARD_RESPONSE, REPLAY_LIST_RESPONSE,
+     * REPLAY_RESPONSE, SPECTATABLE_MATCHES_RESPONSE were each also being
+     * requested via sendAsync()+onPush from one dialog/panel apiece,
+     * while every other caller of the same request type blocked on
+     * send() as normal) and was the real cause behind GamesPanel's
+     * "random" NullPointerException right after login - fixed by making
+     * every caller of a type in this set use blocking send() consistently
+     * (see AchievementsPanel, FriendPickerDialog, LeaderboardPanel,
+     * ReplayBrowserDialog, SpectateDialog). If a genuinely-broadcast type
+     * needs to go here in the future, give it the TOURNAMENT_LIST_RESPONSE
+     * treatment above instead: leave it OUT and let onPush handle it.
      */
     private static final Set<MessageType> RESPONSE_TYPES = EnumSet.of(
         MessageType.LOGIN_RESPONSE,
