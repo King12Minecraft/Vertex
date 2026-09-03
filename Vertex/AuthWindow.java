@@ -118,10 +118,63 @@ public class AuthWindow extends JFrame
         });
 
         col.add(indicatorRow);
+        col.add(javax.swing.Box.createVerticalStrut(6));
+        col.add(createChangeServerRow());
         col.add(javax.swing.Box.createVerticalStrut(10));
         col.add(createPlayOfflineRow());
 
         return col;
+    }
+
+    /**
+     * A small, easy-to-ignore link rather than a dialog that blocks the
+     * whole app on every launch (see Vertex.java's own comment on why
+     * HostOrConnectDialog got removed) - only shown to someone who
+     * actually wants to point this client at a different server than
+     * the default. Reuses ConnectDialog's address field, but since a
+     * connection attempt (successful or not) may already be under way by
+     * the time this is clicked, the callback goes through
+     * NetworkManager.switchServer(...) rather than just connect() - that
+     * closes whatever socket is already open/half-open first, so it
+     * always targets the address just entered instead of possibly being
+     * a no-op against an existing connection to the old one.
+     */
+    private JPanel createChangeServerRow()
+    {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(java.awt.Component.CENTER_ALIGNMENT);
+
+        javax.swing.JButton changeServer = new javax.swing.JButton("Change Server");
+        changeServer.setFont(UITheme.FONT_SMALL);
+        changeServer.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        changeServer.setFocusPainted(false);
+        changeServer.setBorderPainted(false);
+        changeServer.setContentAreaFilled(false);
+        changeServer.setOpaque(false);
+        changeServer.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        changeServer.addActionListener(new java.awt.event.ActionListener()
+        {
+            public void actionPerformed(java.awt.event.ActionEvent e)
+            {
+                ConnectDialog.show(new Runnable()
+                {
+                    public void run()
+                    {
+                        final String host = NetworkConfig.getServerHost();
+                        final int port = NetworkConfig.getServerPort();
+                        Thread worker = new Thread(new Runnable()
+                        {
+                            public void run() { NetworkManager.switchServer(host, port); }
+                        });
+                        worker.start();
+                    }
+                });
+            }
+        });
+
+        row.add(changeServer);
+        return row;
     }
 
     /**

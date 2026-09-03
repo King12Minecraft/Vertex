@@ -77,6 +77,15 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
         add(createHeader(), BorderLayout.NORTH);
 
+        // Without this, viewCards paints its own default (opaque, light
+        // gray/white) Swing background wherever its shown card doesn't
+        // fully cover it - e.g. the Home view, whose JScrollPane content
+        // (hero banner + a strut) is much shorter than the page once
+        // there's nothing pinned/recently played, leaving the rest of the
+        // page as a big pale box instead of showing this panel's own
+        // themed background underneath.
+        viewCards.setOpaque(false);
+
         viewCards.add(createHomeView(), HOME);
         viewCards.add(createAllGamesView(), ALL_GAMES);
         add(viewCards, BorderLayout.CENTER);

@@ -262,6 +262,23 @@ public class Message implements Serializable
     public java.util.List<String> getReportDescriptions() { return reportDescriptions; }
     public void setReportDescriptions(java.util.List<String> reportDescriptions) { this.reportDescriptions = reportDescriptions; }
 
+    // ---- Bug reports & suggestions (see FeedbackManager) ----
+    private String feedbackType;
+    private String feedbackText;
+    private java.util.List<String> feedbackEntries;
+
+    /** "BUG" or "SUGGESTION" - FEEDBACK_SUBMIT_REQUEST. */
+    public String getFeedbackType() { return feedbackType; }
+    public void setFeedbackType(String feedbackType) { this.feedbackType = feedbackType; }
+
+    /** The report/suggestion body text itself - FEEDBACK_SUBMIT_REQUEST. */
+    public String getFeedbackText() { return feedbackText; }
+    public void setFeedbackText(String feedbackText) { this.feedbackText = feedbackText; }
+
+    /** Pre-formatted feedback entries, most recent first - FEEDBACK_LIST_RESPONSE. Admins get every submission; anyone else gets only their own. */
+    public java.util.List<String> getFeedbackEntries() { return feedbackEntries; }
+    public void setFeedbackEntries(java.util.List<String> feedbackEntries) { this.feedbackEntries = feedbackEntries; }
+
     // ---- Racing online (same-seed race, not live position sync - see RacingMatch) ----
     private long raceSeed;
     private java.util.List<String> raceRosterUsernames;

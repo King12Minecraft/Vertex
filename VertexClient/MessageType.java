@@ -101,6 +101,14 @@ public enum MessageType
     ERROR_NOTICE,
     FORCE_DISCONNECT_NOTICE,
 
+    // --- Bug reports & suggestions (see FeedbackManager) - a txt file admins
+    // (every submission) and the person who sent it (just their own) can
+    // both view in-app, not just player-conduct reports. ---
+    FEEDBACK_SUBMIT_REQUEST,
+    FEEDBACK_SUBMIT_RESPONSE,
+    FEEDBACK_LIST_REQUEST,
+    FEEDBACK_LIST_RESPONSE,
+
     // --- Racing online (1v1, same-seed race - see RacingMatch) ---
     RACE_FIND_MATCH_REQUEST,
     RACE_LEAVE_QUEUE_REQUEST,

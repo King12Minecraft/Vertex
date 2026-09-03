@@ -45,6 +45,7 @@ public class ClientHandler implements Runnable
     private MainServerConnection mainServerConnection;
     private SatelliteRegistry satelliteRegistry;
     private PresenceRegistry presenceRegistry;
+    private final FeedbackManager feedbackManager;
 
     public ClientHandler(Socket socket, ServerAccountStore accountStore, GameRegistry gameRegistry,
                           MatchManager matchManager, ChatManager chatManager,
@@ -57,7 +58,7 @@ public class ClientHandler implements Runnable
                           PartyManager partyManager, AchievementManager achievementManager, TournamentManager tournamentManager,
                           ReplayManager replayManager, TeamTournamentManager teamTournamentManager,
                           MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry,
-                          PresenceRegistry presenceRegistry)
+                          PresenceRegistry presenceRegistry, FeedbackManager feedbackManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -84,6 +85,7 @@ public class ClientHandler implements Runnable
         this.mainServerConnection = mainServerConnection;
         this.satelliteRegistry = satelliteRegistry;
         this.presenceRegistry = presenceRegistry;
+        this.feedbackManager = feedbackManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -224,6 +226,8 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.REPORT_SUBMIT_REQUEST) return handleReportSubmit(request);
         if (request.getType() == MessageType.REPORT_LIST_REQUEST) return handleReportList();
         if (request.getType() == MessageType.REPORT_RESOLVE_REQUEST) return handleReportResolve(request);
+        if (request.getType() == MessageType.FEEDBACK_SUBMIT_REQUEST) return handleFeedbackSubmit(request);
+        if (request.getType() == MessageType.FEEDBACK_LIST_REQUEST) return handleFeedbackList();
         if (request.getType() == MessageType.RACE_FIND_MATCH_REQUEST) return handleRaceFindMatch();
         if (request.getType() == MessageType.RACE_LEAVE_QUEUE_REQUEST) return handleRaceLeaveQueue();
         if (request.getType() == MessageType.RACE_FINISHED_REQUEST) return handleRaceFinished(request);
@@ -1208,6 +1212,53 @@ public class ClientHandler implements Runnable
         {
             response.setErrorText("Couldn't find that report.");
         }
+        return response;
+    }
+
+    // ==================== Feedback (bug reports & suggestions) ====================
+
+    private Message handleFeedbackSubmit(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.FEEDBACK_SUBMIT_RESPONSE);
+
+        if (loggedInUsername == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+
+        String text = request.getFeedbackText();
+        if (text == null || text.trim().isEmpty())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Enter some text first.");
+            return response;
+        }
+
+        feedbackManager.submit(loggedInUsername, request.getFeedbackType(), text);
+        response.setSuccess(true);
+        return response;
+    }
+
+    /** Admins see every submission; anyone else only ever sees their own - same visibility pattern as moderation reports, one level down (a player can't see other players' either). */
+    private Message handleFeedbackList()
+    {
+        Message response = new Message();
+        response.setType(MessageType.FEEDBACK_LIST_RESPONSE);
+
+        if (loggedInUsername == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+
+        response.setSuccess(true);
+        response.setFeedbackEntries(isAdmin()
+            ? feedbackManager.getAllDescriptions()
+            : feedbackManager.getDescriptionsFor(loggedInUsername));
         return response;
     }
 

@@ -43,6 +43,10 @@ public class SettingsPanel extends RoundedPanel
         content.add(Box.createVerticalStrut(20));
         content.add(section("CONNECTION", createConnectionSection()));
         content.add(Box.createVerticalStrut(20));
+        content.add(section("HOSTING SERVER", createHostingSection()));
+        content.add(Box.createVerticalStrut(20));
+        content.add(section("FEEDBACK", createFeedbackSection()));
+        content.add(Box.createVerticalStrut(20));
         content.add(section("ACCOUNT", createAccountSection()));
 
         JScrollPane scroll = new JScrollPane(content);
@@ -159,6 +163,80 @@ public class SettingsPanel extends RoundedPanel
             public void actionPerformed(ActionEvent e) { ServerBrowserDialog.show(switchServer); }
         });
         col.add(switchServer);
+
+        return col;
+    }
+
+    /**
+     * Hosting used to be the very first thing the app asked - before you
+     * could even log in, via a plain JOptionPane prompt (HostOrConnectDialog)
+     * that didn't match the rest of the UI at all. It now lives here instead:
+     * something you turn on once you're already in, from a themed dialog
+     * that fits the rest of the app (see HostServerDialog).
+     */
+    private JPanel createHostingSection()
+    {
+        JPanel col = new JPanel();
+        col.setOpaque(false);
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+        col.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel note = new JLabel("<html><body style='width:420px'>Run a Vertex server on this computer so others can join - either as the main server, or as a satellite that stays synced with an existing one.</body></html>");
+        note.setFont(UITheme.FONT_BODY);
+        note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
+        note.setAlignmentX(Component.LEFT_ALIGNMENT);
+        note.setBorder(new EmptyBorder(0, 0, 14, 0));
+        col.add(note);
+
+        final ThemedButton hostButton = new ThemedButton("Start Hosting", false);
+        hostButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        hostButton.setMaximumSize(new Dimension(220, 38));
+        hostButton.setPreferredSize(new Dimension(220, 38));
+        hostButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { HostServerDialog.show(hostButton); }
+        });
+        col.add(hostButton);
+
+        return col;
+    }
+
+    /** Bug reports and suggestions about Vertex itself - see FeedbackDialog/FeedbackListDialog/FeedbackManager. Separate from reporting another player (Friends/Chat -> Report). */
+    private JPanel createFeedbackSection()
+    {
+        JPanel col = new JPanel();
+        col.setOpaque(false);
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+        col.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel note = new JLabel("Found a bug, or have an idea? It goes straight to the admins.");
+        note.setFont(UITheme.FONT_BODY);
+        note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
+        note.setAlignmentX(Component.LEFT_ALIGNMENT);
+        note.setBorder(new EmptyBorder(0, 0, 14, 0));
+        col.add(note);
+
+        final ThemedButton reportButton = new ThemedButton("Report a Bug / Suggest Something", true);
+        reportButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        reportButton.setMaximumSize(new Dimension(320, 38));
+        reportButton.setPreferredSize(new Dimension(320, 38));
+        reportButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { FeedbackDialog.show(reportButton); }
+        });
+        col.add(reportButton);
+        col.add(Box.createVerticalStrut(10));
+
+        final ThemedButton viewButton = new ThemedButton(
+            PermissionManager.isAdmin(Session.getCurrentAccount()) ? "View All Feedback" : "View My Feedback", false);
+        viewButton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        viewButton.setMaximumSize(new Dimension(220, 38));
+        viewButton.setPreferredSize(new Dimension(220, 38));
+        viewButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { FeedbackListDialog.show(viewButton); }
+        });
+        col.add(viewButton);
 
         return col;
     }

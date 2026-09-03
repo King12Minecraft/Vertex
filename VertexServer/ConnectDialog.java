@@ -15,14 +15,13 @@ import java.awt.event.ActionListener;
 /**
  * ConnectDialog
  * -------------
- * Shown once, right after the splash screen, before AuthWindow opens
- * - lets the person type in "host:port" for whichever server they
- * want to play on (a friend's, their own on a custom port, etc.)
- * instead of always assuming localhost:7777. Sets NetworkConfig's
- * host/port before anything else touches the network, then runs the
- * given callback (opening AuthWindow) either way - a blank entry
- * falls back to whatever's already set (the existing default on
- * first run) rather than blocking the person from continuing.
+ * Opt-in, not shown automatically - reachable from AuthWindow's "Change
+ * Server" link if the default (localhost:7777, or whatever was last
+ * used) isn't the server the person wants. Lets them type in "host:port"
+ * for whichever server they want to play on instead (a friend's, their
+ * own on a custom port, etc.). Sets NetworkConfig's host/port, then runs
+ * the given callback either way - a blank entry falls back to whatever's
+ * already set rather than blocking the person from continuing.
  */
 public class ConnectDialog
 {

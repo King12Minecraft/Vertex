@@ -4,8 +4,10 @@ import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -236,19 +238,80 @@ public class NetworkManager
         listenerThread.start();
     }
 
+    /**
+     * The only message types that are ever the direct, synchronous reply
+     * to a blocking send() call (see ClientHandler.handle() on the
+     * server - every type here is exactly what some handleXxx() method
+     * returns as its response). Every other MessageType - including any
+     * added later for a new game or feature - is routed as a push by
+     * default.
+     *
+     * This used to be inverted: routeIncoming kept its own hand-maintained
+     * whitelist of PUSH types, which only ever covered the earliest phases
+     * (generic match play, chat, wallet, challenges). Every push type added
+     * since - every per-game MATCH_FOUND/UPDATE/OVER for Chess, Battleship,
+     * RPS, Racing, Fight Arena, Among Us, plus achievements, friend status,
+     * game invites, rematches, party updates, moderation notices, queue
+     * counts, spectate-ended, tournament broadcasts - was missing from it.
+     * A message of any of those types landed in pendingResponses instead of
+     * reaching the right onPush listener, where it sat until some unrelated
+     * blocking send() call polled it off the queue and treated it as if it
+     * were the answer to a completely different request. That's a silent
+     * failure mode - the caller just gets a default, empty-looking Message
+     * back (success=false, no error text) - which is why things like the
+     * satellite server list ("Could not load the satellite list") or other
+     * screens could fail to load for no visible reason, especially with
+     * several panels fetching data around the same time. Defaulting to
+     * push instead means a type missing from this list fails open (still
+     * delivered, just via onPush) rather than corrupting some other
+     * in-flight request.
+     *
+     * TOURNAMENT_LIST_RESPONSE and TEAM_TOURNAMENT_LIST_RESPONSE are
+     * deliberately left OUT of this set even though ClientHandler also
+     * returns them as a direct reply to *_LIST_REQUEST: TournamentManager/
+     * TeamTournamentManager also broadcast them unsolicited on every
+     * roster change, and TournamentsPanel.onPush already renders them
+     * either way - so routing them as push keeps the live broadcast
+     * working, and the panel's own direct request just quietly times out
+     * in the background after already being satisfied by the push.
+     */
+    private static final Set<MessageType> RESPONSE_TYPES = EnumSet.of(
+        MessageType.LOGIN_RESPONSE,
+        MessageType.CREATE_ACCOUNT_RESPONSE,
+        MessageType.GAME_LIST_RESPONSE,
+        MessageType.CHANGE_USERNAME_RESPONSE,
+        MessageType.CHANGE_PASSWORD_RESPONSE,
+        MessageType.GROUP_CREATE_RESPONSE,
+        MessageType.SHOP_ITEMS_RESPONSE,
+        MessageType.PURCHASE_RESPONSE,
+        MessageType.CHALLENGES_RESPONSE,
+        MessageType.GAME_HISTORY_RESPONSE,
+        MessageType.ONLINE_USERS_RESPONSE,
+        MessageType.SELECT_COLOR_RESPONSE,
+        MessageType.SELECT_BADGE_RESPONSE,
+        MessageType.ADMIN_PLAYER_LIST_RESPONSE,
+        MessageType.FRIEND_REQUEST_SEND_RESPONSE,
+        MessageType.FRIEND_LIST_RESPONSE,
+        MessageType.TRANSACTION_HISTORY_RESPONSE,
+        MessageType.MOD_ACTION_RESPONSE,
+        MessageType.REPORT_SUBMIT_RESPONSE,
+        MessageType.REPORT_LIST_RESPONSE,
+        MessageType.LEADERBOARD_RESPONSE,
+        MessageType.ACHIEVEMENTS_RESPONSE,
+        MessageType.SYNC_AUTH_RESPONSE,
+        MessageType.SYNC_PUSH_RESPONSE,
+        MessageType.SATELLITE_LIST_RESPONSE,
+        MessageType.FRIEND_LOCATION_RESPONSE,
+        MessageType.SPECTATABLE_MATCHES_RESPONSE,
+        MessageType.REPLAY_LIST_RESPONSE,
+        MessageType.REPLAY_RESPONSE,
+        MessageType.FEEDBACK_SUBMIT_RESPONSE,
+        MessageType.FEEDBACK_LIST_RESPONSE);
+
     private static void routeIncoming(Message message)
     {
         MessageType type = message.getType();
-        boolean isPush = type == MessageType.MATCH_FOUND
-            || type == MessageType.MATCH_UPDATE
-            || type == MessageType.MATCH_OVER
-            || type == MessageType.MOVE_REJECTED
-            || type == MessageType.CHAT_MESSAGE
-            || type == MessageType.PRIVATE_MESSAGE
-            || type == MessageType.GROUP_MESSAGE
-            || type == MessageType.GROUP_ADDED
-            || type == MessageType.WALLET_UPDATE
-            || type == MessageType.CHALLENGE_UPDATE;
+        boolean isPush = !RESPONSE_TYPES.contains(type);
 
         if (isPush)
         {

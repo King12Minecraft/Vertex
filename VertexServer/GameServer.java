@@ -39,6 +39,7 @@ public class GameServer
     private final GroupChatManager groupChatManager = new GroupChatManager(chatManager);
     private final FriendManager friendManager = new FriendManager(accountStore, chatManager);
     private final ModerationManager moderationManager = new ModerationManager();
+    private final FeedbackManager feedbackManager = new FeedbackManager();
     private final RacingMatchManager racingMatchManager = new RacingMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager);
     private final AmongUsMatchManager amongUsMatchManager = new AmongUsMatchManager(gameHistoryManager, chatManager);
     private final FightArenaMatchManager fightArenaMatchManager = new FightArenaMatchManager(gameHistoryManager, chatManager, leaderboardManager, partyManager);
@@ -115,7 +116,8 @@ public class GameServer
                     friendManager, moderationManager, racingMatchManager, amongUsMatchManager,
                     fightArenaMatchManager, chessMatchManager, battleshipMatchManager, rpsMatchManager,
                     leaderboardManager, partyManager, achievementManager, tournamentManager, replayManager,
-                    teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry);
+                    teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry,
+                    feedbackManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

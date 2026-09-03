@@ -69,6 +69,15 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
 
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
+        // Left opaque (the Swing default), contentPanel paints a plain
+        // light gray/white background of its own wherever the currently
+        // shown page doesn't paint every pixel of its own bounds. Most
+        // pages are fine since they fill themselves via a RoundedPanel
+        // background, but a plain JPanel page like SatelliteServersPanel
+        // (setOpaque(false), no background of its own) would otherwise
+        // show this raw white straight through - looking like the whole
+        // page failed to render instead of just being empty/loading.
+        contentPanel.setOpaque(false);
         gamesPanel = new GamesPanel();
         contentPanel.add(gamesPanel, Pages.GAMES);
         contentPanel.add(new QuestsPanel(), Pages.QUESTS);

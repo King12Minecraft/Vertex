@@ -25,14 +25,22 @@ import java.util.List;
  * "servers that have EVER synced here", not necessarily "servers
  * currently online" - there's no live up/down status, just last-seen.
  */
-public class SatelliteServersPanel extends JPanel
+public class SatelliteServersPanel extends RoundedPanel
 {
     private final JPanel list;
 
     public SatelliteServersPanel()
     {
+        // Every other full-page panel (GamesPanel, QuestsPanel, FriendsPanel,
+        // etc.) extends RoundedPanel so it paints its own themed background
+        // across its full bounds; this one was a plain JPanel with no
+        // background of its own, so it relied entirely on whatever
+        // happened to be painted behind it (MainMenu's contentPanel,
+        // previously an unthemed white JPanel - see MainMenu's own fix).
+        // That made the whole page look unstyled/broken instead of just
+        // an admin list.
+        super(ThemeColor.BG_APP, 0);
         setLayout(new BorderLayout());
-        setOpaque(false);
 
         JPanel content = new JPanel();
         content.setOpaque(false);
