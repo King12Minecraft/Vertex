@@ -87,7 +87,7 @@ public class GameLogo extends JComponent
         return image;
     }
 
-    /** Loads vertex_logo.png once from the working directory and caches it - every call after the first just reuses the cached image, resized on demand at draw time. */
+    /** Loads vertex_logo.png once - from the working directory first (the BlueJ/source layout), falling back to the classpath (a packaged runnable jar, where the png is bundled alongside the .class files) - and caches it; every call after the first just reuses the cached image, resized on demand at draw time. */
     private static synchronized BufferedImage loadSource()
     {
         if (loadAttempted)
@@ -101,6 +101,21 @@ public class GameLogo extends JComponent
             if (file.exists())
             {
                 sourceImage = ImageIO.read(file);
+            }
+            else
+            {
+                java.io.InputStream in = GameLogo.class.getResourceAsStream("/" + LOGO_FILE);
+                if (in != null)
+                {
+                    try
+                    {
+                        sourceImage = ImageIO.read(in);
+                    }
+                    finally
+                    {
+                        in.close();
+                    }
+                }
             }
         }
         catch (IOException e)
