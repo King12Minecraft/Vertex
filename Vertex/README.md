@@ -1,9 +1,27 @@
-# Vertex Server — README
+# Vertex — README (source of truth)
 
-This is the **GameHubServer** BlueJ project. It contains BOTH the
-server logic and a full copy of the client's UI classes, so it can run
-as one combined program: start the server AND open a login screen in
-the same process.
+> **This is the canonical source folder.** Every file here should be
+> the most up-to-date version of that file anywhere in the repo.
+> `VertexClient/` and `VertexServer/` are synced build copies used to
+> produce `VertexClient.jar`/`VertexServer.jar` - they should always
+> be identical to what's in here, file for file. **Edit here first**,
+> then copy any changed file into both `VertexClient/` and
+> `VertexServer/` before committing. See the root `README.md`'s "Repo
+> structure" section for the full explanation of why all three folders
+> exist and carry the same ~190 files instead of a trimmed-down "real"
+> client/server split.
+>
+> (This file's title used to just say "Vertex Server" - a leftover
+> from when this folder was copied from `VertexServer/` to become the
+> unified source. Fixed here; the content below - originally written
+> as the server project's own changelog - is kept as-is since it's
+> still accurate history, just read "this project" below as "the
+> codebase" rather than "the server folder specifically.")
+
+This folder contains everything: the server logic and the full
+client UI, in one place. `ServerMain.main()` starts the server and
+then opens the login window in the same process, so running
+`ServerMain` alone is enough to both host and play.
 
 ## How to run it
 
@@ -16,15 +34,17 @@ the same process.
 
 If no admin exists yet on this server, the account you create *from
 this loopback connection* automatically becomes admin. Other players
-can still connect from a separate `GameHubClient` project on the LAN.
+can still connect from a separate `VertexClient` build on the LAN.
 
-## Why this project has ~145 files now
+## Why this project has ~190 files
 
 `ServerMain.main()` calls `AuthWindow` directly, so every client UI
-class it depends on - effectively the whole client - has an identical
-copy here too. **If you change any GameHubClient UI file, copy it into
-this project too**, or the two will drift out of sync. The only client
-file deliberately NOT copied here is `Vertex.java`.
+class it depends on - effectively the whole client - lives in this
+same folder. There's no meaningful way to split this into "just the
+server files" without changing `ServerMain` to launch the client as a
+separate process instead of embedding it - a real architecture change,
+not a file-organization one. See the root `README.md` for more on
+this.
 
 ## New this round: mode-select redesign + invites + Chess
 

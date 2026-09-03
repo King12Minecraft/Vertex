@@ -59,7 +59,15 @@ Default port is **7777**, but this is fully configurable — hosting asks which 
 
 ## Repo structure
 
-- `VertexClient/` — the client project, including the full server engine (so it can host too)
-- `VertexServer/` — the server project, including a full mirrored copy of the client (so it can run standalone in combined mode)
+There are three source folders, and they're intentionally identical in content — this is a flat, single-package BlueJ project, so "client" and "server" aren't separate modules, just separate entry points (`Vertex.java` vs `ServerMain.java`) into the same set of classes:
+
+- **`Vertex/`** — the source of truth. All edits happen here first.
+- **`VertexClient/`** — a synced copy of `Vertex/`, built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs.
+- **`VertexServer/`** — a synced copy of `Vertex/`, built and shipped as `VertexServer.jar` (`Main-Class: ServerMain`). This is what someone hosting runs — starting it brings up the server *and* opens the same game window `VertexClient` would, already connected, so the host can play too.
+
+Why not trim `VertexClient`/`VertexServer` down to only the files each one strictly needs? Because `ServerMain` opens the full game client in-process the moment hosting starts (see above) — so the server side ends up needing almost the entire client UI anyway. Splitting them for real would mean the server launches the client as a *separate process* instead of embedding it, which is a real architecture change, not a cleanup — noted as a possible future improvement, not done here.
+
+Practical effect of the sync-copy setup: if you're fixing a bug or adding a feature, edit the file in `Vertex/`, then copy it into `VertexClient/` and `VertexServer/` before committing — the three folders should never drift apart. A file only one of `VertexClient`/`VertexServer` needs (rare — see above) still gets copied into both, for the same reason.
+
 - `VertexClient.jar` / `VertexServer.jar` — pre-built runnable JARs, rebuilt fresh with every push
 - `Run-*-LowEnd.*` — launcher scripts tuned for weaker hardware
