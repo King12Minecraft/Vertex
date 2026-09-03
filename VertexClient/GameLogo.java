@@ -109,6 +109,22 @@ public class GameLogo extends JComponent
                 {
                     try
                     {
+                        /*
+                         * Reading straight from a classpath InputStream (the
+                         * packaged-jar case) makes ImageIO fall back to its
+                         * disk-cache ImageInputStream, which needs a random
+                         * temp filename and ends up seeding SecureRandom
+                         * from the OS's network-adapter list. That's a
+                         * needless detour for one small bundled PNG, and on
+                         * top of that it's a proven crash path on at least
+                         * one real Windows/Java combination we tested
+                         * against - NetworkInterface enumeration faulting
+                         * inside the OS network stack the moment the very
+                         * first frame tries to paint the logo. Forcing
+                         * ImageIO to decode straight into memory here (no
+                         * caching, ever, process-wide) sidesteps all of it.
+                         */
+                        ImageIO.setUseCache(false);
                         sourceImage = ImageIO.read(in);
                     }
                     finally
