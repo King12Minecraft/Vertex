@@ -568,4 +568,21 @@ public class Message implements Serializable
     /** True if the server's own Vertex.jar hash doesn't match clientJarHash - CLIENT_VERSION_CHECK_RESPONSE. Reuses getFileData()/getFileName() (chat attachments) to carry the actual jar bytes on CLIENT_UPDATE_DOWNLOAD_RESPONSE, rather than adding another byte[] field for the same shape of thing. */
     public boolean isUpdateAvailable() { return updateAvailable; }
     public void setUpdateAvailable(boolean updateAvailable) { this.updateAvailable = updateAvailable; }
+
+    // ---- Custom (user-uploaded) games - see CustomGameStore/CustomGamesPanel/CodeEditorWindow ----
+    private String customGameName;
+    private String customGameEntryClass;
+    private java.util.List<String> customGameEntries;
+
+    /** Display name for a game being uploaded - CUSTOM_GAME_UPLOAD_REQUEST. Echoed back on CUSTOM_GAME_DOWNLOAD_RESPONSE too, so the client can show "Launching <name>..." without needing a separate lookup. */
+    public String getCustomGameName() { return customGameName; }
+    public void setCustomGameName(String customGameName) { this.customGameName = customGameName; }
+
+    /** Fully-qualified name of the public JFrame subclass (inside the uploaded jar) that is this game's entry point - CUSTOM_GAME_UPLOAD_REQUEST and CUSTOM_GAME_DOWNLOAD_RESPONSE. Reuses getFileData()/getFileName() (same as the client auto-update jar transfer) for the jar bytes themselves, and getGameId() for which custom game a download/delete request is about (server-assigned, returned on CUSTOM_GAME_UPLOAD_RESPONSE). */
+    public String getCustomGameEntryClass() { return customGameEntryClass; }
+    public void setCustomGameEntryClass(String customGameEntryClass) { this.customGameEntryClass = customGameEntryClass; }
+
+    /** Every uploaded custom game, "gameId|name|authorUsername|entryClassName|uploadedAtMillis|sizeBytes" per entry, newest first - CUSTOM_GAME_LIST_RESPONSE. */
+    public java.util.List<String> getCustomGameEntries() { return customGameEntries; }
+    public void setCustomGameEntries(java.util.List<String> customGameEntries) { this.customGameEntries = customGameEntries; }
 }

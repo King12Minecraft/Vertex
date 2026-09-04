@@ -49,6 +49,7 @@ public class GameServer
     private final RockPaperScissorsMatchManager rpsMatchManager = new RockPaperScissorsMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager);
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
+    private final CustomGameStore customGameStore = new CustomGameStore();
 
     {
         // Wires AchievementManager into the managers that trigger its checks -
@@ -117,7 +118,7 @@ public class GameServer
                     fightArenaMatchManager, chessMatchManager, battleshipMatchManager, rpsMatchManager,
                     leaderboardManager, partyManager, achievementManager, tournamentManager, replayManager,
                     teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry,
-                    feedbackManager);
+                    feedbackManager, customGameStore);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

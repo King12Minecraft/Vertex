@@ -330,7 +330,11 @@ public class NetworkManager
         MessageType.FEEDBACK_SUBMIT_RESPONSE,
         MessageType.FEEDBACK_LIST_RESPONSE,
         MessageType.CLIENT_VERSION_CHECK_RESPONSE,
-        MessageType.CLIENT_UPDATE_DOWNLOAD_RESPONSE);
+        MessageType.CLIENT_UPDATE_DOWNLOAD_RESPONSE,
+        MessageType.CUSTOM_GAME_UPLOAD_RESPONSE,
+        MessageType.CUSTOM_GAME_LIST_RESPONSE,
+        MessageType.CUSTOM_GAME_DOWNLOAD_RESPONSE,
+        MessageType.CUSTOM_GAME_DELETE_RESPONSE);
 
     private static void routeIncoming(Message message)
     {

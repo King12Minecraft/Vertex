@@ -58,6 +58,7 @@ public class Sidebar extends RoundedPanel
         addNavButton("Home", Pages.HOME);
         addNavButton("Games", Pages.GAMES);
         addNavButton("All Games", Pages.ALL_GAMES);
+        addNavButton("Custom Games", Pages.CUSTOM_GAMES);
         addNavButton("Leaderboards", Pages.LEADERBOARDS);
         addNavButton("Achievements", Pages.ACHIEVEMENTS);
         addNavButton("Tournaments", Pages.TOURNAMENTS);

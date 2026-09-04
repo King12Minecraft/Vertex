@@ -81,6 +81,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         contentPanel.add(new HomePanel(), Pages.HOME);
         gamesPanel = new GamesPanel();
         contentPanel.add(gamesPanel, Pages.GAMES);
+        contentPanel.add(new CustomGamesPanel(), Pages.CUSTOM_GAMES);
         contentPanel.add(new QuestsPanel(), Pages.QUESTS);
         contentPanel.add(new LeaderboardPanel(), Pages.LEADERBOARDS);
         contentPanel.add(new AchievementsPanel(), Pages.ACHIEVEMENTS);
@@ -284,6 +285,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     {
         if (pageKey.equals(Pages.HOME))         return "Home";
         if (pageKey.equals(Pages.ALL_GAMES))    return "All Games";
+        if (pageKey.equals(Pages.CUSTOM_GAMES)) return "Custom Games";
         if (pageKey.equals(Pages.LEADERBOARDS)) return "Leaderboards";
         if (pageKey.equals(Pages.ACHIEVEMENTS)) return "Achievements";
         if (pageKey.equals(Pages.TOURNAMENTS)) return "Tournaments";

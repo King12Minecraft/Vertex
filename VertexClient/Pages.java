@@ -10,6 +10,7 @@ public class Pages
     public static final String HOME       = "HOME";
     public static final String GAMES      = "GAMES";
     public static final String ALL_GAMES  = "ALL_GAMES";
+    public static final String CUSTOM_GAMES = "CUSTOM_GAMES";
     public static final String QUESTS      = "QUESTS";
     public static final String LEADERBOARDS = "LEADERBOARDS";
     public static final String ACHIEVEMENTS = "ACHIEVEMENTS";
