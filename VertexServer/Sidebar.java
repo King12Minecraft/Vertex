@@ -55,6 +55,7 @@ public class Sidebar extends RoundedPanel
 
         add(createLogoRow());
 
+        addNavButton("Home", Pages.HOME);
         addNavButton("Games", Pages.GAMES);
         addNavButton("All Games", Pages.ALL_GAMES);
         addNavButton("Leaderboards", Pages.LEADERBOARDS);
@@ -81,7 +82,7 @@ public class Sidebar extends RoundedPanel
         add(createQuestMiniList());
         add(createStatusRow());
 
-        selectPage(Pages.GAMES);
+        selectPage(Pages.HOME);
 
         addMouseListener(new MouseAdapter()
         {

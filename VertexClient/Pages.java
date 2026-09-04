@@ -7,6 +7,7 @@
  */
 public class Pages
 {
+    public static final String HOME       = "HOME";
     public static final String GAMES      = "GAMES";
     public static final String ALL_GAMES  = "ALL_GAMES";
     public static final String QUESTS      = "QUESTS";

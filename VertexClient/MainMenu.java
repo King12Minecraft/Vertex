@@ -46,7 +46,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     private final JPanel contentPanel;
     private final JLayeredPane transitionPane;
     private final GamesPanel gamesPanel;
-    private String currentPageKey = Pages.GAMES;
+    private String currentPageKey = Pages.HOME;
 
     public MainMenu()
     {
@@ -78,6 +78,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         // show this raw white straight through - looking like the whole
         // page failed to render instead of just being empty/loading.
         contentPanel.setOpaque(false);
+        contentPanel.add(new HomePanel(), Pages.HOME);
         gamesPanel = new GamesPanel();
         contentPanel.add(gamesPanel, Pages.GAMES);
         contentPanel.add(new QuestsPanel(), Pages.QUESTS);
@@ -120,7 +121,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         getContentPane().add(sidebar, BorderLayout.WEST);
         getContentPane().add(centerColumn, BorderLayout.CENTER);
 
-        cardLayout.show(contentPanel, Pages.GAMES);
+        cardLayout.show(contentPanel, Pages.HOME);
 
         NetworkManager.addPushListener(this);
     }
@@ -281,6 +282,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
 
     private String titleFor(String pageKey)
     {
+        if (pageKey.equals(Pages.HOME))         return "Home";
         if (pageKey.equals(Pages.ALL_GAMES))    return "All Games";
         if (pageKey.equals(Pages.LEADERBOARDS)) return "Leaderboards";
         if (pageKey.equals(Pages.ACHIEVEMENTS)) return "Achievements";

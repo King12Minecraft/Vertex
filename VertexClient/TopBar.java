@@ -39,7 +39,7 @@ public class TopBar extends RoundedPanel
         setPreferredSize(new Dimension(0, UITheme.TOPBAR_HEIGHT));
         setBorder(new EmptyBorder(0, 28, 0, 28));
 
-        titleLabel = new JLabel("Games");
+        titleLabel = new JLabel("Home");
         titleLabel.setFont(UITheme.FONT_HEADING);
         titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         add(titleLabel, BorderLayout.WEST);
