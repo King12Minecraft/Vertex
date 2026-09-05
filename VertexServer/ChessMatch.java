@@ -20,6 +20,7 @@ public class ChessMatch
     private final ChessMatchManager matchManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
+    private final EconomyManager economyManager;
     private final List<ClientHandler> spectators = new ArrayList<ClientHandler>();
     private final List<String> snapshots = new ArrayList<String>();
 
@@ -38,7 +39,7 @@ public class ChessMatch
     /** The square a pawn just skipped over with a double-move, capturable en passant only on the very next move. -1 when none is available. */
     private int enPassantTarget = -1;
 
-    public ChessMatch(String matchId, ClientHandler whitePlayer, ClientHandler blackPlayer, ChessMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager)
+    public ChessMatch(String matchId, ClientHandler whitePlayer, ClientHandler blackPlayer, ChessMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
         this.matchId = matchId;
         this.whitePlayer = whitePlayer;
@@ -46,6 +47,7 @@ public class ChessMatch
         this.matchManager = matchManager;
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
+        this.economyManager = economyManager;
         setupBoard();
         snapshots.add(boardString());
     }
@@ -464,10 +466,21 @@ public class ChessMatch
     private void broadcastResult(String winnerColor)
     {
         recordRating(winnerColor);
+        awardWinner(winnerColor);
         saveReplay(winnerColor);
         sendResult(whitePlayer, winnerColor);
         sendResult(blackPlayer, winnerColor);
         notifySpectatorsEnded();
+    }
+
+    /** No reward on a stalemate draw - only an actual checkmate wins coins. */
+    private void awardWinner(String winnerColor)
+    {
+        if (economyManager == null || winnerColor == null)
+        {
+            return;
+        }
+        economyManager.awardWin("WHITE".equals(winnerColor) ? whitePlayer : blackPlayer, "chess");
     }
 
     private void notifySpectatorsEnded()
@@ -540,6 +553,7 @@ public class ChessMatch
         boolean requesterIsWhite = requester == whitePlayer;
         over = true;
         recordRating(requesterIsWhite ? "BLACK" : "WHITE");
+        awardWinner(requesterIsWhite ? "BLACK" : "WHITE");
         saveReplay(requesterIsWhite ? "BLACK" : "WHITE");
         sendEndResult(whitePlayer, requesterIsWhite ? "LOSE" : "WIN", "RESIGNED");
         sendEndResult(blackPlayer, requesterIsWhite ? "WIN" : "LOSE", "RESIGNED");

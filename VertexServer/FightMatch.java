@@ -53,6 +53,7 @@ public class FightMatch
     private final Map<ClientHandler, PlayerState> states = new HashMap<ClientHandler, PlayerState>();
     private final FightArenaMatchManager matchManager;
     private final LeaderboardManager leaderboardManager;
+    private final EconomyManager economyManager;
     private FightTournamentListener tournamentListener;
 
     public void setTournamentListener(FightTournamentListener listener)
@@ -65,13 +66,14 @@ public class FightMatch
     private boolean over = false;
 
     public FightMatch(String matchId, String mode, List<ClientHandler> players,
-                       List<Integer> teamAssignments, FightArenaMatchManager matchManager, LeaderboardManager leaderboardManager)
+                       List<Integer> teamAssignments, FightArenaMatchManager matchManager, LeaderboardManager leaderboardManager, EconomyManager economyManager)
     {
         this.matchId = matchId;
         this.mode = mode;
         this.players = players;
         this.matchManager = matchManager;
         this.leaderboardManager = leaderboardManager;
+        this.economyManager = economyManager;
 
         for (int i = 0; i < players.size(); i++)
         {
@@ -336,6 +338,7 @@ public class FightMatch
 
         List<Integer> winners = new ArrayList<Integer>();
         List<Integer> losers = new ArrayList<Integer>();
+        List<ClientHandler> winningHandlers = new ArrayList<ClientHandler>();
 
         if ("FFA".equals(mode))
         {
@@ -366,6 +369,7 @@ public class FightMatch
                 if (p == winner)
                 {
                     if (p.getAccountId() != null) winners.add(p.getAccountId());
+                    winningHandlers.add(p);
                 }
                 else if (p.getAccountId() != null)
                 {
@@ -389,18 +393,29 @@ public class FightMatch
             for (int i = 0; i < players.size(); i++)
             {
                 ClientHandler p = players.get(i);
-                if (p.getAccountId() == null)
+                if (states.get(p).team == winningTeam)
                 {
-                    continue;
+                    if (p.getAccountId() != null) winners.add(p.getAccountId());
+                    winningHandlers.add(p);
                 }
-                if (states.get(p).team == winningTeam) winners.add(p.getAccountId());
-                else losers.add(p.getAccountId());
+                else if (p.getAccountId() != null)
+                {
+                    losers.add(p.getAccountId());
+                }
             }
         }
 
         if (!winners.isEmpty() && !losers.isEmpty())
         {
             leaderboardManager.recordMultiplayerResult("fight-arena", winners, losers);
+        }
+
+        if (economyManager != null)
+        {
+            for (int i = 0; i < winningHandlers.size(); i++)
+            {
+                economyManager.awardWin(winningHandlers.get(i), "fight-arena");
+            }
         }
     }
 

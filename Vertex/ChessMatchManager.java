@@ -20,13 +20,15 @@ public class ChessMatchManager
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
+    private final EconomyManager economyManager;
 
-    public ChessMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager)
+    public ChessMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
         this.gameHistoryManager = gameHistoryManager;
         this.chatManager = chatManager;
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
+        this.economyManager = economyManager;
     }
 
     public synchronized void findMatch(ClientHandler player)
@@ -40,7 +42,7 @@ public class ChessMatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "chess-" + (nextMatchId++);
-            ChessMatch match = new ChessMatch(matchId, opponent, player, this, leaderboardManager, replayManager);
+            ChessMatch match = new ChessMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager);
             activeMatches.put(matchId, match);
             opponent.setCurrentChessMatch(match);
             player.setCurrentChessMatch(match);
@@ -79,7 +81,7 @@ public class ChessMatchManager
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
     {
         String matchId = "chess-" + (nextMatchId++);
-        ChessMatch match = new ChessMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager);
+        ChessMatch match = new ChessMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager);
         activeMatches.put(matchId, match);
         playerA.setCurrentChessMatch(match);
         playerB.setCurrentChessMatch(match);

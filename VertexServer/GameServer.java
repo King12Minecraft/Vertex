@@ -41,12 +41,12 @@ public class GameServer
     private final ModerationManager moderationManager = new ModerationManager();
     private final FeedbackManager feedbackManager = new FeedbackManager();
     private final RacingMatchManager racingMatchManager = new RacingMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager);
-    private final AmongUsMatchManager amongUsMatchManager = new AmongUsMatchManager(gameHistoryManager, chatManager);
-    private final FightArenaMatchManager fightArenaMatchManager = new FightArenaMatchManager(gameHistoryManager, chatManager, leaderboardManager, partyManager);
+    private final AmongUsMatchManager amongUsMatchManager = new AmongUsMatchManager(gameHistoryManager, chatManager, economyManager);
+    private final FightArenaMatchManager fightArenaMatchManager = new FightArenaMatchManager(gameHistoryManager, chatManager, leaderboardManager, partyManager, economyManager);
     private final ReplayManager replayManager = new ReplayManager();
-    private final ChessMatchManager chessMatchManager = new ChessMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager);
-    private final BattleshipMatchManager battleshipMatchManager = new BattleshipMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager);
-    private final RockPaperScissorsMatchManager rpsMatchManager = new RockPaperScissorsMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager);
+    private final ChessMatchManager chessMatchManager = new ChessMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
+    private final BattleshipMatchManager battleshipMatchManager = new BattleshipMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
+    private final RockPaperScissorsMatchManager rpsMatchManager = new RockPaperScissorsMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
     private final CustomGameStore customGameStore = new CustomGameStore();

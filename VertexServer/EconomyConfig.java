@@ -14,6 +14,36 @@ public class EconomyConfig
         if ("tictactoe-online".equals(gameId)) return 15;
         if ("square-wars".equals(gameId))      return 25;
         if ("zombie-survival".equals(gameId))  return 30;
+        if ("chess".equals(gameId))            return 20;
+        if ("battleship".equals(gameId))       return 20;
+        if ("rock-paper-scissors".equals(gameId)) return 15;
+        if ("fight-arena".equals(gameId))      return 25;
+        if ("among-us".equals(gameId))         return 20;
+        return 0;
+    }
+
+    /** Flat reward for solving a Puzzle Quest puzzle - this game has no score concept (just move count), so there's nothing to scale a reward against. */
+    public static final int PUZZLE_QUEST_REWARD = 10;
+
+    /**
+     * Score-based rewards for the remaining practice-mode games that
+     * previously paid nothing at all (see SNAKE's own divisor/cap
+     * above for the same idea) - divisors/caps are tuned per game to
+     * roughly match each one's typical score scale, so a good round
+     * anywhere is worth a broadly similar number of coins.
+     */
+    public static int getPracticeReward(String gameId, int score)
+    {
+        if (score <= 0)
+        {
+            return 0;
+        }
+        if ("pingpong".equals(gameId))       return Math.min(20, score * 2);
+        if ("2048".equals(gameId))           return Math.min(30, score / 150);
+        if ("dino-dash".equals(gameId))      return Math.min(25, score / 8);
+        if ("tetris".equals(gameId))         return Math.min(35, score / 300);
+        if ("crossing-road".equals(gameId))  return Math.min(25, score / 3);
+        if ("aim-trainer".equals(gameId))    return Math.min(20, score);
         return 0;
     }
 

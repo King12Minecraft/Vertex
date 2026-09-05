@@ -43,6 +43,7 @@ public class AmongUsMatch
     private final Map<ClientHandler, Set<Integer>> completedTasks = new HashMap<ClientHandler, Set<Integer>>();
     private final Map<ClientHandler, String> votes = new HashMap<ClientHandler, String>();
     private final AmongUsMatchManager matchManager;
+    private final EconomyManager economyManager;
     private final Random random = new Random();
 
     private int totalCrewTasks = 0;
@@ -51,12 +52,13 @@ public class AmongUsMatch
     private String pendingDeadUsername;
     private boolean over = false;
 
-    public AmongUsMatch(String matchId, List<ClientHandler> players, AmongUsMatchManager matchManager)
+    public AmongUsMatch(String matchId, List<ClientHandler> players, AmongUsMatchManager matchManager, EconomyManager economyManager)
     {
         this.matchId = matchId;
         this.players = players;
         this.alivePlayers = new HashSet<ClientHandler>(players);
         this.matchManager = matchManager;
+        this.economyManager = economyManager;
 
         int impostorCount = players.size() >= 6 ? 2 : 1;
         List<ClientHandler> shuffled = new ArrayList<ClientHandler>(players);
@@ -338,7 +340,23 @@ public class AmongUsMatch
             msg.setMatchId(matchId);
             msg.setAmongWinningTeam(winningTeam);
             p.sendMessage(msg);
+
+            if (economyManager != null && wasOnWinningTeam(p, winningTeam))
+            {
+                economyManager.awardWin(p, "among-us");
+            }
         }
+    }
+
+    /** "CREWMATES" wins go to everyone not marked an impostor (dead crewmates who finished their tasks or were voted out correctly still played their part); "IMPOSTORS" wins go only to whichever impostor(s) are still alive at the end, same as any other team-elimination game. */
+    private boolean wasOnWinningTeam(ClientHandler p, String winningTeam)
+    {
+        boolean isImpostor = impostors.contains(p);
+        if ("CREWMATES".equals(winningTeam))
+        {
+            return !isImpostor;
+        }
+        return isImpostor && alivePlayers.contains(p);
     }
 
     private void broadcastState()

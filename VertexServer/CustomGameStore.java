@@ -48,6 +48,8 @@ public class CustomGameStore
         public long uploadedAt;
         public String hash;
         public long sizeBytes;
+        /** New uploads start unapproved - see approve(). An admin has to sign off before everyone else can see/play it (Section: review queue), same "hidden until reviewed" idea as a moderation hold. */
+        public boolean approved;
     }
 
     private final List<Entry> entries = new ArrayList<Entry>();
@@ -74,6 +76,7 @@ public class CustomGameStore
         entry.uploadedAt = System.currentTimeMillis();
         entry.hash = FileHash.sha256Hex(jarBytes);
         entry.sizeBytes = jarBytes.length;
+        entry.approved = false;
 
         if (!writeJar(entry.gameId, jarBytes))
         {
@@ -122,6 +125,19 @@ public class CustomGameStore
         }
         entries.remove(entry);
         new File(GAMES_DIR, entry.gameId + ".jar").delete();
+        save();
+        return true;
+    }
+
+    /** Admin-only review action - marks an uploaded game visible to everyone. Returns false if the game no longer exists (e.g. it was removed while sitting in the review queue). */
+    public synchronized boolean approve(String gameId)
+    {
+        Entry entry = findById(gameId);
+        if (entry == null)
+        {
+            return false;
+        }
+        entry.approved = true;
         save();
         return true;
     }
@@ -184,7 +200,7 @@ public class CustomGameStore
             {
                 Entry e = entries.get(i);
                 writer.println(e.gameId + "|" + e.name + "|" + e.authorUsername + "|" + e.entryClassName
-                    + "|" + e.uploadedAt + "|" + e.hash + "|" + e.sizeBytes);
+                    + "|" + e.uploadedAt + "|" + e.hash + "|" + e.sizeBytes + "|" + (e.approved ? "1" : "0"));
             }
         }
         catch (IOException e)
@@ -224,6 +240,10 @@ public class CustomGameStore
                 entry.uploadedAt = Long.parseLong(parts[4]);
                 entry.hash = parts[5];
                 entry.sizeBytes = Long.parseLong(parts[6]);
+                // Field 7 (approved) is new - older index lines without it default to
+                // already-approved, so games uploaded before this review queue existed
+                // don't silently vanish from everyone's catalog.
+                entry.approved = parts.length < 8 || "1".equals(parts[7]);
                 entries.add(entry);
             }
         }

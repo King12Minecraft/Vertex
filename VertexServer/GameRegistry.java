@@ -11,7 +11,7 @@ public class GameRegistry
     {
         games.add(new GameInfo("snake", "Snake", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("tictactoe-online", "Tic-Tac-Toe (Online)", "Multiplayer", "Online", true, false, "1.0"));
-        games.add(new GameInfo("square-wars", "Square Wars", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("square-wars", "Square Wars", "Multiplayer", "Coming Soon", false, true, "0.1"));
         games.add(new GameInfo("racing", "Racing", "Single/Multiplayer", "Online", true, false, "1.1"));
         games.add(new GameInfo("puzzle-quest", "Puzzle Quest", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("rock-paper-scissors", "Rock Paper Scissors", "Single/Multiplayer", "Online", true, false, "1.1"));

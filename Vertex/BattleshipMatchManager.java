@@ -21,13 +21,15 @@ public class BattleshipMatchManager
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
+    private final EconomyManager economyManager;
 
-    public BattleshipMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager)
+    public BattleshipMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
         this.gameHistoryManager = gameHistoryManager;
         this.chatManager = chatManager;
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
+        this.economyManager = economyManager;
     }
 
     public synchronized void findMatch(ClientHandler player)
@@ -41,7 +43,7 @@ public class BattleshipMatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "battleship-" + (nextMatchId++);
-            BattleshipMatch match = new BattleshipMatch(matchId, opponent, player, this, leaderboardManager, replayManager);
+            BattleshipMatch match = new BattleshipMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager);
             activeMatches.put(matchId, match);
             opponent.setCurrentBattleshipMatch(match);
             player.setCurrentBattleshipMatch(match);
@@ -84,7 +86,7 @@ public class BattleshipMatchManager
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
     {
         String matchId = "battleship-" + (nextMatchId++);
-        BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager);
+        BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager);
         activeMatches.put(matchId, match);
         playerA.setCurrentBattleshipMatch(match);
         playerB.setCurrentBattleshipMatch(match);

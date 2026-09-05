@@ -178,6 +178,9 @@ public class UploadCustomGameDialog
                                     return;
                                 }
                                 dialog.dispose();
+                                NotificationCenter.add("Uploaded!",
+                                    "\"" + name + "\" is in the review queue - it'll be visible to everyone "
+                                    + "within 1-3 weeks once an admin has had a chance to check it out.");
                                 if (onUploaded != null)
                                 {
                                     onUploaded.run();

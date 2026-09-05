@@ -8,6 +8,7 @@ import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -193,6 +194,15 @@ public class CustomGamesPanel extends RoundedPanel
         size.setBorder(new EmptyBorder(2, 0, 0, 0));
 
         info.add(name);
+        if (!game.isApproved())
+        {
+            JLabel pending = new JLabel("Pending Review");
+            pending.setFont(UITheme.FONT_SMALL.deriveFont(11f));
+            pending.setForeground(new Color(230, 170, 70));
+            pending.setAlignmentX(Component.LEFT_ALIGNMENT);
+            pending.setBorder(new EmptyBorder(2, 0, 0, 0));
+            info.add(pending);
+        }
         info.add(author);
         info.add(uploaded);
         info.add(size);
@@ -221,6 +231,22 @@ public class CustomGamesPanel extends RoundedPanel
         row.add(play);
 
         String myUsername = Session.isLoggedIn() ? Session.getCurrentAccount().getUsername() : null;
+        boolean isAdmin = Session.isLoggedIn() && PermissionManager.isAdmin(Session.getCurrentAccount());
+
+        if (isAdmin && !game.isApproved())
+        {
+            row.add(Box.createVerticalStrut(6));
+            ThemedButton approve = new ThemedButton("Approve", true);
+            approve.setAlignmentX(Component.LEFT_ALIGNMENT);
+            approve.setPreferredSize(new Dimension(228, 30));
+            approve.setMaximumSize(new Dimension(500, 30));
+            approve.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e) { approveGame(game); }
+            });
+            row.add(approve);
+        }
+
         boolean canDelete = myUsername != null
             && (myUsername.equalsIgnoreCase(game.getAuthorUsername()) || PermissionManager.isAtLeastModerator(Session.getCurrentAccount()));
         if (canDelete)
@@ -238,6 +264,22 @@ public class CustomGamesPanel extends RoundedPanel
         }
 
         return row;
+    }
+
+    private void approveGame(final CustomGameInfo game)
+    {
+        Thread worker = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.CUSTOM_GAME_APPROVE_REQUEST);
+                request.setGameId(game.getGameId());
+                NetworkManager.send(request);
+                CustomGameManager.refresh();
+            }
+        });
+        worker.start();
     }
 
     private void confirmAndDelete(final CustomGameInfo game)

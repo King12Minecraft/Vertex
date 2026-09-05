@@ -16,6 +16,7 @@ public class RockPaperScissorsMatch
     private final RockPaperScissorsMatchManager matchManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
+    private final EconomyManager economyManager;
     private final java.util.List<ClientHandler> spectators = new java.util.ArrayList<ClientHandler>();
     private final java.util.List<String> roundLog = new java.util.ArrayList<String>();
 
@@ -26,7 +27,7 @@ public class RockPaperScissorsMatch
     private boolean over = false;
     private TournamentMatchListener tournamentListener;
 
-    public RockPaperScissorsMatch(String matchId, ClientHandler playerA, ClientHandler playerB, RockPaperScissorsMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager)
+    public RockPaperScissorsMatch(String matchId, ClientHandler playerA, ClientHandler playerB, RockPaperScissorsMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
         this.matchId = matchId;
         this.playerA = playerA;
@@ -34,6 +35,7 @@ public class RockPaperScissorsMatch
         this.matchManager = matchManager;
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
+        this.economyManager = economyManager;
     }
 
     public String getPlayerAUsername() { return playerA.getLoggedInUsername(); }
@@ -116,6 +118,7 @@ public class RockPaperScissorsMatch
             over = true;
             matchManager.endMatch(matchId);
             recordRating();
+            awardWinner();
             saveReplay();
             sendMatchOver(playerA, scoreA > scoreB ? "WIN" : "LOSE");
             sendMatchOver(playerB, scoreB > scoreA ? "WIN" : "LOSE");
@@ -175,6 +178,15 @@ public class RockPaperScissorsMatch
         }
         double outcomeForA = scoreA > scoreB ? 1.0 : 0.0;
         leaderboardManager.recordRatedMatch("rock-paper-scissors", playerA.getAccountId(), playerB.getAccountId(), outcomeForA);
+    }
+
+    private void awardWinner()
+    {
+        if (economyManager == null)
+        {
+            return;
+        }
+        economyManager.awardWin(scoreA > scoreB ? playerA : playerB, "rock-paper-scissors");
     }
 
     /** Returns 1 if moveA beats moveB, -1 if moveB wins, 0 for a draw. */

@@ -30,6 +30,7 @@ public class BattleshipMatch
     private final List<ClientHandler> spectators = new ArrayList<ClientHandler>();
     private final List<String> shotLog = new ArrayList<String>();
     private final ReplayManager replayManager;
+    private final EconomyManager economyManager;
 
     /** fleet[cell] = ship index (0-4) if occupied, -1 if water. */
     private final int[] fleetA = new int[SIZE * SIZE];
@@ -43,7 +44,7 @@ public class BattleshipMatch
     private boolean over = false;
     private TournamentMatchListener tournamentListener;
 
-    public BattleshipMatch(String matchId, ClientHandler playerA, ClientHandler playerB, BattleshipMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager)
+    public BattleshipMatch(String matchId, ClientHandler playerA, ClientHandler playerB, BattleshipMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
         this.matchId = matchId;
         this.playerA = playerA;
@@ -51,6 +52,7 @@ public class BattleshipMatch
         this.matchManager = matchManager;
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
+        this.economyManager = economyManager;
         placeFleet(fleetA);
         placeFleet(fleetB);
     }
@@ -264,6 +266,10 @@ public class BattleshipMatch
     private void endGame(ClientHandler winner, ClientHandler loser)
     {
         recordRating(winner, loser);
+        if (economyManager != null)
+        {
+            economyManager.awardWin(winner, "battleship");
+        }
         saveReplay(winner);
 
         Message winMsg = new Message();

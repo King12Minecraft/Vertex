@@ -21,11 +21,13 @@ public class AmongUsMatchManager
     private int nextMatchId = 1;
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
+    private final EconomyManager economyManager;
 
-    public AmongUsMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager)
+    public AmongUsMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, EconomyManager economyManager)
     {
         this.gameHistoryManager = gameHistoryManager;
         this.chatManager = chatManager;
+        this.economyManager = economyManager;
     }
 
     public synchronized void findMatch(ClientHandler player)
@@ -47,7 +49,7 @@ public class AmongUsMatchManager
             }
 
             String matchId = "among-" + (nextMatchId++);
-            AmongUsMatch match = new AmongUsMatch(matchId, matched, this);
+            AmongUsMatch match = new AmongUsMatch(matchId, matched, this, economyManager);
             activeMatches.put(matchId, match);
             for (int i = 0; i < matched.size(); i++)
             {

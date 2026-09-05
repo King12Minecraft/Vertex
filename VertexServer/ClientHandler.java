@@ -300,6 +300,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.CUSTOM_GAME_LIST_REQUEST) return handleCustomGameList();
         if (request.getType() == MessageType.CUSTOM_GAME_DOWNLOAD_REQUEST) return handleCustomGameDownload(request);
         if (request.getType() == MessageType.CUSTOM_GAME_DELETE_REQUEST) return handleCustomGameDelete(request);
+        if (request.getType() == MessageType.CUSTOM_GAME_APPROVE_REQUEST) return handleCustomGameApprove(request);
 
         Message response = new Message();
         response.setSuccess(false);
@@ -385,20 +386,27 @@ public class ClientHandler implements Runnable
         return response;
     }
 
-    /** Every custom game, visible to everyone - there's no built-in/custom distinction in who gets to browse the catalog, only in who gets to remove an entry (see handleCustomGameDelete). */
+    /** Every custom game an admin can review (all of them), or every approved game plus this uploader's own still-pending ones - a pending game is only ever visible to its own uploader (as "Pending Review") or an admin (for review), never to anyone else. */
     private Message handleCustomGameList()
     {
         Message response = new Message();
         response.setType(MessageType.CUSTOM_GAME_LIST_RESPONSE);
         response.setSuccess(true);
 
+        boolean admin = isAdmin();
         List<CustomGameStore.Entry> all = customGameStore.getAll();
         List<String> lines = new ArrayList<String>();
         for (int i = 0; i < all.size(); i++)
         {
             CustomGameStore.Entry e = all.get(i);
+            boolean visible = e.approved || admin
+                || (loggedInUsername != null && e.authorUsername.equalsIgnoreCase(loggedInUsername));
+            if (!visible)
+            {
+                continue;
+            }
             lines.add(e.gameId + "|" + e.name + "|" + e.authorUsername + "|" + e.entryClassName
-                + "|" + e.uploadedAt + "|" + e.hash + "|" + e.sizeBytes);
+                + "|" + e.uploadedAt + "|" + e.hash + "|" + e.sizeBytes + "|" + (e.approved ? "1" : "0"));
         }
         response.setCustomGameEntries(lines);
         return response;
@@ -416,6 +424,14 @@ public class ClientHandler implements Runnable
         {
             response.setSuccess(false);
             response.setErrorText("This custom game is no longer available.");
+            return response;
+        }
+        boolean visible = entry.approved || isAdmin()
+            || (loggedInUsername != null && entry.authorUsername.equalsIgnoreCase(loggedInUsername));
+        if (!visible)
+        {
+            response.setSuccess(false);
+            response.setErrorText("This game is still waiting on review.");
             return response;
         }
 
@@ -454,6 +470,29 @@ public class ClientHandler implements Runnable
         if (!removed)
         {
             response.setErrorText("Could not remove that game - it may already be gone, or it isn't yours.");
+        }
+        return response;
+    }
+
+    /** Admin-only - moves an uploaded game from "Pending Review" to visible-to-everyone. See CustomGameStore's javadoc for why review exists at all: nothing here is sandboxed, so a human actually opening and checking the game before it reaches everyone else is the whole safety net. */
+    private Message handleCustomGameApprove(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.CUSTOM_GAME_APPROVE_RESPONSE);
+
+        if (!isAdmin())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Admins only.");
+            return response;
+        }
+
+        String gameId = request.getGameId();
+        boolean approved = gameId != null && customGameStore.approve(gameId);
+        response.setSuccess(approved);
+        if (!approved)
+        {
+            response.setErrorText("Could not find that game to approve.");
         }
         return response;
     }
@@ -993,13 +1032,23 @@ public class ClientHandler implements Runnable
         {
             gameHistoryManager.recordPlay(loggedInAccountId, request.getGameId());
 
-            if ("snake".equals(request.getGameId()))
+            String gameId = request.getGameId();
+            if ("snake".equals(gameId))
             {
                 economyManager.awardSnakeScore(this, request.getScore());
             }
-            else if ("zombie-survival".equals(request.getGameId()) || "space-battle".equals(request.getGameId()))
+            else if ("zombie-survival".equals(gameId) || "space-battle".equals(gameId))
             {
-                leaderboardManager.recordScore(request.getGameId(), loggedInAccountId, request.getScore());
+                leaderboardManager.recordScore(gameId, loggedInAccountId, request.getScore());
+            }
+            else if ("puzzle-quest".equals(gameId))
+            {
+                economyManager.awardPuzzleQuestCompletion(this);
+            }
+            else if ("pingpong".equals(gameId) || "2048".equals(gameId) || "dino-dash".equals(gameId)
+                || "tetris".equals(gameId) || "crossing-road".equals(gameId) || "aim-trainer".equals(gameId))
+            {
+                economyManager.awardPracticeScore(this, gameId, request.getScore());
             }
         }
         return null;

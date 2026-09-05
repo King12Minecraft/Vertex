@@ -195,6 +195,51 @@ public class EconomyManager
         player.sendMessage(walletUpdate);
     }
 
+    /** Generic score-based reward for the practice-mode games that previously paid nothing (Pong, 2048, Dino Dash, Tetris, Crossing Road, Aim Trainer) - same shape as awardSnakeScore, just driven by EconomyConfig.getPracticeReward's per-game formula instead of Snake's own. */
+    public void awardPracticeScore(ClientHandler player, String gameId, int score)
+    {
+        String username = player.getLoggedInUsername();
+        if (username == null) return;
+        Account account = accountStore.findByUsername(username);
+        if (account == null) return;
+
+        int reward = EconomyConfig.getPracticeReward(gameId, score);
+        if (reward <= 0)
+        {
+            return;
+        }
+
+        account.setCoins(account.getCoins() + reward);
+        transactionManager.log(account.getAccountId(), reward, "Practice reward");
+        accountStore.updateAccount(account);
+        checkCoinAchievement(account);
+
+        Message walletUpdate = new Message();
+        walletUpdate.setType(MessageType.WALLET_UPDATE);
+        walletUpdate.setCoins(account.getCoins());
+        player.sendMessage(walletUpdate);
+    }
+
+    /** Flat reward for solving a Puzzle Quest puzzle - see EconomyConfig.PUZZLE_QUEST_REWARD for why this one isn't score-scaled. */
+    public void awardPuzzleQuestCompletion(ClientHandler player)
+    {
+        String username = player.getLoggedInUsername();
+        if (username == null) return;
+        Account account = accountStore.findByUsername(username);
+        if (account == null) return;
+
+        int reward = EconomyConfig.PUZZLE_QUEST_REWARD;
+        account.setCoins(account.getCoins() + reward);
+        transactionManager.log(account.getAccountId(), reward, "Solved a Puzzle Quest puzzle");
+        accountStore.updateAccount(account);
+        checkCoinAchievement(account);
+
+        Message walletUpdate = new Message();
+        walletUpdate.setType(MessageType.WALLET_UPDATE);
+        walletUpdate.setCoins(account.getCoins());
+        player.sendMessage(walletUpdate);
+    }
+
     public synchronized PurchaseResult purchase(ClientHandler buyer, String itemId, int[] outNewBalance)
     {
         String username = buyer.getLoggedInUsername();

@@ -119,7 +119,7 @@ public class TournamentManager
         if ("battleship".equals(tournament.gameId))
         {
             String matchId = tournament.id + "-match-" + System.nanoTime();
-            BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, battleshipMatchManager, leaderboardManager, replayManager);
+            BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, battleshipMatchManager, leaderboardManager, replayManager, null);
             match.setTournamentListener(listener);
             playerA.setCurrentBattleshipMatch(match);
             playerB.setCurrentBattleshipMatch(match);
@@ -128,7 +128,7 @@ public class TournamentManager
         else
         {
             String matchId = tournament.id + "-match-" + System.nanoTime();
-            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, rpsMatchManager, leaderboardManager, replayManager);
+            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, rpsMatchManager, leaderboardManager, replayManager, null);
             match.setTournamentListener(listener);
             playerA.setCurrentRpsMatch(match);
             playerB.setCurrentRpsMatch(match);

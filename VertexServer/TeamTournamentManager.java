@@ -132,7 +132,7 @@ public class TeamTournamentManager
         for (int i = 0; i < teamB.size(); i++) teamAssignments.add(1);
 
         String matchId = tournament.id + "-decider-" + System.nanoTime();
-        FightMatch match = new FightMatch(matchId, tournament.mode, roster, teamAssignments, fightArenaMatchManager, leaderboardManager);
+        FightMatch match = new FightMatch(matchId, tournament.mode, roster, teamAssignments, fightArenaMatchManager, leaderboardManager, null);
 
         match.setTournamentListener(new FightTournamentListener()
         {

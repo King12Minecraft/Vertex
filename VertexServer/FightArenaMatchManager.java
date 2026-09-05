@@ -28,14 +28,16 @@ public class FightArenaMatchManager
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
     private final PartyManager partyManager;
+    private final EconomyManager economyManager;
 
     public FightArenaMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager,
-                                   LeaderboardManager leaderboardManager, PartyManager partyManager)
+                                   LeaderboardManager leaderboardManager, PartyManager partyManager, EconomyManager economyManager)
     {
         this.gameHistoryManager = gameHistoryManager;
         this.chatManager = chatManager;
         this.leaderboardManager = leaderboardManager;
         this.partyManager = partyManager;
+        this.economyManager = economyManager;
         waitingByMode.put("1V1", new ArrayList<ClientHandler>());
         waitingByMode.put("2V2", new ArrayList<ClientHandler>());
         waitingByMode.put("3V3", new ArrayList<ClientHandler>());
@@ -205,7 +207,7 @@ public class FightArenaMatchManager
     private void createMatch(String mode, List<ClientHandler> matched, List<Integer> teams)
     {
         String matchId = "fight-" + (nextMatchId++);
-        FightMatch match = new FightMatch(matchId, mode, matched, teams, this, leaderboardManager);
+        FightMatch match = new FightMatch(matchId, mode, matched, teams, this, leaderboardManager, economyManager);
         activeMatches.put(matchId, match);
 
         for (int i = 0; i < matched.size(); i++)

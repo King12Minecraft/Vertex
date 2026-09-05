@@ -334,7 +334,8 @@ public class NetworkManager
         MessageType.CUSTOM_GAME_UPLOAD_RESPONSE,
         MessageType.CUSTOM_GAME_LIST_RESPONSE,
         MessageType.CUSTOM_GAME_DOWNLOAD_RESPONSE,
-        MessageType.CUSTOM_GAME_DELETE_RESPONSE);
+        MessageType.CUSTOM_GAME_DELETE_RESPONSE,
+        MessageType.CUSTOM_GAME_APPROVE_RESPONSE);
 
     private static void routeIncoming(Message message)
     {

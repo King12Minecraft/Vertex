@@ -231,7 +231,8 @@ public class CodeEditorWindow extends JFrame
                             outputArea.setText("Compiled successfully, but publishing failed:\n" + errorMessage);
                             return;
                         }
-                        outputArea.setText("Published \"" + gameName + "\" - it's now on the Custom Games page for everyone.");
+                        outputArea.setText("Published \"" + gameName + "\" - it's in the review queue now, and will "
+                            + "be visible to everyone on the Custom Games page within 1-3 weeks once an admin checks it out.");
                         if (onPublished != null)
                         {
                             onPublished.run();

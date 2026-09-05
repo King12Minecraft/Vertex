@@ -20,13 +20,15 @@ public class RockPaperScissorsMatchManager
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
+    private final EconomyManager economyManager;
 
-    public RockPaperScissorsMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager)
+    public RockPaperScissorsMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
         this.gameHistoryManager = gameHistoryManager;
         this.chatManager = chatManager;
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
+        this.economyManager = economyManager;
     }
 
     public synchronized void findMatch(ClientHandler player)
@@ -40,7 +42,7 @@ public class RockPaperScissorsMatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "rps-" + (nextMatchId++);
-            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, opponent, player, this, leaderboardManager, replayManager);
+            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager);
             activeMatches.put(matchId, match);
             opponent.setCurrentRpsMatch(match);
             player.setCurrentRpsMatch(match);
@@ -83,7 +85,7 @@ public class RockPaperScissorsMatchManager
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
     {
         String matchId = "rps-" + (nextMatchId++);
-        RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager);
+        RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager);
         activeMatches.put(matchId, match);
         playerA.setCurrentRpsMatch(match);
         playerB.setCurrentRpsMatch(match);
