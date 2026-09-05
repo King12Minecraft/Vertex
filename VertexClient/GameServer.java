@@ -50,6 +50,8 @@ public class GameServer
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
     private final CustomGameStore customGameStore = new CustomGameStore();
+    private final ZombieSurvivalMatchManager zombieSurvivalMatchManager = new ZombieSurvivalMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager, leaderboardManager);
+    private final SpaceBattleMatchManager spaceBattleMatchManager = new SpaceBattleMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager, leaderboardManager);
 
     {
         // Wires AchievementManager into the managers that trigger its checks -
@@ -118,7 +120,7 @@ public class GameServer
                     fightArenaMatchManager, chessMatchManager, battleshipMatchManager, rpsMatchManager,
                     leaderboardManager, partyManager, achievementManager, tournamentManager, replayManager,
                     teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry,
-                    feedbackManager, customGameStore);
+                    feedbackManager, customGameStore, zombieSurvivalMatchManager, spaceBattleMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

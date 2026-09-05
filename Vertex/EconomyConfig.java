@@ -26,6 +26,15 @@ public class EconomyConfig
         return 0;
     }
 
+    /** Space Battle's placement rewards - same 1st/2nd/3rd-only structure as Racing. */
+    public static int getSpaceBattlePlacementReward(int place)
+    {
+        if (place == 1) return 50;
+        if (place == 2) return 30;
+        if (place == 3) return 15;
+        return 0;
+    }
+
     private static final int SNAKE_COINS_PER_POINTS = 5;
     private static final int SNAKE_MAX_REWARD = 25;
 

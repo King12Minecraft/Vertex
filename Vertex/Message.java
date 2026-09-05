@@ -306,6 +306,55 @@ public class Message implements Serializable
     public int getRaceReward() { return raceReward; }
     public void setRaceReward(int raceReward) { this.raceReward = raceReward; }
 
+    // ---- Zombie Survival (same-seed wave shooter, not live position sync - see ZombieSurvivalMatch) ----
+    private long zombieSeed;
+    private java.util.List<String> zombieRosterUsernames;
+    private boolean zombieWon;
+    private int zombieWaveReached;
+    private int zombieReward;
+
+    /** Shared RNG seed so every player gets the identical zombie spawn sequence - ZOMBIE_MATCH_FOUND. */
+    public long getZombieSeed() { return zombieSeed; }
+    public void setZombieSeed(long zombieSeed) { this.zombieSeed = zombieSeed; }
+
+    /** Every player's username in this match, including the recipient's own - ZOMBIE_MATCH_FOUND. */
+    public java.util.List<String> getZombieRosterUsernames() { return zombieRosterUsernames; }
+    public void setZombieRosterUsernames(java.util.List<String> zombieRosterUsernames) { this.zombieRosterUsernames = zombieRosterUsernames; }
+
+    /** Did the sender survive every wave, or die first - ZOMBIE_FINISHED_REQUEST. Use getScore() alongside this for zombies killed. */
+    public boolean isZombieWon() { return zombieWon; }
+    public void setZombieWon(boolean zombieWon) { this.zombieWon = zombieWon; }
+
+    /** Highest wave reached before dying, or WAVE_COUNT if survived - ZOMBIE_FINISHED_REQUEST/ZOMBIE_RESULT. */
+    public int getZombieWaveReached() { return zombieWaveReached; }
+    public void setZombieWaveReached(int zombieWaveReached) { this.zombieWaveReached = zombieWaveReached; }
+
+    /** Coins awarded for surviving all waves (0 if the sender died first) - ZOMBIE_RESULT. */
+    public int getZombieReward() { return zombieReward; }
+    public void setZombieReward(int zombieReward) { this.zombieReward = zombieReward; }
+
+    // ---- Space Battle (same-seed arcade dogfight, not live position sync - see SpaceBattleMatch) ----
+    private long spaceSeed;
+    private java.util.List<String> spaceRosterUsernames;
+    private int spacePlace;
+    private int spaceReward;
+
+    /** Shared RNG seed so every pilot gets the identical asteroid/enemy sequence - SPACE_MATCH_FOUND. */
+    public long getSpaceSeed() { return spaceSeed; }
+    public void setSpaceSeed(long spaceSeed) { this.spaceSeed = spaceSeed; }
+
+    /** Every pilot's username in this match, including the recipient's own - SPACE_MATCH_FOUND. */
+    public java.util.List<String> getSpaceRosterUsernames() { return spaceRosterUsernames; }
+    public void setSpaceRosterUsernames(java.util.List<String> spaceRosterUsernames) { this.spaceRosterUsernames = spaceRosterUsernames; }
+
+    /** 1-based final placement by score - SPACE_RESULT. */
+    public int getSpacePlace() { return spacePlace; }
+    public void setSpacePlace(int spacePlace) { this.spacePlace = spacePlace; }
+
+    /** Coins awarded for this match's placement (0 outside the top 3) - SPACE_RESULT. */
+    public int getSpaceReward() { return spaceReward; }
+    public void setSpaceReward(int spaceReward) { this.spaceReward = spaceReward; }
+
     // ---- Among Us (round-based social deduction - see AmongUsMatch for why this isn't live movement) ----
     private String amongRole;
     private java.util.List<String> amongTasks;

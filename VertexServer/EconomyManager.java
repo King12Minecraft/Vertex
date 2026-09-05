@@ -139,6 +139,38 @@ public class EconomyManager
         return place + "th";
     }
 
+    /**
+     * Space Battle placement reward - 1st/2nd/3rd only, same structure
+     * as awardRacingPlacement. Returns the coins awarded so
+     * SpaceBattleMatch can include it directly in the SPACE_RESULT
+     * sent to that player.
+     */
+    public int awardSpaceBattlePlacement(ClientHandler pilot, int place)
+    {
+        String username = pilot.getLoggedInUsername();
+        if (username == null) return 0;
+        Account account = accountStore.findByUsername(username);
+        if (account == null) return 0;
+
+        int reward = EconomyConfig.getSpaceBattlePlacementReward(place);
+        if (reward <= 0)
+        {
+            return 0;
+        }
+
+        account.setCoins(account.getCoins() + reward);
+        transactionManager.log(account.getAccountId(), reward, "Finished " + placeOrdinal(place) + " in a Space Battle");
+        accountStore.updateAccount(account);
+        checkCoinAchievement(account);
+
+        Message walletUpdate = new Message();
+        walletUpdate.setType(MessageType.WALLET_UPDATE);
+        walletUpdate.setCoins(account.getCoins());
+        pilot.sendMessage(walletUpdate);
+
+        return reward;
+    }
+
     public void awardSnakeScore(ClientHandler player, int score)
     {
         String username = player.getLoggedInUsername();

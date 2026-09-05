@@ -60,6 +60,8 @@ public class AchievementManager
         ALL_DEFINITIONS.add(new Definition("tictactoe-ace", "Tic-Tac-Toe Ace", "Win 10 games of Tic-Tac-Toe Online."));
         ALL_DEFINITIONS.add(new Definition("fight-champion", "Fight Champion", "Win 10 Fight Arena matches."));
         ALL_DEFINITIONS.add(new Definition("racing-ace", "Racing Ace", "Finish 1st in an online Race."));
+        ALL_DEFINITIONS.add(new Definition("zombie-survivor", "Survivor", "Survive all 8 waves of an online Zombie Survival match."));
+        ALL_DEFINITIONS.add(new Definition("space-ace", "Space Ace", "Finish 1st in an online Space Battle."));
         ALL_DEFINITIONS.add(new Definition("high-roller", "High Roller", "Hold 1000 coins at once."));
         ALL_DEFINITIONS.add(new Definition("dedicated", "Dedicated", "Play 50 games, of any kind, total."));
     }
@@ -136,6 +138,22 @@ public class AchievementManager
         if (place == 1 && accountId > 0)
         {
             unlock(accountId, "racing-ace");
+        }
+    }
+
+    public synchronized void checkZombieSurvival(int accountId, boolean won, int waveReached)
+    {
+        if (won && accountId > 0)
+        {
+            unlock(accountId, "zombie-survivor");
+        }
+    }
+
+    public synchronized void checkSpaceBattlePlacement(int accountId, int place)
+    {
+        if (place == 1 && accountId > 0)
+        {
+            unlock(accountId, "space-ace");
         }
     }
 

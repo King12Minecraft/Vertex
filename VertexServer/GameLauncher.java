@@ -104,6 +104,16 @@ public class GameLauncher
                 BattleshipWindow window = new BattleshipWindow();
                 window.setVisible(true);
             }
+            else if ("zombie-survival".equals(game.getGameId()))
+            {
+                ZombieSurvivalWindow window = new ZombieSurvivalWindow();
+                window.setVisible(true);
+            }
+            else if ("space-battle".equals(game.getGameId()))
+            {
+                SpaceBattleWindow window = new SpaceBattleWindow();
+                window.setVisible(true);
+            }
             else
             {
                 GameHubDialog.show(anchor, game.getName(),

@@ -116,6 +116,20 @@ public enum MessageType
     RACE_FINISHED_REQUEST,
     RACE_RESULT,
 
+    // --- Zombie Survival (same-seed wave shooter - see ZombieSurvivalMatch) ---
+    ZOMBIE_FIND_MATCH_REQUEST,
+    ZOMBIE_LEAVE_QUEUE_REQUEST,
+    ZOMBIE_MATCH_FOUND,
+    ZOMBIE_FINISHED_REQUEST,
+    ZOMBIE_RESULT,
+
+    // --- Space Battle (same-seed arcade dogfight, ranked by score - see SpaceBattleMatch) ---
+    SPACE_FIND_MATCH_REQUEST,
+    SPACE_LEAVE_QUEUE_REQUEST,
+    SPACE_MATCH_FOUND,
+    SPACE_FINISHED_REQUEST,
+    SPACE_RESULT,
+
     // --- Among Us (round-based social deduction, not live movement - see AmongUsMatch) ---
     AMONG_FIND_MATCH_REQUEST,
     AMONG_LEAVE_QUEUE_REQUEST,

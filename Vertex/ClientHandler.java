@@ -36,6 +36,10 @@ public class ClientHandler implements Runnable
     private BattleshipMatchManager battleshipMatchManager;
     private RockPaperScissorsMatch currentRpsMatch;
     private RockPaperScissorsMatchManager rpsMatchManager;
+    private ZombieSurvivalMatch currentZombieMatch;
+    private ZombieSurvivalMatchManager zombieSurvivalMatchManager;
+    private SpaceBattleMatch currentSpaceBattleMatch;
+    private SpaceBattleMatchManager spaceBattleMatchManager;
     private LeaderboardManager leaderboardManager;
     private PartyManager partyManager;
     private AchievementManager achievementManager;
@@ -60,7 +64,8 @@ public class ClientHandler implements Runnable
                           ReplayManager replayManager, TeamTournamentManager teamTournamentManager,
                           MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry,
                           PresenceRegistry presenceRegistry, FeedbackManager feedbackManager,
-                          CustomGameStore customGameStore)
+                          CustomGameStore customGameStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
+                          SpaceBattleMatchManager spaceBattleMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -89,12 +94,16 @@ public class ClientHandler implements Runnable
         this.presenceRegistry = presenceRegistry;
         this.feedbackManager = feedbackManager;
         this.customGameStore = customGameStore;
+        this.zombieSurvivalMatchManager = zombieSurvivalMatchManager;
+        this.spaceBattleMatchManager = spaceBattleMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
     public Integer getAccountId() { return loggedInAccountId; }
     public void setCurrentMatch(TicTacToeMatch match) { this.currentMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
+    public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
+    public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
     public void setCurrentAmongMatch(AmongUsMatch match) { this.currentAmongMatch = match; }
     public void setCurrentFightMatch(FightMatch match) { this.currentFightMatch = match; }
     public void setCurrentChessMatch(ChessMatch match) { this.currentChessMatch = match; }
@@ -161,6 +170,8 @@ public class ClientHandler implements Runnable
             chessMatchManager.cancelWaiting(this);
             battleshipMatchManager.cancelWaiting(this);
             rpsMatchManager.cancelWaiting(this);
+            zombieSurvivalMatchManager.cancelWaiting(this);
+            spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
             tournamentManager.handleDisconnect(this);
             teamTournamentManager.handleDisconnect(this);
@@ -172,6 +183,8 @@ public class ClientHandler implements Runnable
             if (currentChessMatch != null) currentChessMatch.handleDisconnect(this);
             if (currentBattleshipMatch != null) currentBattleshipMatch.handleDisconnect(this);
             if (currentRpsMatch != null) currentRpsMatch.handleDisconnect(this);
+            if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
+            if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
             if (loggedInUsername != null)
             {
@@ -234,6 +247,12 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.RACE_FIND_MATCH_REQUEST) return handleRaceFindMatch();
         if (request.getType() == MessageType.RACE_LEAVE_QUEUE_REQUEST) return handleRaceLeaveQueue();
         if (request.getType() == MessageType.RACE_FINISHED_REQUEST) return handleRaceFinished(request);
+        if (request.getType() == MessageType.ZOMBIE_FIND_MATCH_REQUEST) return handleZombieFindMatch();
+        if (request.getType() == MessageType.ZOMBIE_LEAVE_QUEUE_REQUEST) return handleZombieLeaveQueue();
+        if (request.getType() == MessageType.ZOMBIE_FINISHED_REQUEST) return handleZombieFinished(request);
+        if (request.getType() == MessageType.SPACE_FIND_MATCH_REQUEST) return handleSpaceFindMatch();
+        if (request.getType() == MessageType.SPACE_LEAVE_QUEUE_REQUEST) return handleSpaceLeaveQueue();
+        if (request.getType() == MessageType.SPACE_FINISHED_REQUEST) return handleSpaceFinished(request);
         if (request.getType() == MessageType.AMONG_FIND_MATCH_REQUEST) return handleAmongFindMatch();
         if (request.getType() == MessageType.AMONG_LEAVE_QUEUE_REQUEST) return handleAmongLeaveQueue();
         if (request.getType() == MessageType.AMONG_TASK_COMPLETE_REQUEST) return handleAmongTaskComplete(request);
@@ -978,6 +997,10 @@ public class ClientHandler implements Runnable
             {
                 economyManager.awardSnakeScore(this, request.getScore());
             }
+            else if ("zombie-survival".equals(request.getGameId()) || "space-battle".equals(request.getGameId()))
+            {
+                leaderboardManager.recordScore(request.getGameId(), loggedInAccountId, request.getScore());
+            }
         }
         return null;
     }
@@ -1453,6 +1476,62 @@ public class ClientHandler implements Runnable
         if (currentRacingMatch != null)
         {
             currentRacingMatch.reportFinished(this, request.isRaceFinished(), request.getScore());
+        }
+        return null;
+    }
+
+    // ==================== Zombie Survival (online, same-seed) ====================
+
+    private Message handleZombieFindMatch()
+    {
+        if (loggedInUsername != null) zombieSurvivalMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleZombieLeaveQueue()
+    {
+        zombieSurvivalMatchManager.cancelWaiting(this);
+        if (currentZombieMatch != null)
+        {
+            currentZombieMatch.handleDisconnect(this);
+            currentZombieMatch = null;
+        }
+        return null;
+    }
+
+    private Message handleZombieFinished(Message request)
+    {
+        if (currentZombieMatch != null)
+        {
+            currentZombieMatch.reportFinished(this, request.isZombieWon(), request.getZombieWaveReached(), request.getScore());
+        }
+        return null;
+    }
+
+    // ==================== Space Battle (online, same-seed) ====================
+
+    private Message handleSpaceFindMatch()
+    {
+        if (loggedInUsername != null) spaceBattleMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleSpaceLeaveQueue()
+    {
+        spaceBattleMatchManager.cancelWaiting(this);
+        if (currentSpaceBattleMatch != null)
+        {
+            currentSpaceBattleMatch.handleDisconnect(this);
+            currentSpaceBattleMatch = null;
+        }
+        return null;
+    }
+
+    private Message handleSpaceFinished(Message request)
+    {
+        if (currentSpaceBattleMatch != null)
+        {
+            currentSpaceBattleMatch.reportFinished(this, request.getScore());
         }
         return null;
     }
