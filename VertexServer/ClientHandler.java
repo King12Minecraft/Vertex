@@ -567,6 +567,13 @@ public class ClientHandler implements Runnable
     /** No response needed - registering is a courtesy heads-up ("I exist, here's my port"), not a request that expects data back. Still sends an empty acknowledgement Message so registerAsSatellite's readObject() call has something waiting for it rather than blocking indefinitely. */
     private Message handleSatelliteRegister(Message request)
     {
+        if (!NetworkConfig.SATELLITE_SERVERS_ENABLED)
+        {
+            // Feature is temporarily disabled - ack anyway so an older/other
+            // build's registerAsSatellite() doesn't hang waiting on a reply,
+            // but don't actually record it.
+            return new Message();
+        }
         String host = socket.getInetAddress().getHostAddress();
         satelliteRegistry.register(host, request.getSatellitePort());
         return new Message();

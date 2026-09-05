@@ -26,6 +26,14 @@ public class NetworkConfig
     /** Chat file attachments - checked both client-side (before sending) and server-side (defense in depth). */
     public static final int MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 
+    /**
+     * Temporary kill switch for the satellite-server system (hosting as a
+     * satellite, satellite registration/sync, and the admin "Servers" page).
+     * Flip back to true to re-enable - nothing else needs to change, every
+     * checkpoint below reads this same flag.
+     */
+    public static final boolean SATELLITE_SERVERS_ENABLED = false;
+
     private NetworkConfig()
     {
         // Static constants holder - never instantiated.

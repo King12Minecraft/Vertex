@@ -54,14 +54,18 @@ public class HostServerDialog
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         root.add(title);
 
-        JLabel hint = new JLabel("<html><body style='width:280px'>Starts a real Vertex server on this computer for others to join. Leave the address below blank to host as the MAIN server, or point it at an existing main server's address to host a satellite that stays synced with it.</body></html>");
+        JLabel hint = new JLabel(NetworkConfig.SATELLITE_SERVERS_ENABLED
+            ? "<html><body style='width:280px'>Starts a real Vertex server on this computer for others to join. Leave the address below blank to host as the MAIN server, or point it at an existing main server's address to host a satellite that stays synced with it.</body></html>"
+            : "<html><body style='width:280px'>Starts a real Vertex server on this computer for others to join, as the MAIN server. Satellite hosting (syncing to an existing main server) is temporarily disabled.</body></html>");
         hint.setFont(UITheme.FONT_SMALL);
         hint.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         hint.setAlignmentX(Component.LEFT_ALIGNMENT);
         hint.setBorder(new EmptyBorder(6, 0, 18, 0));
         root.add(hint);
 
-        JLabel addressLabel = new JLabel("Main server address (optional)");
+        JLabel addressLabel = new JLabel(NetworkConfig.SATELLITE_SERVERS_ENABLED
+            ? "Main server address (optional)"
+            : "Main server address (satellite hosting disabled)");
         addressLabel.setFont(UITheme.FONT_SMALL);
         addressLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         addressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -71,6 +75,7 @@ public class HostServerDialog
         final ThemedTextField addressField = new ThemedTextField("host:port, e.g. 192.168.1.10:7777");
         addressField.setAlignmentX(Component.LEFT_ALIGNMENT);
         addressField.setMaximumSize(new Dimension(2000, 38));
+        addressField.setEnabled(NetworkConfig.SATELLITE_SERVERS_ENABLED);
         root.add(addressField);
         root.add(javax.swing.Box.createVerticalStrut(16));
 

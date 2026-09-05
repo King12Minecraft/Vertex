@@ -89,7 +89,7 @@ public class GameServer
         acceptThread.setDaemon(true);
         acceptThread.start();
 
-        if (mainServerConnection != null)
+        if (mainServerConnection != null && NetworkConfig.SATELLITE_SERVERS_ENABLED)
         {
             final int myPort = NetworkConfig.getServerPort();
             Thread registerThread = new Thread(new Runnable()

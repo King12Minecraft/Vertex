@@ -181,7 +181,9 @@ public class SettingsPanel extends RoundedPanel
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
         col.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel note = new JLabel("<html><body style='width:420px'>Run a Vertex server on this computer so others can join - either as the main server, or as a satellite that stays synced with an existing one.</body></html>");
+        JLabel note = new JLabel(NetworkConfig.SATELLITE_SERVERS_ENABLED
+            ? "<html><body style='width:420px'>Run a Vertex server on this computer so others can join - either as the main server, or as a satellite that stays synced with an existing one.</body></html>"
+            : "<html><body style='width:420px'>Run a Vertex server on this computer so others can join, as the main server. Satellite hosting is temporarily disabled.</body></html>");
         note.setFont(UITheme.FONT_BODY);
         note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
