@@ -30,7 +30,6 @@ public enum MessageType
 
     // --- Phase 9: General Chat. Also push-capable - broadcast to every
     // logged-in client, not just a direct reply. ---
-    CHAT_MESSAGE,
 
     // --- Phase 9 continued: Private messages & group chats ---
     PRIVATE_MESSAGE,
@@ -247,17 +246,11 @@ public enum MessageType
     CLIENT_UPDATE_DOWNLOAD_REQUEST,
     CLIENT_UPDATE_DOWNLOAD_RESPONSE,
 
-    // --- Custom (user-uploaded) games - see CustomGameStore/CustomGamesPanel/CodeEditorWindow ----
-    CUSTOM_GAME_UPLOAD_REQUEST,
-    CUSTOM_GAME_UPLOAD_RESPONSE,
-    CUSTOM_GAME_LIST_REQUEST,
-    CUSTOM_GAME_LIST_RESPONSE,
-    CUSTOM_GAME_DOWNLOAD_REQUEST,
-    CUSTOM_GAME_DOWNLOAD_RESPONSE,
-    CUSTOM_GAME_DELETE_REQUEST,
-    CUSTOM_GAME_DELETE_RESPONSE,
-    CUSTOM_GAME_APPROVE_REQUEST,
-    CUSTOM_GAME_APPROVE_RESPONSE,
+    // --- Game suggestions (community wishlist, replaces the old custom-game upload feature) ---
+    GAME_SUGGESTION_SUBMIT_REQUEST,
+    GAME_SUGGESTION_SUBMIT_RESPONSE,
+    GAME_SUGGESTION_LIST_REQUEST,
+    GAME_SUGGESTION_LIST_RESPONSE,
 
     // --- Admin tools - Players list, role changes, audit log (admin-only) ---
     ADMIN_ACCOUNT_LIST_REQUEST,

@@ -59,15 +59,16 @@ Default port is **7777**, but this is fully configurable — hosting asks which 
 
 ## Repo structure
 
-There are three source folders, and they're intentionally identical in content — this is a flat, single-package BlueJ project, so "client" and "server" aren't separate modules, just separate entry points (`Vertex.java` vs `ServerMain.java`) into the same set of classes:
+There are two source folders. This is a flat, single-package BlueJ project, so "client" and "server" aren't separate modules, just separate entry points (`Vertex.java` vs `ServerMain.java`) into the same set of classes - both folders carry the full engine and are intentionally identical in content:
 
-- **`Vertex/`** — the source of truth. All edits happen here first.
-- **`VertexClient/`** — a synced copy of `Vertex/`, built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs.
-- **`VertexServer/`** — a synced copy of `Vertex/`, built and shipped as `VertexServer.jar` (`Main-Class: ServerMain`). This is what someone hosting runs — starting it brings up the server *and* opens the same game window `VertexClient` would, already connected, so the host can play too.
+- **`VertexClient/`** — built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs, and is the edit source of truth: make changes here first.
+- **`VertexServer/`** — a synced copy of `VertexClient/`, built and shipped as `VertexServer.jar` (`Main-Class: ServerMain`). This is what someone hosting runs — starting it brings up the server *and* opens the same game window `VertexClient` would, already connected, so the host can play too.
 
-Why not trim `VertexClient`/`VertexServer` down to only the files each one strictly needs? Because `ServerMain` opens the full game client in-process the moment hosting starts (see above) — so the server side ends up needing almost the entire client UI anyway. Splitting them for real would mean the server launches the client as a *separate process* instead of embedding it, which is a real architecture change, not a cleanup — noted as a possible future improvement, not done here.
+There used to be a third `Vertex/` master folder that both of these synced from; it's gone now so the repo only ever shows the two folders someone would actually run.
 
-Practical effect of the sync-copy setup: if you're fixing a bug or adding a feature, edit the file in `Vertex/`, then copy it into `VertexClient/` and `VertexServer/` before committing — the three folders should never drift apart. A file only one of `VertexClient`/`VertexServer` needs (rare — see above) still gets copied into both, for the same reason.
+Why not trim these down to only the files each one strictly needs? Because `ServerMain` opens the full game client in-process the moment hosting starts (see above) - so the server side ends up needing almost the entire client UI anyway. Splitting them for real would mean the server launches the client as a *separate process* instead of embedding it - a real architecture change (and one that would break "host from BlueJ and get a playable window immediately," since finding a client jar to launch as a subprocess doesn't work the same way when running compiled classes straight out of BlueJ rather than a built jar). Noted as a possible future improvement, not done here.
+
+Practical effect of the sync-copy setup: if you're fixing a bug or adding a feature, edit the file in `VertexClient/`, then copy it into `VertexServer/` before committing - the two folders should never drift apart.
 
 - `VertexClient.jar` / `VertexServer.jar` — pre-built runnable JARs, rebuilt fresh with every push
 - `Run-*-LowEnd.*` — launcher scripts tuned for weaker hardware

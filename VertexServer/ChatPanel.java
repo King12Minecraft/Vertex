@@ -31,8 +31,7 @@ import java.util.Map;
 /**
  * ChatPanel
  * ---------
- * General Chat, Private Messages, and Group Chats, all in one
- * sidebar-driven view. Every channel type shares the same
+ * Private Messages and Group Chats, all in one sidebar-driven view. Every channel type shares the same
  * message-rendering and send logic - only the outgoing MessageType
  * differs. Also supports file attachments (max
  * NetworkConfig.MAX_FILE_SIZE_BYTES, checked before sending) - files
@@ -74,7 +73,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     private final Map<String, String> channelNames = new LinkedHashMap<String, String>();
     private final Map<String, List<ChatEntry>> channelMessages = new LinkedHashMap<String, List<ChatEntry>>();
     private final Map<String, SidebarButton> channelButtons = new LinkedHashMap<String, SidebarButton>();
-    private String currentChannel = "general";
+    private String currentChannel = null;
 
     private JPanel sidebarList;
     private JPanel messageListPanel;
@@ -88,9 +87,6 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(0, 32, 24, 32));
 
-        channelNames.put("general", "General");
-        channelMessages.put("general", new ArrayList<ChatEntry>());
-
         add(createHeader(), BorderLayout.NORTH);
 
         JPanel body = new JPanel(new BorderLayout(16, 0));
@@ -102,14 +98,14 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         add(createInputRow(), BorderLayout.SOUTH);
 
         rebuildSidebar();
-        renderChannel("general");
+        renderChannel(currentChannel);
 
         NetworkManager.addPushListener(this);
     }
 
     private PageHeader createHeader()
     {
-        headerLabel = new PageHeader("GENERAL");
+        headerLabel = new PageHeader("MESSAGES");
 
         ThemedButton report = new ThemedButton("Report a Player", false);
         report.setPreferredSize(new Dimension(150, 34));
@@ -297,9 +293,21 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     // ---- Rendering ----
 
+    /** key is null when there are no DMs or groups yet at all (General Chat was removed - Private Messages and Group Chats are the only channel types now) - shown as a dedicated empty state rather than crashing on a null lookup. */
     private void renderChannel(String key)
     {
         messageListPanel.removeAll();
+
+        if (key == null)
+        {
+            JLabel empty = new JLabel("No conversations yet - start a DM or a group to begin chatting.");
+            empty.setFont(UITheme.FONT_BODY);
+            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+            messageListPanel.add(empty);
+            messageListPanel.revalidate();
+            messageListPanel.repaint();
+            return;
+        }
 
         List<ChatEntry> history = channelMessages.get(key);
         if (history == null || history.isEmpty())
@@ -538,16 +546,17 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         }
     }
 
-    /** Shared by both text and file sends - only the payload differs. */
+    /** Shared by both text and file sends - only the payload differs. currentChannel is only ever null when there are no DMs/groups yet, in which case there's nothing to send to. */
     private Message buildOutgoingMessage(String text, String fileName, byte[] fileData)
     {
+        if (currentChannel == null)
+        {
+            return null;
+        }
+
         Message request = new Message();
 
-        if (currentChannel.equals("general"))
-        {
-            request.setType(MessageType.CHAT_MESSAGE);
-        }
-        else if (currentChannel.startsWith("dm:"))
+        if (currentChannel.startsWith("dm:"))
         {
             String otherUsername = channelNames.get(currentChannel).substring(2); // strip "@ "
             request.setType(MessageType.PRIVATE_MESSAGE);
@@ -579,8 +588,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     public void onPush(final Message message)
     {
         MessageType type = message.getType();
-        if (type != MessageType.CHAT_MESSAGE && type != MessageType.PRIVATE_MESSAGE
-            && type != MessageType.GROUP_MESSAGE && type != MessageType.GROUP_ADDED)
+        if (type != MessageType.PRIVATE_MESSAGE && type != MessageType.GROUP_MESSAGE && type != MessageType.GROUP_ADDED)
         {
             return;
         }
@@ -595,11 +603,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     {
         MessageType type = message.getType();
 
-        if (type == MessageType.CHAT_MESSAGE)
-        {
-            recordAndMaybeRender("general", message);
-        }
-        else if (type == MessageType.PRIVATE_MESSAGE)
+        if (type == MessageType.PRIVATE_MESSAGE)
         {
             String sender = message.getUsername();
             boolean isMe = Session.isLoggedIn() && sender != null

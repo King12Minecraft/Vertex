@@ -51,7 +51,7 @@ public class ClientHandler implements Runnable
     private SatelliteRegistry satelliteRegistry;
     private PresenceRegistry presenceRegistry;
     private final FeedbackManager feedbackManager;
-    private final CustomGameStore customGameStore;
+    private final GameSuggestionStore gameSuggestionStore;
 
     public ClientHandler(Socket socket, ServerAccountStore accountStore, GameRegistry gameRegistry,
                           MatchManager matchManager, ChatManager chatManager,
@@ -65,7 +65,7 @@ public class ClientHandler implements Runnable
                           ReplayManager replayManager, TeamTournamentManager teamTournamentManager,
                           MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry,
                           PresenceRegistry presenceRegistry, FeedbackManager feedbackManager,
-                          CustomGameStore customGameStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
+                          GameSuggestionStore gameSuggestionStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
                           SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog)
     {
         this.socket = socket;
@@ -94,7 +94,7 @@ public class ClientHandler implements Runnable
         this.satelliteRegistry = satelliteRegistry;
         this.presenceRegistry = presenceRegistry;
         this.feedbackManager = feedbackManager;
-        this.customGameStore = customGameStore;
+        this.gameSuggestionStore = gameSuggestionStore;
         this.zombieSurvivalMatchManager = zombieSurvivalMatchManager;
         this.spaceBattleMatchManager = spaceBattleMatchManager;
         this.adminLog = adminLog;
@@ -218,7 +218,6 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.FIND_MATCH_REQUEST) return handleFindMatch();
         if (request.getType() == MessageType.MAKE_MOVE_REQUEST) return handleMakeMove(request);
         if (request.getType() == MessageType.LEAVE_MATCH_REQUEST) return handleLeaveMatch();
-        if (request.getType() == MessageType.CHAT_MESSAGE) return handleChatMessage(request);
         if (request.getType() == MessageType.PRIVATE_MESSAGE) return handlePrivateMessage(request);
         if (request.getType() == MessageType.GROUP_CREATE_REQUEST) return handleGroupCreate(request);
         if (request.getType() == MessageType.GROUP_MESSAGE) return handleGroupMessage(request);
@@ -298,11 +297,8 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.PARTY_KICK_REQUEST) return handlePartyKick(request);
         if (request.getType() == MessageType.CLIENT_VERSION_CHECK_REQUEST) return handleClientVersionCheck(request);
         if (request.getType() == MessageType.CLIENT_UPDATE_DOWNLOAD_REQUEST) return handleClientUpdateDownload();
-        if (request.getType() == MessageType.CUSTOM_GAME_UPLOAD_REQUEST) return handleCustomGameUpload(request);
-        if (request.getType() == MessageType.CUSTOM_GAME_LIST_REQUEST) return handleCustomGameList();
-        if (request.getType() == MessageType.CUSTOM_GAME_DOWNLOAD_REQUEST) return handleCustomGameDownload(request);
-        if (request.getType() == MessageType.CUSTOM_GAME_DELETE_REQUEST) return handleCustomGameDelete(request);
-        if (request.getType() == MessageType.CUSTOM_GAME_APPROVE_REQUEST) return handleCustomGameApprove(request);
+        if (request.getType() == MessageType.GAME_SUGGESTION_SUBMIT_REQUEST) return handleGameSuggestionSubmit(request);
+        if (request.getType() == MessageType.GAME_SUGGESTION_LIST_REQUEST) return handleGameSuggestionList();
         if (request.getType() == MessageType.ADMIN_ACCOUNT_LIST_REQUEST) return handleAdminAccountList();
         if (request.getType() == MessageType.ADMIN_SET_ROLE_REQUEST) return handleAdminSetRole(request);
         if (request.getType() == MessageType.ADMIN_LOG_REQUEST) return handleAdminLog();
@@ -346,13 +342,13 @@ public class ClientHandler implements Runnable
         return response;
     }
 
-    // ==================== Custom (user-uploaded) games ====================
+    // ==================== Game suggestions ====================
 
-    /** Stores an uploaded game jar (see CustomGameStore's own javadoc for the "no sandboxing" trust model this whole feature rests on). Just persists it under the uploader's identity - it's immediately visible to everyone via CUSTOM_GAME_LIST_REQUEST, no separate approval step. */
-    private Message handleCustomGameUpload(Message request)
+    /** Anyone logged in can suggest a game idea - no upload, no code, just a short text pitch stored for admins (and everyone else - it's a visible community wishlist) to read. Replaces the old upload-a-custom-game feature entirely, so there's nothing here that ever runs unreviewed code. */
+    private Message handleGameSuggestionSubmit(Message request)
     {
         Message response = new Message();
-        response.setType(MessageType.CUSTOM_GAME_UPLOAD_RESPONSE);
+        response.setType(MessageType.GAME_SUGGESTION_SUBMIT_RESPONSE);
 
         if (loggedInUsername == null)
         {
@@ -361,157 +357,26 @@ public class ClientHandler implements Runnable
             return response;
         }
 
-        String name = request.getCustomGameName();
-        String entryClass = request.getCustomGameEntryClass();
-        byte[] jarBytes = request.getFileData();
-
-        if (name == null || name.trim().isEmpty())
+        String text = request.getGameSuggestionText();
+        if (text == null || text.trim().isEmpty())
         {
             response.setSuccess(false);
-            response.setErrorText("Give your game a name first.");
-            return response;
-        }
-        if (entryClass == null || entryClass.trim().isEmpty())
-        {
-            response.setSuccess(false);
-            response.setErrorText("Missing entry class name - which class extends JFrame?");
+            response.setErrorText("Write a short description of the game you'd like to see.");
             return response;
         }
 
-        CustomGameStore.Entry entry = customGameStore.upload(name, loggedInUsername, entryClass, jarBytes);
-        if (entry == null)
-        {
-            response.setSuccess(false);
-            response.setErrorText("Upload rejected - either no file was received or it's over the 8MB limit.");
-            return response;
-        }
-
+        gameSuggestionStore.submit(loggedInUsername, text);
         response.setSuccess(true);
-        response.setGameId(entry.gameId);
         return response;
     }
 
-    /** Every custom game an admin can review (all of them), or every approved game plus this uploader's own still-pending ones - a pending game is only ever visible to its own uploader (as "Pending Review") or an admin (for review), never to anyone else. */
-    private Message handleCustomGameList()
+    /** Visible to everyone, newest first - a community wishlist rather than a private inbox, so people can see what's already been suggested before posting a duplicate. */
+    private Message handleGameSuggestionList()
     {
         Message response = new Message();
-        response.setType(MessageType.CUSTOM_GAME_LIST_RESPONSE);
+        response.setType(MessageType.GAME_SUGGESTION_LIST_RESPONSE);
         response.setSuccess(true);
-
-        boolean admin = isAdmin();
-        List<CustomGameStore.Entry> all = customGameStore.getAll();
-        List<String> lines = new ArrayList<String>();
-        for (int i = 0; i < all.size(); i++)
-        {
-            CustomGameStore.Entry e = all.get(i);
-            boolean visible = e.approved || admin
-                || (loggedInUsername != null && e.authorUsername.equalsIgnoreCase(loggedInUsername));
-            if (!visible)
-            {
-                continue;
-            }
-            lines.add(e.gameId + "|" + e.name + "|" + e.authorUsername + "|" + e.entryClassName
-                + "|" + e.uploadedAt + "|" + e.hash + "|" + e.sizeBytes + "|" + (e.approved ? "1" : "0"));
-        }
-        response.setCustomGameEntries(lines);
-        return response;
-    }
-
-    /** Sends the raw jar bytes for one custom game, same "just relay bytes" shape as handleClientUpdateDownload. The client is responsible for actually loading/running it (see CustomGameLoader) - this just hands over what was uploaded. */
-    private Message handleCustomGameDownload(Message request)
-    {
-        Message response = new Message();
-        response.setType(MessageType.CUSTOM_GAME_DOWNLOAD_RESPONSE);
-
-        String gameId = request.getGameId();
-        CustomGameStore.Entry entry = gameId == null ? null : customGameStore.findById(gameId);
-        if (entry == null)
-        {
-            response.setSuccess(false);
-            response.setErrorText("This custom game is no longer available.");
-            return response;
-        }
-        boolean visible = entry.approved || isAdmin()
-            || (loggedInUsername != null && entry.authorUsername.equalsIgnoreCase(loggedInUsername));
-        if (!visible)
-        {
-            response.setSuccess(false);
-            response.setErrorText("This game is still waiting on review.");
-            return response;
-        }
-
-        byte[] jarBytes = customGameStore.readJarBytes(gameId);
-        if (jarBytes == null)
-        {
-            response.setSuccess(false);
-            response.setErrorText("Could not read this game's file on the server.");
-            return response;
-        }
-
-        response.setSuccess(true);
-        response.setFileData(jarBytes);
-        response.setFileName(entry.gameId + ".jar");
-        response.setCustomGameEntryClass(entry.entryClassName);
-        response.setCustomGameName(entry.name);
-        return response;
-    }
-
-    /** Only the uploader or an admin/moderator can remove a custom game - same rule CustomGameStore itself enforces, checked again here since that's where isAdmin() is available. */
-    private Message handleCustomGameDelete(Message request)
-    {
-        Message response = new Message();
-        response.setType(MessageType.CUSTOM_GAME_DELETE_RESPONSE);
-
-        if (loggedInUsername == null)
-        {
-            response.setSuccess(false);
-            response.setErrorText("Not logged in.");
-            return response;
-        }
-
-        String gameId = request.getGameId();
-        CustomGameStore.Entry entryBeforeDelete = gameId == null ? null : customGameStore.findById(gameId);
-        boolean removed = gameId != null && customGameStore.removeById(gameId, loggedInUsername, isAdmin());
-        response.setSuccess(removed);
-        if (!removed)
-        {
-            response.setErrorText("Could not remove that game - it may already be gone, or it isn't yours.");
-        }
-        else if (entryBeforeDelete != null && !loggedInUsername.equalsIgnoreCase(entryBeforeDelete.authorUsername)
-            && isModeratorOrAdmin())
-        {
-            adminLog.log(loggedInUsername, "Removed custom game \"" + entryBeforeDelete.name
-                + "\" (uploaded by " + entryBeforeDelete.authorUsername + ")");
-        }
-        return response;
-    }
-
-    /** Admin-only - moves an uploaded game from "Pending Review" to visible-to-everyone. See CustomGameStore's javadoc for why review exists at all: nothing here is sandboxed, so a human actually opening and checking the game before it reaches everyone else is the whole safety net. */
-    private Message handleCustomGameApprove(Message request)
-    {
-        Message response = new Message();
-        response.setType(MessageType.CUSTOM_GAME_APPROVE_RESPONSE);
-
-        if (!isAdmin())
-        {
-            response.setSuccess(false);
-            response.setErrorText("Admins only.");
-            return response;
-        }
-
-        String gameId = request.getGameId();
-        boolean approved = gameId != null && customGameStore.approve(gameId);
-        response.setSuccess(approved);
-        if (!approved)
-        {
-            response.setErrorText("Could not find that game to approve.");
-        }
-        else
-        {
-            CustomGameStore.Entry entry = customGameStore.findById(gameId);
-            String name = entry != null ? entry.name : gameId;
-            adminLog.log(loggedInUsername, "Approved custom game \"" + name + "\"");
-        }
+        response.setGameSuggestionEntries(gameSuggestionStore.getRecent());
         return response;
     }
 
@@ -968,25 +833,6 @@ public class ClientHandler implements Runnable
         {
             currentMatch.handleDisconnect(this);
             currentMatch = null;
-        }
-        return null;
-    }
-
-    private Message handleChatMessage(Message request)
-    {
-        if (loggedInUsername != null)
-        {
-            if (moderationManager.isMuted(loggedInUsername))
-            {
-                sendMuteNotice();
-                return null;
-            }
-            Account account = accountStore.findByUsername(loggedInUsername);
-            String colorId = account != null ? account.getPlayerColorName() : null;
-            String badgeId = account != null ? account.getEquippedBadgeId() : null;
-            String role = account != null ? account.getRole().name() : "PLAYER";
-            chatManager.broadcast(loggedInUsername, colorId, badgeId, role, request.getChatText(),
-                request.getFileName(), request.getFileData());
         }
         return null;
     }

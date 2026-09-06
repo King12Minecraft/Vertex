@@ -103,6 +103,17 @@ public class HomePanel extends RoundedPanel
 
         refreshAll();
 
+        // GamesPanel triggers the actual GAME_LIST_REQUEST fetch on its own
+        // construction; this just means whichever page loads first (Home
+        // now always does), the other's cache eventually fills in behind
+        // it. Listening here means Top Players/Recently Played don't have
+        // to wait out a stale empty GameManager cache until the 30s timer
+        // comes back around - they refresh the moment it's actually filled.
+        GameManager.addListener(new Runnable()
+        {
+            public void run() { refreshAll(); }
+        });
+
         NotificationCenter.addListener(new Runnable()
         {
             public void run() { rebuildTicker(); }

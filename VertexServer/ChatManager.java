@@ -50,34 +50,6 @@ public class ChatManager
         }
     }
 
-    public synchronized void broadcast(String senderUsername, String senderColorId, String senderBadgeId,
-                                        String senderRole, String text, String fileName, byte[] fileData)
-    {
-        String trimmedText = trimText(text);
-        byte[] validFileData = validateFile(fileData);
-        String validFileName = validFileData != null ? fileName : null;
-
-        if (trimmedText.isEmpty() && validFileData == null)
-        {
-            return;
-        }
-
-        Message msg = new Message();
-        msg.setType(MessageType.CHAT_MESSAGE);
-        msg.setUsername(senderUsername);
-        msg.setSenderColorId(senderColorId);
-        msg.setSenderBadgeId(senderBadgeId);
-        msg.setSenderRole(senderRole);
-        msg.setChatText(trimmedText);
-        msg.setFileName(validFileName);
-        msg.setFileData(validFileData);
-
-        for (int i = 0; i < connectedClients.size(); i++)
-        {
-            connectedClients.get(i).sendMessage(msg);
-        }
-    }
-
     static String trimText(String text)
     {
         if (text == null)
