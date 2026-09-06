@@ -7,103 +7,117 @@ import javax.swing.border.EmptyBorder;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 /**
  * CreateAccountPanel
  * -------------------
- * Account creation form shown inside AuthWindow. Sends the request to
- * the real server (Phase 5) via NetworkManager. The server decides the
- * permanent account ID and whether this is the first-account admin
- * bootstrap (Section 11/33) - the client just displays whatever the
- * server decided, it never assigns IDs or roles itself.
+ * Account creation form shown inside AuthWindow - same centered-card
+ * treatment as the redesigned LoginPanel, for visual parity when
+ * switching between the two. Sends the request to the real server via
+ * NetworkManager. The server decides the permanent account ID and
+ * whether this is the first-account admin bootstrap - the client just
+ * displays whatever the server decided, it never assigns IDs or roles
+ * itself.
  */
-public class CreateAccountPanel extends RoundedPanel
+public class CreateAccountPanel extends JPanel
 {
     private final ThemedTextField usernameField;
     private final ThemedPasswordField passwordField;
     private final ThemedPasswordField confirmField;
     private final JLabel errorLabel;
+    private final ThemedButton createButton;
 
     public CreateAccountPanel(final LoginPanel.LoginSuccessListener successListener, final Runnable onSwitchToLogin)
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBorder(new EmptyBorder(60, 80, 60, 80));
+        setOpaque(false);
+        setLayout(new java.awt.GridBagLayout());
 
-        final JLabel title = new JLabel("Create Account");
+        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(38, 40, 34, 40));
+        card.setPreferredSize(new Dimension(380, 480));
+        card.enableTopAccent();
+
+        final JLabel title = new JLabel("Create your account");
         title.setFont(UITheme.FONT_HEADING);
         title.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        add(title);
+        card.add(title);
 
         final JLabel subtitle = new JLabel("You'll get a permanent account ID - your username can change later.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
-        subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
-        add(subtitle);
+        subtitle.setBorder(new EmptyBorder(6, 0, 26, 0));
+        card.add(subtitle);
 
-        add(fieldLabel("Username"));
+        card.add(fieldLabel("Username"));
         usernameField = new ThemedTextField("");
         usernameField.setAlignmentX(Component.LEFT_ALIGNMENT);
         usernameField.setMaximumSize(new Dimension(2000, 42));
-        add(usernameField);
-        add(Box.createVerticalStrut(16));
+        card.add(usernameField);
+        card.add(Box.createVerticalStrut(16));
 
-        add(fieldLabel("Password"));
+        card.add(fieldLabel("Password"));
         passwordField = new ThemedPasswordField();
         passwordField.setAlignmentX(Component.LEFT_ALIGNMENT);
         passwordField.setMaximumSize(new Dimension(2000, 42));
-        add(passwordField);
-        add(Box.createVerticalStrut(16));
+        card.add(passwordField);
+        card.add(Box.createVerticalStrut(16));
 
-        add(fieldLabel("Confirm Password"));
+        card.add(fieldLabel("Confirm Password"));
         confirmField = new ThemedPasswordField();
         confirmField.setAlignmentX(Component.LEFT_ALIGNMENT);
         confirmField.setMaximumSize(new Dimension(2000, 42));
-        add(confirmField);
-        add(Box.createVerticalStrut(10));
+        card.add(confirmField);
+        card.add(Box.createVerticalStrut(10));
 
         errorLabel = new JLabel(" ");
         errorLabel.setFont(UITheme.FONT_SMALL);
         errorLabel.setForeground(new Color(240, 100, 100));
         errorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        add(errorLabel);
-        add(Box.createVerticalStrut(10));
+        card.add(errorLabel);
+        card.add(Box.createVerticalStrut(10));
 
-        final ThemedButton createButton = new ThemedButton("Create Account", true);
+        createButton = new ThemedButton("Create Account", true);
         createButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        createButton.setMaximumSize(new Dimension(2000, 44));
-        createButton.setPreferredSize(new Dimension(200, 44));
+        createButton.setMaximumSize(new Dimension(2000, 46));
+        createButton.setPreferredSize(new Dimension(2000, 46));
         createButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { attemptCreate(successListener); }
         });
-        add(createButton);
-        add(Box.createVerticalStrut(16));
+        card.add(createButton);
+        card.add(Box.createVerticalStrut(20));
 
-        final JPanel switchRow = new JPanel();
+        final JPanel switchRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 0));
         switchRow.setOpaque(false);
-        switchRow.setLayout(new BoxLayout(switchRow, BoxLayout.X_AXIS));
         switchRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         final JLabel switchLabel = new JLabel("Already have an account?");
-        switchLabel.setFont(UITheme.FONT_BODY);
-        switchLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
+        switchLabel.setFont(UITheme.FONT_SMALL);
+        switchLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        switchRow.add(switchLabel);
 
-        ThemedButton switchButton = new ThemedButton("Log In", false);
-        switchButton.setPreferredSize(new Dimension(120, 34));
+        javax.swing.JButton switchButton = new javax.swing.JButton("Log in");
+        switchButton.setFont(UITheme.FONT_SMALL.deriveFont(java.awt.Font.BOLD));
+        switchButton.setForeground(ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START));
+        switchButton.setFocusPainted(false);
+        switchButton.setBorderPainted(false);
+        switchButton.setContentAreaFilled(false);
+        switchButton.setOpaque(false);
+        switchButton.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         switchButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { onSwitchToLogin.run(); }
         });
-
-        switchRow.add(switchLabel);
-        switchRow.add(Box.createHorizontalStrut(10));
         switchRow.add(switchButton);
-        add(switchRow);
+        card.add(switchRow);
+
+        add(card);
 
         ThemeManager.addListener(new Runnable()
         {
@@ -111,7 +125,7 @@ public class CreateAccountPanel extends RoundedPanel
             {
                 title.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
                 subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
-                switchLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
+                switchLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             }
         });
     }
@@ -149,6 +163,7 @@ public class CreateAccountPanel extends RoundedPanel
         }
 
         errorLabel.setText("Connecting...");
+        createButton.setEnabled(false);
         final CreateAccountPanel self = this;
 
         Thread worker = new Thread(new Runnable()
@@ -166,6 +181,8 @@ public class CreateAccountPanel extends RoundedPanel
                 {
                     public void run()
                     {
+                        createButton.setEnabled(true);
+
                         if (response == null)
                         {
                             errorLabel.setText("<html>Can't create an account while offline - the server needs to "

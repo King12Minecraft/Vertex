@@ -318,8 +318,18 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
                 text += "\n+" + reward + " coins.";
             }
 
-            GameHubDialog.show(this, "Space Battle Result", text);
-            dispose();
+            SnakeGameOverDialog.show(this, 0, text, new SnakeGameOverDialog.Choice()
+            {
+                public void onPlayAgain()
+                {
+                    matchId = null;
+                    roster = null;
+                    cardLayout.show(cards, MODE_SELECT);
+                    pack();
+                    setLocationRelativeTo(null);
+                }
+                public void onClose() { SpaceBattleWindow.this.dispose(); }
+            });
         }
     }
 

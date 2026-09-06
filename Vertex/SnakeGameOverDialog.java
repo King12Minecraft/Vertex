@@ -36,6 +36,12 @@ public class SnakeGameOverDialog
 
     public static void show(Component anchor, int score, final Choice choice)
     {
+        show(anchor, score, null, choice);
+    }
+
+    /** Same dialog, but with a custom headline/summary line instead of the generic "Game Over" + "Score: N" - used for a win screen (e.g. Zombie Survival clearing all waves) where "Game Over" reads wrong but a restart option still makes sense. customMessage may be null to fall back to the original plain score display. */
+    public static void show(Component anchor, int score, String customMessage, final Choice choice)
+    {
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(anchor);
         final JDialog dialog = new JDialog(owner, true);
         dialog.setUndecorated(true);
@@ -51,13 +57,13 @@ public class SnakeGameOverDialog
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
         body.setBorder(new EmptyBorder(24, 24, 4, 24));
 
-        JLabel title = new JLabel("Game Over");
+        JLabel title = new JLabel(customMessage != null ? "Round Complete!" : "Game Over");
         title.setFont(UITheme.FONT_HEADING.deriveFont(18f));
         title.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(title);
 
-        JLabel scoreLabel = new JLabel("Score: " + score);
+        JLabel scoreLabel = new JLabel(customMessage != null ? customMessage : "Score: " + score);
         scoreLabel.setFont(UITheme.FONT_BODY);
         scoreLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         scoreLabel.setAlignmentX(Component.LEFT_ALIGNMENT);

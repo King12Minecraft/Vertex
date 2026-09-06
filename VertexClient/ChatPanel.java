@@ -55,15 +55,17 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         final String text;
         final String colorId;
         final String badgeId;
+        final String role;
         final String fileName;
         final byte[] fileData;
 
-        ChatEntry(String sender, String text, String colorId, String badgeId, String fileName, byte[] fileData)
+        ChatEntry(String sender, String text, String colorId, String badgeId, String role, String fileName, byte[] fileData)
         {
             this.sender = sender;
             this.text = text;
             this.colorId = colorId;
             this.badgeId = badgeId;
+            this.role = role;
             this.fileName = fileName;
             this.fileData = fileData;
         }
@@ -332,11 +334,19 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             && entry.sender.equals(Session.getCurrentAccount().getUsername());
 
         Color customColor = PlayerColorRegistry.resolve(entry.colorId);
+        Color roleColor = "ADMIN".equals(entry.role) ? new Color(230, 90, 90)
+            : "MODERATOR".equals(entry.role) ? new Color(90, 170, 230) : null;
 
         String badgeGlyph = PlayerColorRegistry.resolveBadgeGlyph(entry.badgeId);
         JLabel senderLabel = new JLabel((badgeGlyph != null ? badgeGlyph + " " : "") + entry.sender + (isMe ? " (you)" : ""));
         senderLabel.setFont(UITheme.FONT_SMALL);
-        if (customColor != null)
+        if (roleColor != null)
+        {
+            // Admin/moderator color always wins over a purchased cosmetic color - staff
+            // visibility in chat shouldn't depend on what someone happened to buy in the shop.
+            senderLabel.setForeground(roleColor);
+        }
+        else if (customColor != null)
         {
             senderLabel.setForeground(customColor);
         }
@@ -660,7 +670,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             channelMessages.put(key, history);
         }
         history.add(new ChatEntry(message.getUsername(), message.getChatText(), message.getSenderColorId(),
-            message.getSenderBadgeId(), message.getFileName(), message.getFileData()));
+            message.getSenderBadgeId(), message.getSenderRole(), message.getFileName(), message.getFileData()));
 
         if (key.equals(currentChannel))
         {

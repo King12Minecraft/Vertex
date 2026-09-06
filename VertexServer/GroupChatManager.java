@@ -75,7 +75,7 @@ public class GroupChatManager
     }
 
     public synchronized void sendGroupMessage(String groupId, String senderUsername, String senderColorId, String senderBadgeId,
-                                               String text, String fileName, byte[] fileData)
+                                               String senderRole, String text, String fileName, byte[] fileData)
     {
         Group group = groups.get(groupId);
         if (group == null || !group.memberUsernames.contains(senderUsername)) return;
@@ -95,6 +95,7 @@ public class GroupChatManager
         msg.setUsername(senderUsername);
         msg.setSenderColorId(senderColorId);
         msg.setSenderBadgeId(senderBadgeId);
+        msg.setSenderRole(senderRole);
         msg.setChatText(trimmedText);
         msg.setFileName(validFileName);
         msg.setFileData(validFileData);

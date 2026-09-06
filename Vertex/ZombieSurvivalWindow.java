@@ -246,20 +246,14 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
         if (!isOnlineMode)
         {
             recordPlayed(kills);
-            if (won)
+            String message = won
+                ? "You survived all " + ZombieSurvivalGame.WAVE_COUNT + " waves! Zombies killed: " + kills
+                : null;
+            SnakeGameOverDialog.show(gamePanel, kills, message, new SnakeGameOverDialog.Choice()
             {
-                GameHubDialog.show(gamePanel, "Zombie Survival",
-                    "You survived all " + ZombieSurvivalGame.WAVE_COUNT + " waves! Zombies killed: " + kills);
-                dispose();
-            }
-            else
-            {
-                SnakeGameOverDialog.show(gamePanel, kills, new SnakeGameOverDialog.Choice()
-                {
-                    public void onPlayAgain() { startGame(new ZombieSurvivalGame()); }
-                    public void onClose() { ZombieSurvivalWindow.this.dispose(); }
-                });
-            }
+                public void onPlayAgain() { startGame(new ZombieSurvivalGame()); }
+                public void onClose() { ZombieSurvivalWindow.this.dispose(); }
+            });
             return;
         }
 
@@ -334,8 +328,18 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
                 text += "\n+" + reward + " coins.";
             }
 
-            GameHubDialog.show(this, "Zombie Survival Result", text);
-            dispose();
+            SnakeGameOverDialog.show(this, 0, text, new SnakeGameOverDialog.Choice()
+            {
+                public void onPlayAgain()
+                {
+                    matchId = null;
+                    roster = null;
+                    cardLayout.show(cards, MODE_SELECT);
+                    pack();
+                    setLocationRelativeTo(null);
+                }
+                public void onClose() { ZombieSurvivalWindow.this.dispose(); }
+            });
         }
     }
 

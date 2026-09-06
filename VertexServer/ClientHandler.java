@@ -40,6 +40,7 @@ public class ClientHandler implements Runnable
     private ZombieSurvivalMatchManager zombieSurvivalMatchManager;
     private SpaceBattleMatch currentSpaceBattleMatch;
     private SpaceBattleMatchManager spaceBattleMatchManager;
+    private AdminLog adminLog;
     private LeaderboardManager leaderboardManager;
     private PartyManager partyManager;
     private AchievementManager achievementManager;
@@ -65,7 +66,7 @@ public class ClientHandler implements Runnable
                           MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry,
                           PresenceRegistry presenceRegistry, FeedbackManager feedbackManager,
                           CustomGameStore customGameStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
-                          SpaceBattleMatchManager spaceBattleMatchManager)
+                          SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -96,6 +97,7 @@ public class ClientHandler implements Runnable
         this.customGameStore = customGameStore;
         this.zombieSurvivalMatchManager = zombieSurvivalMatchManager;
         this.spaceBattleMatchManager = spaceBattleMatchManager;
+        this.adminLog = adminLog;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -301,6 +303,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.CUSTOM_GAME_DOWNLOAD_REQUEST) return handleCustomGameDownload(request);
         if (request.getType() == MessageType.CUSTOM_GAME_DELETE_REQUEST) return handleCustomGameDelete(request);
         if (request.getType() == MessageType.CUSTOM_GAME_APPROVE_REQUEST) return handleCustomGameApprove(request);
+        if (request.getType() == MessageType.ADMIN_ACCOUNT_LIST_REQUEST) return handleAdminAccountList();
+        if (request.getType() == MessageType.ADMIN_SET_ROLE_REQUEST) return handleAdminSetRole(request);
+        if (request.getType() == MessageType.ADMIN_LOG_REQUEST) return handleAdminLog();
 
         Message response = new Message();
         response.setSuccess(false);
@@ -465,11 +470,18 @@ public class ClientHandler implements Runnable
         }
 
         String gameId = request.getGameId();
+        CustomGameStore.Entry entryBeforeDelete = gameId == null ? null : customGameStore.findById(gameId);
         boolean removed = gameId != null && customGameStore.removeById(gameId, loggedInUsername, isAdmin());
         response.setSuccess(removed);
         if (!removed)
         {
             response.setErrorText("Could not remove that game - it may already be gone, or it isn't yours.");
+        }
+        else if (entryBeforeDelete != null && !loggedInUsername.equalsIgnoreCase(entryBeforeDelete.authorUsername)
+            && isModeratorOrAdmin())
+        {
+            adminLog.log(loggedInUsername, "Removed custom game \"" + entryBeforeDelete.name
+                + "\" (uploaded by " + entryBeforeDelete.authorUsername + ")");
         }
         return response;
     }
@@ -494,6 +506,110 @@ public class ClientHandler implements Runnable
         {
             response.setErrorText("Could not find that game to approve.");
         }
+        else
+        {
+            CustomGameStore.Entry entry = customGameStore.findById(gameId);
+            String name = entry != null ? entry.name : gameId;
+            adminLog.log(loggedInUsername, "Approved custom game \"" + name + "\"");
+        }
+        return response;
+    }
+
+    /** Admin-only - every account on this server, one line per account. Client-side convenience only (see PermissionManager's own javadoc on that); handleAdminSetRole is what actually matters for security. */
+    private Message handleAdminAccountList()
+    {
+        Message response = new Message();
+        response.setType(MessageType.ADMIN_ACCOUNT_LIST_RESPONSE);
+
+        if (!isAdmin())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Admins only.");
+            return response;
+        }
+
+        List<String> usernames = accountStore.getAllUsernames();
+        List<String> summaries = new ArrayList<String>();
+        for (int i = 0; i < usernames.size(); i++)
+        {
+            Account account = accountStore.findByUsername(usernames.get(i));
+            if (account != null)
+            {
+                summaries.add(account.getUsername() + "|" + account.getRole().name() + "|" + account.getCoins());
+            }
+        }
+        response.setSuccess(true);
+        response.setAccountSummaries(summaries);
+        return response;
+    }
+
+    /**
+     * Admin-only - promotes a PLAYER to MODERATOR or reverts a
+     * MODERATOR back to PLAYER. Deliberately cannot grant or revoke
+     * ADMIN through this path - see Message.getNewRole()'s javadoc for
+     * why that stays bootstrap-only. Also refuses to touch another
+     * admin's role at all, so one admin account can't demote another.
+     */
+    private Message handleAdminSetRole(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.ADMIN_SET_ROLE_RESPONSE);
+
+        if (!isAdmin())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Admins only.");
+            return response;
+        }
+
+        String targetUsername = request.getTargetUsername();
+        String newRole = request.getNewRole();
+        if (targetUsername == null || !("PLAYER".equals(newRole) || "MODERATOR".equals(newRole)))
+        {
+            response.setSuccess(false);
+            response.setErrorText("Invalid role change request.");
+            return response;
+        }
+
+        Account target = accountStore.findByUsername(targetUsername);
+        if (target == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No such account.");
+            return response;
+        }
+        if (target.getRole() == Role.ADMIN)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Can't change another admin's role.");
+            return response;
+        }
+
+        Role oldRole = target.getRole();
+        Role updatedRole = "MODERATOR".equals(newRole) ? Role.MODERATOR : Role.PLAYER;
+        target.setRole(updatedRole);
+        accountStore.updateAccount(target);
+        adminLog.log(loggedInUsername, "Changed " + targetUsername + "'s role from " + oldRole + " to " + updatedRole);
+
+        response.setSuccess(true);
+        return response;
+    }
+
+    /** Admin-only - the audit trail of admin/moderator actions (approvals, role changes, etc). See AdminLog's own javadoc for the file format. */
+    private Message handleAdminLog()
+    {
+        Message response = new Message();
+        response.setType(MessageType.ADMIN_LOG_RESPONSE);
+
+        if (!isAdmin())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Admins only.");
+            return response;
+        }
+
+        response.setSuccess(true);
+        response.setAdminLogEntries(adminLog.getRecent());
         return response;
     }
 
@@ -868,7 +984,8 @@ public class ClientHandler implements Runnable
             Account account = accountStore.findByUsername(loggedInUsername);
             String colorId = account != null ? account.getPlayerColorName() : null;
             String badgeId = account != null ? account.getEquippedBadgeId() : null;
-            chatManager.broadcast(loggedInUsername, colorId, badgeId, request.getChatText(),
+            String role = account != null ? account.getRole().name() : "PLAYER";
+            chatManager.broadcast(loggedInUsername, colorId, badgeId, role, request.getChatText(),
                 request.getFileName(), request.getFileData());
         }
         return null;
@@ -898,6 +1015,7 @@ public class ClientHandler implements Runnable
         Account account = accountStore.findByUsername(loggedInUsername);
         String colorId = account != null ? account.getPlayerColorName() : null;
         String badgeId = account != null ? account.getEquippedBadgeId() : null;
+        String role = account != null ? account.getRole().name() : "PLAYER";
 
         Message delivery = new Message();
         delivery.setType(MessageType.PRIVATE_MESSAGE);
@@ -905,6 +1023,7 @@ public class ClientHandler implements Runnable
         delivery.setToUsername(toUsername);
         delivery.setSenderColorId(colorId);
         delivery.setSenderBadgeId(badgeId);
+        delivery.setSenderRole(role);
         delivery.setChatText(trimmedText);
         delivery.setFileName(validFileName);
         delivery.setFileData(validFileData);
@@ -949,7 +1068,8 @@ public class ClientHandler implements Runnable
             Account account = accountStore.findByUsername(loggedInUsername);
             String colorId = account != null ? account.getPlayerColorName() : null;
             String badgeId = account != null ? account.getEquippedBadgeId() : null;
-            groupChatManager.sendGroupMessage(request.getGroupId(), loggedInUsername, colorId, badgeId,
+            String role = account != null ? account.getRole().name() : "PLAYER";
+            groupChatManager.sendGroupMessage(request.getGroupId(), loggedInUsername, colorId, badgeId, role,
                 request.getChatText(), request.getFileName(), request.getFileData());
         }
         return null;

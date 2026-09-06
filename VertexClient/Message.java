@@ -163,12 +163,17 @@ public class Message implements Serializable
     // ---- Chat sender color/badge (for colored, badged usernames in chat) ----
     private String senderColorId;
     private String senderBadgeId;
+    private String senderRole;
 
     public String getSenderColorId() { return senderColorId; }
     public void setSenderColorId(String senderColorId) { this.senderColorId = senderColorId; }
 
     public String getSenderBadgeId() { return senderBadgeId; }
     public void setSenderBadgeId(String senderBadgeId) { this.senderBadgeId = senderBadgeId; }
+
+    /** "ADMIN", "MODERATOR", or "PLAYER" - CHAT_MESSAGE. Lets the client show a fixed admin/moderator username color that always wins over whatever cosmetic color that account has equipped (see ChatPanel's rendering) - staff visibility in chat shouldn't depend on what they bought in the shop. */
+    public String getSenderRole() { return senderRole; }
+    public void setSenderRole(String senderRole) { this.senderRole = senderRole; }
 
     // ---- Chat file attachments - never persisted server-side, just relayed like any other message ----
     private byte[] fileData;
@@ -634,4 +639,26 @@ public class Message implements Serializable
     /** Every uploaded custom game, "gameId|name|authorUsername|entryClassName|uploadedAtMillis|sizeBytes" per entry, newest first - CUSTOM_GAME_LIST_RESPONSE. */
     public java.util.List<String> getCustomGameEntries() { return customGameEntries; }
     public void setCustomGameEntries(java.util.List<String> customGameEntries) { this.customGameEntries = customGameEntries; }
+
+    // ---- Admin tools (Players list, role changes, audit log) - admin-only, see AdminPanel/AdminLog ----
+    private java.util.List<String> accountSummaries;
+    private java.util.List<String> adminLogEntries;
+    private String targetUsername;
+    private String newRole;
+
+    /** Every account, "username|role|coins" per entry - ADMIN_ACCOUNT_LIST_RESPONSE. */
+    public java.util.List<String> getAccountSummaries() { return accountSummaries; }
+    public void setAccountSummaries(java.util.List<String> accountSummaries) { this.accountSummaries = accountSummaries; }
+
+    /** Most recent admin-log lines, newest first, already formatted for display - ADMIN_LOG_RESPONSE. */
+    public java.util.List<String> getAdminLogEntries() { return adminLogEntries; }
+    public void setAdminLogEntries(java.util.List<String> adminLogEntries) { this.adminLogEntries = adminLogEntries; }
+
+    /** The account a role change applies to - ADMIN_SET_ROLE_REQUEST. */
+    public String getTargetUsername() { return targetUsername; }
+    public void setTargetUsername(String targetUsername) { this.targetUsername = targetUsername; }
+
+    /** "PLAYER" or "MODERATOR" only - ADMIN_SET_ROLE_REQUEST never allows granting ADMIN itself, same reasoning CreateAccountPanel's bootstrap-only admin comment gives: that role is earned by owning the server's first account, not handed out through a client request. */
+    public String getNewRole() { return newRole; }
+    public void setNewRole(String newRole) { this.newRole = newRole; }
 }

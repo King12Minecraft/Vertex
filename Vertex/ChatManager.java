@@ -51,7 +51,7 @@ public class ChatManager
     }
 
     public synchronized void broadcast(String senderUsername, String senderColorId, String senderBadgeId,
-                                        String text, String fileName, byte[] fileData)
+                                        String senderRole, String text, String fileName, byte[] fileData)
     {
         String trimmedText = trimText(text);
         byte[] validFileData = validateFile(fileData);
@@ -67,6 +67,7 @@ public class ChatManager
         msg.setUsername(senderUsername);
         msg.setSenderColorId(senderColorId);
         msg.setSenderBadgeId(senderBadgeId);
+        msg.setSenderRole(senderRole);
         msg.setChatText(trimmedText);
         msg.setFileName(validFileName);
         msg.setFileData(validFileData);
