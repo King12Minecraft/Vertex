@@ -14,7 +14,7 @@ java -jar VertexClient.jar
 ```
 The server has to be running before a client can connect. On a weaker machine, use `Run-VertexServer-LowEnd.bat`/`.sh` and `Run-VertexClient-LowEnd.bat`/`.sh` instead — same thing, with JVM flags tuned for lower memory and a lighter garbage collector.
 
-**Double-click it like a normal app (Windows):** `Vertex.bat` and `VertexServer.bat` do the same thing as above, but launch with `javaw` instead of `java` — no black console window pops up behind the game. Trade-off: if something goes wrong, there's no console to print the error to, so fall back to the `-LowEnd` scripts (which do use a visible console, plus a `pause` at the end) if you need to see what broke.
+**Double-click it like a normal app (Windows):** `Vertex.bat` and `VertexServer.bat` run the same `java -jar` command as above, but with the console window hidden (via a small `.vbs` helper) instead of left visible — no black window pops up behind the game. Trade-off: if something goes wrong, there's no console to print the error to, so fall back to the `-LowEnd` scripts (which do use a visible console, plus a `pause` at the end) if you need to see what broke.
 
 **With BlueJ:** open `VertexServer` and `VertexClient` as separate projects, compile the server first, run `ServerMain`, then run `Vertex` from one or more client instances.
 

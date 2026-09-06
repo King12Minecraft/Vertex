@@ -1,10 +1,9 @@
 @echo off
 REM Vertex - Client Launcher
-REM Uses javaw instead of java, so double-clicking this opens straight
-REM into the app with no visible console window behind it - the last
-REM thing standing between this and "just a normal application" was
-REM that black terminal window every java -jar launch used to pop up.
-REM Errors won't show here since there's no console to print them to -
-REM use Run-VertexClient-LowEnd.bat instead if something's going wrong
-REM and you need to see the actual error message.
-start "" javaw -jar VertexClient.jar
+REM Hands off to Vertex.vbs, which runs "java -jar VertexClient.jar"
+REM with its console window hidden - this only needs plain "java" to
+REM work (same as Run-VertexClient-LowEnd.bat), not "javaw", which
+REM isn't available on every setup.
+REM No console to show errors in - use Run-VertexClient-LowEnd.bat
+REM instead if something's going wrong and you need to see why.
+start "" wscript.exe "%~dp0Vertex.vbs"
