@@ -14,9 +14,17 @@ java -jar VertexClient.jar
 ```
 The server has to be running before a client can connect. On a weaker machine, use `Run-VertexServer-LowEnd.bat`/`.sh` and `Run-VertexClient-LowEnd.bat`/`.sh` instead — same thing, with JVM flags tuned for lower memory and a lighter garbage collector.
 
+**Double-click it like a normal app (Windows):** `Vertex.bat` and `VertexServer.bat` do the same thing as above, but launch with `javaw` instead of `java` — no black console window pops up behind the game. Trade-off: if something goes wrong, there's no console to print the error to, so fall back to the `-LowEnd` scripts (which do use a visible console, plus a `pause` at the end) if you need to see what broke.
+
 **With BlueJ:** open `VertexServer` and `VertexClient` as separate projects, compile the server first, run `ServerMain`, then run `Vertex` from one or more client instances.
 
 Either way, the first screen asks whether you want to **host a server** or **connect to one** — see below.
+
+**Want a real double-click `.exe` with its own icon, no `java` command at all?** `jpackage` (ships with the JDK, 14+) builds one, bundling a private copy of the JRE so players don't need Java installed at all. It has to run *on Windows* with a Windows JDK — it can't cross-build a Windows app from another OS — so this is a step to run yourself, not something already built into the repo. From the folder with `VertexClient.jar` and `vertex_icon.ico`:
+```
+jpackage --input . --name Vertex --main-jar VertexClient.jar --main-class Vertex --icon vertex_icon.ico --type exe --win-shortcut --win-menu
+```
+Swap `VertexClient.jar`/`Vertex` for `VertexServer.jar`/`ServerMain` to package the server the same way. `--type exe` makes a proper Windows installer (Start Menu entry, uninstaller, desktop shortcut); use `--type app-image` instead if you just want a folder with `Vertex.exe` in it and no installer.
 
 ## Hosting, connecting, and the sync system
 
