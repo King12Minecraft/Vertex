@@ -14,7 +14,7 @@ java -jar VertexClient.jar
 ```
 The server has to be running before a client can connect. On a weaker machine, use `Run-VertexServer-LowEnd.bat`/`.sh` and `Run-VertexClient-LowEnd.bat`/`.sh` instead — same thing, with JVM flags tuned for lower memory and a lighter garbage collector.
 
-**Double-click it (Windows):** `Vertex.bat` and `VertexServer.bat` — plain `java -jar`, same as the `-LowEnd` scripts but without the low-memory JVM flags. A console window stays open behind the game; an earlier version of these tried to hide it with a `.vbs` helper, but Windows treats VBScript as high-risk and will flag it as unsafe (much more aggressively than a plain `.bat`), so that approach was dropped. If you want a real double-click `.exe` with no console at all, see the `jpackage` section below.
+**Double-click it (Windows):** `Vertex.bat` and `VertexServer.bat` don't require Java on your PATH — they check the common install locations (BlueJ's own bundled JDK included) automatically and use whichever one they find, so there's nothing to configure on any machine you copy these to. `Run-*-LowEnd.bat` do the same auto-detection, plus the low-memory JVM flags for older hardware.
 
 **With BlueJ:** open `VertexServer` and `VertexClient` as separate projects, compile the server first, run `ServerMain`, then run `Vertex` from one or more client instances.
 
