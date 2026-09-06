@@ -104,6 +104,11 @@ public class GameLauncher
                 BattleshipWindow window = new BattleshipWindow();
                 window.setVisible(true);
             }
+            else if ("connect-four".equals(game.getGameId()))
+            {
+                ConnectFourWindow window = new ConnectFourWindow();
+                window.setVisible(true);
+            }
             else if ("zombie-survival".equals(game.getGameId()))
             {
                 ZombieSurvivalWindow window = new ZombieSurvivalWindow();

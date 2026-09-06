@@ -153,6 +153,15 @@ public enum MessageType
     // --- Game invites (Friends/Group Chat) ---
     GAME_INVITE,
 
+    // --- Connect Four (1v1, ELO-rated) ---
+    CONNECT4_FIND_MATCH_REQUEST,
+    CONNECT4_LEAVE_QUEUE_REQUEST,
+    CONNECT4_MATCH_FOUND,
+    CONNECT4_MOVE_REQUEST,
+    CONNECT4_MOVE_REJECTED,
+    CONNECT4_UPDATE,
+    CONNECT4_RESULT,
+
     // --- Chess (1v1 turn-based, standard rules minus castling/en passant) ---
     CHESS_FIND_MATCH_REQUEST,
     CHESS_LEAVE_QUEUE_REQUEST,

@@ -26,6 +26,7 @@ public class GameRegistry
         games.add(new GameInfo("fight-arena", "Fight Arena", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("chess", "Chess", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("battleship", "Battleship", "Single/Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("connect-four", "Connect Four", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
     }
 

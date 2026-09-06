@@ -47,6 +47,7 @@ public class GameServer
     private final ChessMatchManager chessMatchManager = new ChessMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
     private final BattleshipMatchManager battleshipMatchManager = new BattleshipMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
     private final RockPaperScissorsMatchManager rpsMatchManager = new RockPaperScissorsMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
+    private final ConnectFourMatchManager connectFourMatchManager = new ConnectFourMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
     private final GameSuggestionStore gameSuggestionStore = new GameSuggestionStore();
@@ -121,7 +122,8 @@ public class GameServer
                     fightArenaMatchManager, chessMatchManager, battleshipMatchManager, rpsMatchManager,
                     leaderboardManager, partyManager, achievementManager, tournamentManager, replayManager,
                     teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry,
-                    feedbackManager, gameSuggestionStore, zombieSurvivalMatchManager, spaceBattleMatchManager, adminLog);
+                    feedbackManager, gameSuggestionStore, zombieSurvivalMatchManager, spaceBattleMatchManager, adminLog,
+                    connectFourMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

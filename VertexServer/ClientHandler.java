@@ -24,6 +24,8 @@ public class ClientHandler implements Runnable
     private String loggedInUsername;
     private Integer loggedInAccountId;
     private TicTacToeMatch currentMatch;
+    private ConnectFourMatch currentConnectFourMatch;
+    private ConnectFourMatchManager connectFourMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -66,7 +68,8 @@ public class ClientHandler implements Runnable
                           MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry,
                           PresenceRegistry presenceRegistry, FeedbackManager feedbackManager,
                           GameSuggestionStore gameSuggestionStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
-                          SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog)
+                          SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog,
+                          ConnectFourMatchManager connectFourMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -98,11 +101,13 @@ public class ClientHandler implements Runnable
         this.zombieSurvivalMatchManager = zombieSurvivalMatchManager;
         this.spaceBattleMatchManager = spaceBattleMatchManager;
         this.adminLog = adminLog;
+        this.connectFourMatchManager = connectFourMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
     public Integer getAccountId() { return loggedInAccountId; }
     public void setCurrentMatch(TicTacToeMatch match) { this.currentMatch = match; }
+    public void setCurrentConnectFourMatch(ConnectFourMatch match) { this.currentConnectFourMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -172,6 +177,7 @@ public class ClientHandler implements Runnable
             chessMatchManager.cancelWaiting(this);
             battleshipMatchManager.cancelWaiting(this);
             rpsMatchManager.cancelWaiting(this);
+            connectFourMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -185,6 +191,7 @@ public class ClientHandler implements Runnable
             if (currentChessMatch != null) currentChessMatch.handleDisconnect(this);
             if (currentBattleshipMatch != null) currentBattleshipMatch.handleDisconnect(this);
             if (currentRpsMatch != null) currentRpsMatch.handleDisconnect(this);
+            if (currentConnectFourMatch != null) currentConnectFourMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -278,6 +285,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.RPS_FIND_MATCH_REQUEST) return handleRpsFindMatch();
         if (request.getType() == MessageType.RPS_LEAVE_QUEUE_REQUEST) return handleRpsLeaveQueue();
         if (request.getType() == MessageType.RPS_MOVE_REQUEST) return handleRpsMove(request);
+        if (request.getType() == MessageType.CONNECT4_FIND_MATCH_REQUEST) return handleConnectFourFindMatch();
+        if (request.getType() == MessageType.CONNECT4_LEAVE_QUEUE_REQUEST) return handleConnectFourLeaveQueue();
+        if (request.getType() == MessageType.CONNECT4_MOVE_REQUEST) return handleConnectFourMove(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -1773,10 +1783,38 @@ public class ClientHandler implements Runnable
         return null;
     }
 
+    // ==================== Connect Four ====================
+
+    private Message handleConnectFourFindMatch()
+    {
+        if (loggedInUsername != null) connectFourMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleConnectFourLeaveQueue()
+    {
+        connectFourMatchManager.cancelWaiting(this);
+        if (currentConnectFourMatch != null)
+        {
+            currentConnectFourMatch.handleDisconnect(this);
+            currentConnectFourMatch = null;
+        }
+        return null;
+    }
+
+    private Message handleConnectFourMove(Message request)
+    {
+        if (currentConnectFourMatch != null)
+        {
+            currentConnectFourMatch.makeMove(this, request.getCellIndex());
+        }
+        return null;
+    }
+
     // ==================== Leaderboards ====================
 
     private static final java.util.Set<String> RATED_GAMES = new java.util.HashSet<String>(java.util.Arrays.asList(
-        "tictactoe-online", "chess", "battleship", "rock-paper-scissors", "fight-arena"));
+        "tictactoe-online", "chess", "battleship", "rock-paper-scissors", "fight-arena", "connect-four"));
 
     private Message handleLeaderboardRequest(Message request)
     {

@@ -19,6 +19,7 @@ public class EconomyConfig
         if ("rock-paper-scissors".equals(gameId)) return 15;
         if ("fight-arena".equals(gameId))      return 25;
         if ("among-us".equals(gameId))         return 20;
+        if ("connect-four".equals(gameId))     return 15;
         return 0;
     }
 
