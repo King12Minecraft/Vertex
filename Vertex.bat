@@ -1,9 +1,10 @@
 @echo off
 REM Vertex - Client Launcher
-REM Hands off to Vertex.vbs, which runs "java -jar VertexClient.jar"
-REM with its console window hidden - this only needs plain "java" to
-REM work (same as Run-VertexClient-LowEnd.bat), not "javaw", which
-REM isn't available on every setup.
-REM No console to show errors in - use Run-VertexClient-LowEnd.bat
-REM instead if something's going wrong and you need to see why.
-start "" wscript.exe "%~dp0Vertex.vbs"
+REM Plain "java -jar", same as Run-VertexClient-LowEnd.bat but without
+REM the low-memory JVM flags - a visible console window stays open
+REM behind the game (see README for why the "hidden window" approach
+REM was dropped: Windows flags the .vbs trick that used to do this as
+REM unsafe). Use Run-VertexClient-LowEnd.bat instead on older/weaker
+REM hardware.
+java -jar VertexClient.jar
+pause
