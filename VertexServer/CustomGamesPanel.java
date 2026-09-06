@@ -305,7 +305,8 @@ public class CustomGamesPanel extends RoundedPanel
         worker.start();
     }
 
-    private void launchInBackground(final Component anchor, final CustomGameInfo game)
+    /** Package-visible so GamesPanel's "User" filter tab can launch a custom game the exact same way, without duplicating the download-then-run flow. */
+    static void launchInBackground(final Component anchor, final CustomGameInfo game)
     {
         Thread worker = new Thread(new Runnable()
         {

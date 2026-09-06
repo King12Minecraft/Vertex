@@ -50,14 +50,20 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
     private static final String FILTER_OFFLINE = "OFFLINE";
     private static final String FILTER_MULTIPLAYER = "MULTIPLAYER";
 
+    private static final String SOURCE_SYSTEM = "SYSTEM";
+    private static final String SOURCE_USER = "USER";
+
     private final Map<String, JLabel> queueLabelsByGameId = new HashMap<String, JLabel>();
     private final Map<String, ThemedButton> filterButtons = new HashMap<String, ThemedButton>();
+    private final Map<String, ThemedButton> sourceButtons = new HashMap<String, ThemedButton>();
 
     private final CardLayout viewCardLayout = new CardLayout();
     private final JPanel viewCards = new JPanel(viewCardLayout);
     private ThemedButton homeTabButton;
     private ThemedButton allGamesTabButton;
     private String currentFilter = FILTER_ALL;
+    private String currentSource = SOURCE_SYSTEM;
+    private boolean customGamesRequested = false;
 
     private JPanel heroContainer;
     private JPanel recentRow;
@@ -257,6 +263,15 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
+        JPanel sourceRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        sourceRow.setOpaque(false);
+        sourceRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sourceRow.setBorder(new EmptyBorder(0, 0, 10, 0));
+
+        addSourceChip(sourceRow, "System", SOURCE_SYSTEM);
+        addSourceChip(sourceRow, "User", SOURCE_USER);
+        content.add(sourceRow);
+
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         filterRow.setOpaque(false);
         filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -279,7 +294,51 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         scroll.getViewport().setOpaque(false);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         ThemedScrollBarUI.apply(scroll);
+
+        CustomGameManager.addListener(new Runnable()
+        {
+            public void run()
+            {
+                if (SOURCE_USER.equals(currentSource))
+                {
+                    rebuildAllGamesGrid();
+                }
+            }
+        });
+
         return scroll;
+    }
+
+    private void addSourceChip(JPanel row, String label, final String sourceKey)
+    {
+        ThemedButton chip = new ThemedButton(label, sourceKey.equals(currentSource));
+        chip.setPreferredSize(new Dimension(label.length() * 9 + 40, 34));
+        chip.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { applySource(sourceKey); }
+        });
+        sourceButtons.put(sourceKey, chip);
+        row.add(chip);
+    }
+
+    /** "User" pulls in every approved custom game (see CustomGameManager) into this same grid, played the exact same way CustomGamesPanel plays them - download the jar, run it in-process. Switching back to "System" just goes back to the built-in GameRegistry catalog, unaffected by any of this. */
+    private void applySource(String sourceKey)
+    {
+        currentSource = sourceKey;
+        for (Map.Entry<String, ThemedButton> entry : sourceButtons.entrySet())
+        {
+            entry.getValue().setPrimary(entry.getKey().equals(sourceKey));
+        }
+        if (SOURCE_USER.equals(sourceKey) && !customGamesRequested)
+        {
+            customGamesRequested = true;
+            Thread worker = new Thread(new Runnable()
+            {
+                public void run() { CustomGameManager.refresh(); }
+            });
+            worker.start();
+        }
+        rebuildAllGamesGrid();
     }
 
     private void addFilterChip(JPanel row, String label, final String filterKey)
@@ -487,27 +546,111 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
     private void rebuildAllGamesGrid()
     {
         allGamesGrid.removeAll();
-        List<GameInfo> games = filteredGames();
 
-        if (games.isEmpty())
+        if (SOURCE_USER.equals(currentSource))
         {
-            JLabel empty = new JLabel(GameManager.getCachedGames().isEmpty()
-                ? "No games loaded yet - checking the server..."
-                : "No games match this filter.");
-            empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
-            allGamesGrid.add(empty);
+            rebuildUserGamesGrid();
         }
         else
         {
-            for (int i = 0; i < games.size(); i++)
+            List<GameInfo> games = filteredGames();
+
+            if (games.isEmpty())
             {
-                allGamesGrid.add(buildCard(games.get(i)));
+                JLabel empty = new JLabel(GameManager.getCachedGames().isEmpty()
+                    ? "No games loaded yet - checking the server..."
+                    : "No games match this filter.");
+                empty.setFont(UITheme.FONT_BODY);
+                empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+                allGamesGrid.add(empty);
+            }
+            else
+            {
+                for (int i = 0; i < games.size(); i++)
+                {
+                    allGamesGrid.add(buildCard(games.get(i)));
+                }
             }
         }
 
         allGamesGrid.revalidate();
         allGamesGrid.repaint();
+    }
+
+    /** Only ever shows approved games (or your own still-pending ones, tagged) - see CustomGameStore's review queue. Every card downloads and launches the jar the same way CustomGamesPanel's own cards do. */
+    private void rebuildUserGamesGrid()
+    {
+        List<CustomGameInfo> games = CustomGameManager.getCachedGames();
+        if (games.isEmpty())
+        {
+            JLabel empty = new JLabel("No user-uploaded games yet - check the Custom Games page to publish one.");
+            empty.setFont(UITheme.FONT_BODY);
+            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+            allGamesGrid.add(empty);
+            return;
+        }
+        for (int i = 0; i < games.size(); i++)
+        {
+            allGamesGrid.add(buildCustomGameCard(games.get(i)));
+        }
+    }
+
+    private JPanel buildCustomGameCard(final CustomGameInfo game)
+    {
+        final RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        card.setLayout(new BorderLayout());
+        card.setBorder(new EmptyBorder(16, 16, 16, 16));
+        card.setPreferredSize(new Dimension(260, 340));
+        card.enableTopAccent();
+        card.addMouseListener(new MouseAdapter()
+        {
+            public void mouseEntered(MouseEvent e) { card.glow().animateIn(); }
+            public void mouseExited(MouseEvent e)  { card.glow().animateOut(); }
+        });
+
+        JPanel art = new GameCardArt(game.getGameId());
+        art.setPreferredSize(new Dimension(228, 100));
+        card.add(art, BorderLayout.NORTH);
+
+        JPanel info = new JPanel();
+        info.setOpaque(false);
+        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+        info.setBorder(new EmptyBorder(14, 0, 0, 0));
+
+        JLabel name = new JLabel(game.getName());
+        name.setFont(UITheme.FONT_NAV_BOLD);
+        name.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        name.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel author = new JLabel("by " + game.getAuthorUsername());
+        author.setFont(UITheme.FONT_SMALL);
+        author.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        author.setAlignmentX(Component.LEFT_ALIGNMENT);
+        author.setBorder(new EmptyBorder(3, 0, 8, 0));
+
+        info.add(name);
+        info.add(author);
+
+        StatusPill pill = new StatusPill(game.isApproved() ? "User Upload" : "Pending Review",
+            game.isApproved() ? ThemeManager.getColor(ThemeColor.SUCCESS) : ThemeManager.getColor(ThemeColor.ACCENT));
+        pill.setAlignmentX(Component.LEFT_ALIGNMENT);
+        info.add(pill);
+
+        info.add(Box.createVerticalGlue());
+
+        final ThemedButton play = new ThemedButton("Play", true);
+        play.setAlignmentX(Component.LEFT_ALIGNMENT);
+        play.setMaximumSize(new Dimension(500, 38));
+        play.setPreferredSize(new Dimension(228, 38));
+        play.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { CustomGamesPanel.launchInBackground(play, game); }
+        });
+        info.add(Box.createVerticalStrut(10));
+        info.add(play);
+
+        card.add(info, BorderLayout.CENTER);
+        return card;
     }
 
     private List<GameInfo> filteredGames()
