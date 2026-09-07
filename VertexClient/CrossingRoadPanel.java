@@ -23,6 +23,7 @@ public class CrossingRoadPanel extends JPanel
     private final CrossingRoadGame game;
     private final Runnable onGameOver;
     private Timer timer;
+    private final FpsTracker fpsTracker = new FpsTracker();
 
     public CrossingRoadPanel(CrossingRoadGame game, Runnable onGameOver)
     {
@@ -72,6 +73,7 @@ public class CrossingRoadPanel extends JPanel
         {
             public void actionPerformed(ActionEvent e)
             {
+                fpsTracker.tick();
                 game.tick();
                 repaint();
                 if (game.isGameOver())
@@ -143,6 +145,7 @@ public class CrossingRoadPanel extends JPanel
         g2.setFont(UITheme.FONT_NAV_BOLD);
         g2.drawString("Crossings: " + game.getScore(), 12, 22);
 
+        fpsTracker.render(g2, getWidth());
         g2.dispose();
     }
 }

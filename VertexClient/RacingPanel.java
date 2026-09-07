@@ -29,6 +29,7 @@ public class RacingPanel extends JPanel
     private final RacingGame game;
     private final Runnable onGameOver;
     private Timer timer;
+    private final FpsTracker fpsTracker = new FpsTracker();
 
     public RacingPanel(RacingGame game, Runnable onGameOver)
     {
@@ -70,6 +71,7 @@ public class RacingPanel extends JPanel
         {
             public void actionPerformed(ActionEvent e)
             {
+                fpsTracker.tick();
                 game.tick();
                 repaint();
                 if (game.isOver())
@@ -148,6 +150,7 @@ public class RacingPanel extends JPanel
         String boostTag = game.isBoosting() ? "   \u2022   BOOST!" : "";
         g2.drawString("Score: " + game.getScore() + "   \u2022   " + progress + boostTag, 12, 24);
 
+        fpsTracker.render(g2, getWidth());
         g2.dispose();
     }
 

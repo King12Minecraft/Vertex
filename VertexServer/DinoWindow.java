@@ -91,6 +91,7 @@ public class DinoWindow extends JFrame
         private final DinoGame game;
         private final Runnable onGameOver;
         private Timer timer;
+    private final FpsTracker fpsTracker = new FpsTracker();
         private boolean paused = false;
 
         RunPanel(DinoGame game, Runnable onGameOver)
@@ -142,6 +143,7 @@ public class DinoWindow extends JFrame
                 public void actionPerformed(ActionEvent e)
                 {
                     if (paused) return;
+                    fpsTracker.tick();
                     game.tick();
                     repaint();
                     if (game.isGameOver())
@@ -217,6 +219,7 @@ public class DinoWindow extends JFrame
                 g2.drawString(hint, (getWidth() - hintWidth) / 2, getHeight() / 2 + 24);
             }
 
+            fpsTracker.render(g2, getWidth());
             g2.dispose();
         }
     }

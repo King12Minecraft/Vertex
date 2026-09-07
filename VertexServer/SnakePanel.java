@@ -31,6 +31,7 @@ public class SnakePanel extends JPanel
     private final SnakeGame game;
     private final Timer logicTimer;
     private final Timer renderTimer;
+    private final FpsTracker fpsTracker = new FpsTracker();
     private final Runnable onGameOver;
     private final long startTime = System.currentTimeMillis();
 
@@ -90,9 +91,9 @@ public class SnakePanel extends JPanel
             }
         });
 
-        renderTimer = new Timer(RENDER_TICK_MS, new ActionListener()
+        renderTimer = new Timer(PerformanceMode.getTickIntervalMs(RENDER_TICK_MS), new ActionListener()
         {
-            public void actionPerformed(ActionEvent e) { repaint(); }
+            public void actionPerformed(ActionEvent e) { fpsTracker.tick(); repaint(); }
         });
 
         ThemeManager.addListener(new Runnable()
@@ -186,6 +187,7 @@ public class SnakePanel extends JPanel
             g2.drawString(hint, (getWidth() - hintWidth) / 2, getHeight() / 2 + 24);
         }
 
+        fpsTracker.render(g2, getWidth());
         g2.dispose();
     }
 

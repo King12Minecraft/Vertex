@@ -36,6 +36,7 @@ public class TetrisPanel extends JPanel
     private final TetrisGame game;
     private final Runnable onGameOver;
     private Timer timer;
+    private final FpsTracker fpsTracker = new FpsTracker();
     private boolean paused = false;
 
     public TetrisPanel(TetrisGame game, Runnable onGameOver)
@@ -99,6 +100,7 @@ public class TetrisPanel extends JPanel
             public void actionPerformed(ActionEvent e)
             {
                 if (paused) return;
+                fpsTracker.tick();
                 game.tick();
                 repaint();
                 if (game.isGameOver())
@@ -197,6 +199,7 @@ public class TetrisPanel extends JPanel
             g2.drawString(hint, (boardW - hintWidth) / 2, boardH / 2 + 24);
         }
 
+        fpsTracker.render(g2, getWidth());
         g2.dispose();
     }
 

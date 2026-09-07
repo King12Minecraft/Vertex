@@ -144,6 +144,37 @@ public class SettingsPanel extends RoundedPanel
         description.setBorder(new EmptyBorder(6, 0, 0, 0));
         col.add(description);
 
+        col.add(Box.createVerticalStrut(18));
+
+        JPanel fpsRow = new JPanel(new BorderLayout());
+        fpsRow.setOpaque(false);
+        fpsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel fpsLabel = new JLabel("Show FPS Counter");
+        fpsLabel.setFont(UITheme.FONT_BODY);
+        fpsLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        fpsRow.add(fpsLabel, BorderLayout.WEST);
+
+        final ToggleSwitch fpsToggle = new ToggleSwitch(FpsCounterSetting.isEnabled());
+        fpsToggle.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { FpsCounterSetting.setEnabled(fpsToggle.isOn()); }
+        });
+        JPanel fpsToggleWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        fpsToggleWrap.setOpaque(false);
+        fpsToggleWrap.add(fpsToggle);
+        fpsRow.add(fpsToggleWrap, BorderLayout.EAST);
+        col.add(fpsRow);
+
+        JLabel fpsDescription = new JLabel("<html><body style='width:420px'>Shows a live frame-rate readout in "
+            + "the corner of every game - useful for checking whether Performance Mode (or your hardware) is "
+            + "actually giving you a smooth 60/30fps.</body></html>");
+        fpsDescription.setFont(UITheme.FONT_SMALL);
+        fpsDescription.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        fpsDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
+        fpsDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
+        col.add(fpsDescription);
+
         return col;
     }
 

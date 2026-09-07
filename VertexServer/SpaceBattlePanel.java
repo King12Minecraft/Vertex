@@ -25,6 +25,7 @@ public class SpaceBattlePanel extends JPanel
     private final SpaceBattleGame game;
     private final Runnable onGameOver;
     private Timer timer;
+    private final FpsTracker fpsTracker = new FpsTracker();
 
     private boolean turnLeft, turnRight, thrusting;
 
@@ -66,6 +67,7 @@ public class SpaceBattlePanel extends JPanel
         {
             public void actionPerformed(ActionEvent e)
             {
+                fpsTracker.tick();
                 game.tick();
                 repaint();
                 if (game.isOver())
@@ -129,6 +131,7 @@ public class SpaceBattlePanel extends JPanel
 
         drawHealthBar(g2, w);
 
+        fpsTracker.render(g2, getWidth());
         g2.dispose();
     }
 

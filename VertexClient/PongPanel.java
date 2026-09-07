@@ -22,6 +22,7 @@ public class PongPanel extends JPanel
     private final PongGame game;
     private final Runnable onGameOver;
     private Timer timer;
+    private final FpsTracker fpsTracker = new FpsTracker();
 
     public PongPanel(PongGame game, Runnable onGameOver)
     {
@@ -60,6 +61,7 @@ public class PongPanel extends JPanel
         {
             public void actionPerformed(ActionEvent e)
             {
+                fpsTracker.tick();
                 game.tick();
                 repaint();
                 if (game.isGameOver())
@@ -124,6 +126,7 @@ public class PongPanel extends JPanel
         int textW = g2.getFontMetrics().stringWidth(score);
         g2.drawString(score, w / 2 - textW / 2, 34);
 
+        fpsTracker.render(g2, getWidth());
         g2.dispose();
     }
 }
