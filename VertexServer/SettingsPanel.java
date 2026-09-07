@@ -41,6 +41,8 @@ public class SettingsPanel extends RoundedPanel
         content.setBorder(new EmptyBorder(24, 0, 24, 0));
 
         content.add(section("GENERAL", createGeneralSection()));
+
+        content.add(section("PERFORMANCE", createPerformanceSection()));
         content.add(Box.createVerticalStrut(20));
         content.add(section("APPEARANCE", createAppearanceSection()));
         content.add(Box.createVerticalStrut(20));
@@ -105,6 +107,44 @@ public class SettingsPanel extends RoundedPanel
         row.add(toggleWrap, BorderLayout.EAST);
 
         return row;
+    }
+
+    private JPanel createPerformanceSection()
+    {
+        JPanel col = new JPanel();
+        col.setOpaque(false);
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel label = new JLabel("Performance Mode");
+        label.setFont(UITheme.FONT_BODY);
+        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        row.add(label, BorderLayout.WEST);
+
+        final ToggleSwitch toggle = new ToggleSwitch(PerformanceMode.isEnabled());
+        toggle.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { PerformanceMode.setEnabled(toggle.isOn()); }
+        });
+        JPanel toggleWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        toggleWrap.setOpaque(false);
+        toggleWrap.add(toggle);
+        row.add(toggleWrap, BorderLayout.EAST);
+        col.add(row);
+
+        JLabel description = new JLabel("<html><body style='width:420px'>Turns off antialiased/high-quality "
+            + "rendering app-wide, drops in-game frame rate from 60 to 30fps, and skips a couple of decorative "
+            + "background effects. Takes effect the next time you open a game or restart Vertex.</body></html>");
+        description.setFont(UITheme.FONT_SMALL);
+        description.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        description.setAlignmentX(Component.LEFT_ALIGNMENT);
+        description.setBorder(new EmptyBorder(6, 0, 0, 0));
+        col.add(description);
+
+        return col;
     }
 
     private JPanel createAppearanceSection()

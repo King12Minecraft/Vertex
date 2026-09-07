@@ -60,6 +60,12 @@ public class GlitchEffectOverlay
         {
             return;
         }
+        if (PerformanceMode.isEnabled())
+        {
+            // Skip the idle timer entirely on weak hardware - this overlay is already
+            // cheap (see class javadoc), but every avoided timer helps.
+            return;
+        }
         frame.getRootPane().putClientProperty(ATTACHED_KEY, Boolean.TRUE);
 
         final GlitchPanel glitchPanel = new GlitchPanel();

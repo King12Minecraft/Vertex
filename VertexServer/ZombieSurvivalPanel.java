@@ -80,7 +80,7 @@ public class ZombieSurvivalPanel extends JPanel
 
     public void startTimer()
     {
-        timer = new Timer(16, new ActionListener()
+        timer = new Timer(PerformanceMode.getTickIntervalMs(16), new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
             {
