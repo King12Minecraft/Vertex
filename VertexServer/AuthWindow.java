@@ -40,6 +40,7 @@ public class AuthWindow extends JFrame
 
         final CardLayout cardLayout = new CardLayout();
         final JPanel cards = new JPanel(cardLayout);
+        cards.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
 
         LoginPanel.LoginSuccessListener onSuccess = new LoginPanel.LoginSuccessListener()
         {

@@ -219,6 +219,10 @@ public class CreateAccountPanel extends JPanel
         super.paintComponent(g);
         java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
         UITheme.applyAntialiasing(g2);
+        // Solid base first - see LoginPanel's identical fix for why (GlowBackdrop's gradient
+        // fades to fully transparent at the edges, and this panel is non-opaque).
+        g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
+        g2.fillRect(0, 0, getWidth(), getHeight());
         GlowBackdrop.paint(g2, getWidth(), getHeight());
         g2.dispose();
     }

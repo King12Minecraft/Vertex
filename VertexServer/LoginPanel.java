@@ -141,6 +141,12 @@ public class LoginPanel extends JPanel
         super.paintComponent(g);
         java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
         UITheme.applyAntialiasing(g2);
+        // Solid base first - GlowBackdrop's gradient fades to fully transparent toward the
+        // edges/corners, and this panel is non-opaque, so without a solid fill underneath it,
+        // whatever sits behind this panel (the plain default-colored CardLayout container in
+        // AuthWindow) would show through as a stray light box wherever the glow doesn't reach.
+        g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
+        g2.fillRect(0, 0, getWidth(), getHeight());
         GlowBackdrop.paint(g2, getWidth(), getHeight());
         g2.dispose();
     }
