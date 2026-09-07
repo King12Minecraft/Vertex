@@ -37,7 +37,7 @@ public class MarqueeBanner extends RoundedPanel
         super(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
         setPreferredSize(new Dimension(200, 44));
 
-        Timer animTimer = new Timer(TICK_MS, new ActionListener()
+        Timer animTimer = new Timer(PerformanceMode.getTickIntervalMs(TICK_MS), new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
             {

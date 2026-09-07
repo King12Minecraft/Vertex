@@ -88,7 +88,7 @@ public class PongPanel extends JPanel
                 return owned;
             }
         }
-        return ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
+        return GameColors.ACCENT;
     }
 
     @Override
@@ -101,10 +101,10 @@ public class PongPanel extends JPanel
         int w = getWidth();
         int h = getHeight();
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillRect(0, 0, w, h);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+        g2.setColor(GameColors.BORDER);
         for (int y = 0; y < h; y += 16)
         {
             g2.fillRect(w / 2 - 1, y, 2, 8);
@@ -116,7 +116,7 @@ public class PongPanel extends JPanel
         g2.setColor(new Color(240, 100, 100));
         g2.fillRoundRect(w - 6 - PongGame.PADDLE_WIDTH, game.getAiY(), PongGame.PADDLE_WIDTH, PongGame.PADDLE_HEIGHT, 4, 4);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setColor(GameColors.TEXT_PRIMARY);
         g2.fillOval(game.getBallX() - 6, game.getBallY() - 6, 12, 12);
 
         g2.setFont(UITheme.FONT_HEADING);

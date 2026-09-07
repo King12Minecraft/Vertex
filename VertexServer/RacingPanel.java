@@ -98,7 +98,7 @@ public class RacingPanel extends JPanel
                 return owned;
             }
         }
-        return ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
+        return GameColors.ACCENT;
     }
 
     @Override
@@ -111,10 +111,10 @@ public class RacingPanel extends JPanel
         int w = getWidth();
         int h = getHeight();
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillRect(0, 0, w, h);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+        g2.setColor(GameColors.BORDER);
         g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 1f, new float[] {10f, 10f}, 0f));
         for (int lane = 1; lane < RacingGame.LANES; lane++)
         {
@@ -142,7 +142,7 @@ public class RacingPanel extends JPanel
             drawShieldRing(g2, game.getPlayerLane(), RacingGame.PLAYER_Y);
         }
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setColor(GameColors.TEXT_PRIMARY);
         g2.setFont(UITheme.FONT_NAV_BOLD);
         String progress = Math.min(100, game.getFrameCount() * 100 / RacingGame.FINISH_FRAMES) + "% to finish";
         String boostTag = game.isBoosting() ? "   \u2022   BOOST!" : "";
@@ -162,7 +162,7 @@ public class RacingPanel extends JPanel
 
         g2.setColor(color);
         g2.fillOval(x, y - size / 2, size, size);
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.setFont(UITheme.FONT_SMALL);
         String glyph = type == RacingGame.TYPE_SHIELD ? "S" : type == RacingGame.TYPE_BOOST ? "B" : "$";
         g2.drawString(glyph, x + size / 2 - 4, y + 4);
@@ -188,7 +188,7 @@ public class RacingPanel extends JPanel
         g2.setColor(color);
         g2.fillRoundRect(x, y - carH / 2, carW, carH, 12, 12);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillRoundRect(x + 6, y - carH / 2 + 10, carW - 12, 16, 6, 6);
         g2.fillRoundRect(x + 6, y - carH / 2 + carH - 26, carW - 12, 16, 6, 6);
     }

@@ -60,12 +60,12 @@ public class AimTrainerWindow extends JFrame
 
         JLabel title = new JLabel("Aim Trainer");
         title.setFont(UITheme.FONT_NAV_BOLD);
-        title.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        title.setForeground(GameColors.TEXT_PRIMARY);
         headerRow.add(title, BorderLayout.WEST);
 
         scoreLabel = new JLabel("Hits: 0 / 0");
         scoreLabel.setFont(UITheme.FONT_SMALL);
-        scoreLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        scoreLabel.setForeground(GameColors.TEXT_MUTED);
         headerRow.add(scoreLabel, BorderLayout.EAST);
         root.add(headerRow, BorderLayout.NORTH);
 
@@ -77,12 +77,12 @@ public class AimTrainerWindow extends JFrame
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 UITheme.applyAntialiasing(g2);
-                g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+                g2.setColor(GameColors.BG_BOARD);
                 g2.fillRect(0, 0, getWidth(), getHeight());
 
                 if (targetVisible)
                 {
-                    g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START));
+                    g2.setColor(GameColors.ACCENT);
                     g2.fillOval(targetX - TARGET_RADIUS, targetY - TARGET_RADIUS, TARGET_RADIUS * 2, TARGET_RADIUS * 2);
                 }
                 g2.dispose();

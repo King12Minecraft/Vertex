@@ -126,10 +126,10 @@ public class TetrisPanel extends JPanel
         int boardW = TetrisGame.COLS * CELL;
         int boardH = TetrisGame.ROWS * CELL;
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillRect(0, 0, boardW, boardH);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+        g2.setColor(GameColors.BORDER);
         for (int c = 0; c <= TetrisGame.COLS; c++)
         {
             g2.drawLine(c * CELL, 0, c * CELL, boardH);
@@ -163,7 +163,7 @@ public class TetrisPanel extends JPanel
             }
         }
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setColor(GameColors.TEXT_PRIMARY);
         g2.setFont(UITheme.FONT_NAV_BOLD);
         g2.drawString("Score", boardW + 16, 30);
         g2.drawString(String.valueOf(game.getScore()), boardW + 16, 52);

@@ -170,7 +170,7 @@ public class DinoWindow extends JFrame
                     return owned;
                 }
             }
-            return ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
+            return GameColors.ACCENT;
         }
 
         @Override
@@ -182,10 +182,10 @@ public class DinoWindow extends JFrame
 
             int w = getWidth();
 
-            g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+            g2.setColor(GameColors.BG_BOARD);
             g2.fillRect(0, 0, w, getHeight());
 
-            g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+            g2.setColor(GameColors.BORDER);
             g2.fillRect(0, DinoGame.GROUND_Y, w, 2);
 
             g2.setColor(playerColor());
@@ -198,7 +198,7 @@ public class DinoWindow extends JFrame
                 g2.fillRect(obstacles.get(i), DinoGame.GROUND_Y - 26, 16, 26);
             }
 
-            g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+            g2.setColor(GameColors.TEXT_PRIMARY);
             g2.setFont(UITheme.FONT_NAV_BOLD);
             g2.drawString("Score: " + game.getScore(), 12, 24);
 

@@ -111,7 +111,7 @@ public class ZombieSurvivalPanel extends JPanel
                 return owned;
             }
         }
-        return ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
+        return GameColors.ACCENT;
     }
 
     @Override
@@ -124,10 +124,10 @@ public class ZombieSurvivalPanel extends JPanel
         int w = getWidth();
         int h = getHeight();
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillRect(0, 0, w, h);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+        g2.setColor(GameColors.BORDER);
         g2.drawRect(1, 1, w - 3, h - 3);
 
         for (double[] bullet : game.getBulletPositions())
@@ -143,7 +143,7 @@ public class ZombieSurvivalPanel extends JPanel
 
         drawPlayer(g2);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setColor(GameColors.TEXT_PRIMARY);
         g2.setFont(UITheme.FONT_NAV_BOLD);
         g2.drawString("Wave " + game.getWave() + "/" + ZombieSurvivalGame.WAVE_COUNT
             + "   \u2022   Score: " + game.getScore()
@@ -166,7 +166,7 @@ public class ZombieSurvivalPanel extends JPanel
         g2.fillRoundRect(x, y, barW, barH, 8, 8);
         g2.setColor(pct > 0.3 ? new Color(90, 210, 120) : new Color(230, 90, 90));
         g2.fillRoundRect(x, y, (int) (barW * pct), barH, 8, 8);
-        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setColor(GameColors.TEXT_PRIMARY);
         g2.setFont(UITheme.FONT_SMALL);
         g2.drawString("HP " + game.getPlayerHp() + "/" + game.getPlayerMaxHp(), x + 4, y + 13);
     }
@@ -184,7 +184,7 @@ public class ZombieSurvivalPanel extends JPanel
         }
         g2.setColor(color);
         g2.fillOval(x, y, r * 2, r * 2);
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillOval(x + r - 4, y + r - 4, 8, 8);
     }
 

@@ -40,7 +40,7 @@ public class Merge2048Window extends JFrame
 
         scoreLabel = new JLabel("Score: 0");
         scoreLabel.setFont(UITheme.FONT_NAV_BOLD);
-        scoreLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        scoreLabel.setForeground(GameColors.TEXT_PRIMARY);
         scoreLabel.setBorder(new EmptyBorder(0, 0, 14, 0));
         panel.add(scoreLabel, BorderLayout.NORTH);
 
@@ -152,7 +152,7 @@ public class Merge2048Window extends JFrame
             Graphics2D g2 = (Graphics2D) g.create();
             UITheme.applyAntialiasing(g2);
 
-            g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+            g2.setColor(GameColors.BG_BOARD);
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
 
             for (int row = 0; row < Merge2048Game.SIZE; row++)
@@ -168,7 +168,7 @@ public class Merge2048Window extends JFrame
 
                     if (value != 0)
                     {
-                        g2.setColor(value <= 4 ? ThemeManager.getColor(ThemeColor.TEXT_PRIMARY) : Color.WHITE);
+                        g2.setColor(value <= 4 ? GameColors.TEXT_PRIMARY : Color.WHITE);
                         g2.setFont(UITheme.FONT_NAV_BOLD.deriveFont(value >= 1024 ? 20f : 24f));
                         String text = String.valueOf(value);
                         int textW = g2.getFontMetrics().stringWidth(text);
@@ -185,9 +185,9 @@ public class Merge2048Window extends JFrame
         {
             if (value == 0)
             {
-                return ThemeManager.getColor(ThemeColor.BG_PANEL);
+                return GameColors.BG_BOARD;
             }
-            Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
+            Color accent = GameColors.ACCENT;
             int step = (int) (Math.log(value) / Math.log(2));
             float brightness = Math.min(1f, 0.35f + step * 0.06f);
 

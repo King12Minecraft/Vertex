@@ -100,6 +100,13 @@ public class AuthHeader extends JPanel
             }
         });
         pulseTimer.start();
+        if (PerformanceMode.isEnabled())
+        {
+            // Skip the continuous glow-pulse animation on weak hardware - freeze it at a
+            // fixed mid-brightness instead of leaving the logo static/unlit.
+            pulseTimer.stop();
+            pulse = 0.5f;
+        }
     }
 
     /** Stops the continuous pulse animation. Call when the containing window is disposed. */

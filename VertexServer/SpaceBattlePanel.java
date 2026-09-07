@@ -93,7 +93,7 @@ public class SpaceBattlePanel extends JPanel
                 return owned;
             }
         }
-        return ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
+        return GameColors.ACCENT;
     }
 
     @Override

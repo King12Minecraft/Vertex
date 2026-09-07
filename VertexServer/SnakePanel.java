@@ -157,14 +157,14 @@ public class SnakePanel extends JPanel
         Graphics2D g2 = (Graphics2D) g.create();
         UITheme.applyAntialiasing(g2);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillRect(0, 0, getWidth(), SCORE_BAR_HEIGHT);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setColor(GameColors.TEXT_PRIMARY);
         g2.setFont(UITheme.FONT_NAV_BOLD);
         g2.drawString("Score: " + game.getScore(), 10, SCORE_BAR_HEIGHT - 11);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_PANEL));
+        g2.setColor(GameColors.BG_BOARD);
         g2.fillRect(0, SCORE_BAR_HEIGHT, getWidth(), getHeight() - SCORE_BAR_HEIGHT);
 
         paintFood(g2);
@@ -198,7 +198,7 @@ public class SnakePanel extends JPanel
             return;
         }
         float fade = 1f - (age / (float) EAT_FLASH_MS);
-        Color accent = ThemeManager.getColor(ThemeColor.SUCCESS);
+        Color accent = GameColors.SUCCESS;
         int alpha = (int) (55 * fade);
         g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), alpha));
         g2.fillRect(0, SCORE_BAR_HEIGHT, getWidth(), getHeight() - SCORE_BAR_HEIGHT);
@@ -207,7 +207,7 @@ public class SnakePanel extends JPanel
     private void paintFood(Graphics2D g2)
     {
         Point food = game.getFood();
-        Color foodColor = ThemeManager.getColor(ThemeColor.SUCCESS);
+        Color foodColor = GameColors.SUCCESS;
 
         double elapsed = (System.currentTimeMillis() - startTime) / 1000.0;
         float pulse = (float) (0.5 + 0.5 * Math.sin(elapsed * 4));
@@ -267,8 +267,8 @@ public class SnakePanel extends JPanel
             else
             {
                 color = (i == 0)
-                    ? ThemeManager.getColor(ThemeColor.ACCENT_HOVER)
-                    : ThemeManager.getColor(ThemeColor.ACCENT);
+                    ? GameColors.ACCENT_HOVER
+                    : GameColors.ACCENT;
             }
             g2.setColor(color);
             g2.fillRoundRect(Math.round(drawX * CELL_SIZE), SCORE_BAR_HEIGHT + Math.round(drawY * CELL_SIZE),

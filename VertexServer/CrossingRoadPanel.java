@@ -100,7 +100,7 @@ public class CrossingRoadPanel extends JPanel
                 return owned;
             }
         }
-        return ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
+        return GameColors.ACCENT;
     }
 
     @Override
@@ -116,8 +116,8 @@ public class CrossingRoadPanel extends JPanel
         for (int r = 0; r < CrossingRoadGame.ROWS; r++)
         {
             Color rowColor = (r == 0 || r == CrossingRoadGame.ROWS - 1)
-                ? ThemeManager.getColor(ThemeColor.BG_PANEL)
-                : ThemeManager.getColor(ThemeColor.BG_SIDEBAR);
+                ? GameColors.BG_BOARD
+                : GameColors.BG_BOARD;
             g2.setColor(rowColor);
             g2.fillRect(0, r * cell, w, cell);
         }
@@ -139,7 +139,7 @@ public class CrossingRoadPanel extends JPanel
         g2.setColor(playerColor());
         g2.fillOval(px - cell / 3, py - cell / 3, cell * 2 / 3, cell * 2 / 3);
 
-        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setColor(GameColors.TEXT_PRIMARY);
         g2.setFont(UITheme.FONT_NAV_BOLD);
         g2.drawString("Crossings: " + game.getScore(), 12, 22);
 
