@@ -261,6 +261,12 @@ public enum MessageType
     GAME_SUGGESTION_LIST_REQUEST,
     GAME_SUGGESTION_LIST_RESPONSE,
 
+    // --- Avatars (upload or paint - see AvatarStore/AvatarEditorDialog) ---
+    AVATAR_UPLOAD_REQUEST,
+    AVATAR_UPLOAD_RESPONSE,
+    AVATAR_DOWNLOAD_REQUEST,
+    AVATAR_DOWNLOAD_RESPONSE,
+
     // --- Admin tools - Players list, role changes, audit log (admin-only) ---
     ADMIN_ACCOUNT_LIST_REQUEST,
     ADMIN_ACCOUNT_LIST_RESPONSE,

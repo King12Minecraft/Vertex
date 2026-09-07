@@ -54,6 +54,7 @@ public class ClientHandler implements Runnable
     private PresenceRegistry presenceRegistry;
     private final FeedbackManager feedbackManager;
     private final GameSuggestionStore gameSuggestionStore;
+    private final AvatarStore avatarStore;
 
     public ClientHandler(Socket socket, ServerAccountStore accountStore, GameRegistry gameRegistry,
                           MatchManager matchManager, ChatManager chatManager,
@@ -69,7 +70,7 @@ public class ClientHandler implements Runnable
                           PresenceRegistry presenceRegistry, FeedbackManager feedbackManager,
                           GameSuggestionStore gameSuggestionStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
                           SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog,
-                          ConnectFourMatchManager connectFourMatchManager)
+                          ConnectFourMatchManager connectFourMatchManager, AvatarStore avatarStore)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -102,6 +103,7 @@ public class ClientHandler implements Runnable
         this.spaceBattleMatchManager = spaceBattleMatchManager;
         this.adminLog = adminLog;
         this.connectFourMatchManager = connectFourMatchManager;
+        this.avatarStore = avatarStore;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -309,6 +311,8 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.CLIENT_UPDATE_DOWNLOAD_REQUEST) return handleClientUpdateDownload();
         if (request.getType() == MessageType.GAME_SUGGESTION_SUBMIT_REQUEST) return handleGameSuggestionSubmit(request);
         if (request.getType() == MessageType.GAME_SUGGESTION_LIST_REQUEST) return handleGameSuggestionList();
+        if (request.getType() == MessageType.AVATAR_UPLOAD_REQUEST) return handleAvatarUpload(request);
+        if (request.getType() == MessageType.AVATAR_DOWNLOAD_REQUEST) return handleAvatarDownload(request);
         if (request.getType() == MessageType.ADMIN_ACCOUNT_LIST_REQUEST) return handleAdminAccountList();
         if (request.getType() == MessageType.ADMIN_SET_ROLE_REQUEST) return handleAdminSetRole(request);
         if (request.getType() == MessageType.ADMIN_LOG_REQUEST) return handleAdminLog();
@@ -387,6 +391,49 @@ public class ClientHandler implements Runnable
         response.setType(MessageType.GAME_SUGGESTION_LIST_RESPONSE);
         response.setSuccess(true);
         response.setGameSuggestionEntries(gameSuggestionStore.getRecent());
+        return response;
+    }
+
+    // ==================== Avatars ====================
+
+    /** pngBytes comes in already resized to 128x128 by the client (see AvatarEditorDialog) - this just enforces the size cap again server-side and saves it, same "check it here too, don't just trust the client" pattern the file-sharing/chat code already follows. */
+    private Message handleAvatarUpload(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.AVATAR_UPLOAD_RESPONSE);
+
+        if (loggedInUsername == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+
+        byte[] pngBytes = request.getFileData();
+        if (pngBytes == null || pngBytes.length > AvatarStore.MAX_AVATAR_BYTES)
+        {
+            response.setSuccess(false);
+            response.setErrorText("That image is too large.");
+            return response;
+        }
+
+        boolean saved = avatarStore.save(loggedInUsername, pngBytes);
+        response.setSuccess(saved);
+        if (!saved)
+        {
+            response.setErrorText("Could not save the avatar on the server.");
+        }
+        return response;
+    }
+
+    /** getUsername() is whose avatar is being requested (not necessarily the caller's own - Settings, Friends, and Chat all need to look up other people's avatars too). fileData is null on the response if that account has never set one. */
+    private Message handleAvatarDownload(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.AVATAR_DOWNLOAD_RESPONSE);
+        response.setSuccess(true);
+        response.setUsername(request.getUsername());
+        response.setFileData(avatarStore.load(request.getUsername()));
         return response;
     }
 

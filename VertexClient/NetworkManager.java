@@ -335,7 +335,9 @@ public class NetworkManager
         MessageType.GAME_SUGGESTION_LIST_RESPONSE,
         MessageType.ADMIN_ACCOUNT_LIST_RESPONSE,
         MessageType.ADMIN_SET_ROLE_RESPONSE,
-        MessageType.ADMIN_LOG_RESPONSE);
+        MessageType.ADMIN_LOG_RESPONSE,
+        MessageType.AVATAR_UPLOAD_RESPONSE,
+        MessageType.AVATAR_DOWNLOAD_RESPONSE);
 
     private static void routeIncoming(Message message)
     {

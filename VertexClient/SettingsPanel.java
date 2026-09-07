@@ -11,6 +11,9 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -243,6 +246,83 @@ public class SettingsPanel extends RoundedPanel
         return col;
     }
 
+    private JPanel createAvatarRow()
+    {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 14, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        final AvatarBubble bubble = new AvatarBubble();
+        row.add(bubble);
+
+        if (Session.isLoggedIn())
+        {
+            AvatarCache.get(Session.getCurrentAccount().getUsername(), new AvatarCache.Listener()
+            {
+                public void onLoaded(Image image) { bubble.setImage(image); }
+            });
+        }
+
+        final ThemedButton edit = new ThemedButton("Edit Avatar", false);
+        edit.setPreferredSize(new Dimension(150, 38));
+        edit.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                AvatarEditorDialog.show(edit, new AvatarEditorDialog.SaveListener()
+                {
+                    public void onSaved()
+                    {
+                        if (Session.isLoggedIn())
+                        {
+                            AvatarCache.get(Session.getCurrentAccount().getUsername(), new AvatarCache.Listener()
+                            {
+                                public void onLoaded(Image image) { bubble.setImage(image); }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+        row.add(edit);
+
+        return row;
+    }
+
+    /** A small circular avatar preview - null image just renders as a plain filled circle, so there's no broken-image state to handle. */
+    private static class AvatarBubble extends JPanel
+    {
+        private Image image;
+
+        AvatarBubble()
+        {
+            setPreferredSize(new Dimension(56, 56));
+            setOpaque(false);
+        }
+
+        void setImage(Image image)
+        {
+            this.image = image;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(Graphics g)
+        {
+            super.paintComponent(g);
+            Graphics2D g2 = (Graphics2D) g.create();
+            UITheme.applyAntialiasing(g2);
+            g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
+            g2.fillOval(0, 0, getWidth(), getHeight());
+            if (image != null)
+            {
+                g2.setClip(new java.awt.geom.Ellipse2D.Float(0, 0, getWidth(), getHeight()));
+                g2.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+            }
+            g2.dispose();
+        }
+    }
+
     private JPanel createAccountSection()
     {
         JPanel col = new JPanel();
@@ -255,6 +335,9 @@ public class SettingsPanel extends RoundedPanel
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
         note.setBorder(new EmptyBorder(0, 0, 14, 0));
         col.add(note);
+
+        col.add(createAvatarRow());
+        col.add(Box.createVerticalStrut(18));
 
         final ThemedButton changeUsername = new ThemedButton("Change Username", false);
         changeUsername.setAlignmentX(Component.LEFT_ALIGNMENT);
