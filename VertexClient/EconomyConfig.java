@@ -20,6 +20,7 @@ public class EconomyConfig
         if ("fight-arena".equals(gameId))      return 25;
         if ("among-us".equals(gameId))         return 20;
         if ("connect-four".equals(gameId))     return 15;
+        if ("checkers".equals(gameId))         return 15;
         return 0;
     }
 

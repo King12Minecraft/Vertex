@@ -104,6 +104,11 @@ public class GameLauncher
                 BattleshipWindow window = new BattleshipWindow();
                 window.setVisible(true);
             }
+            else if ("checkers".equals(game.getGameId()))
+            {
+                CheckersWindow window = new CheckersWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

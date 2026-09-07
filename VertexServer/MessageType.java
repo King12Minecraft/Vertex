@@ -162,6 +162,15 @@ public enum MessageType
     CONNECT4_UPDATE,
     CONNECT4_RESULT,
 
+    // --- Checkers (1v1, ELO-rated, standard rules with mandatory captures) ---
+    CHECKERS_FIND_MATCH_REQUEST,
+    CHECKERS_LEAVE_QUEUE_REQUEST,
+    CHECKERS_MATCH_FOUND,
+    CHECKERS_MOVE_REQUEST,
+    CHECKERS_MOVE_REJECTED,
+    CHECKERS_UPDATE,
+    CHECKERS_RESULT,
+
     // --- Chess (1v1 turn-based, standard rules minus castling/en passant) ---
     CHESS_FIND_MATCH_REQUEST,
     CHESS_LEAVE_QUEUE_REQUEST,

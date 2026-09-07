@@ -16,7 +16,7 @@ public class FpsTracker
 {
     private int frameCount = 0;
     private long windowStart = System.currentTimeMillis();
-    private int displayedFps = 0;
+    private int displayedFps = 60;
 
     public void tick()
     {
