@@ -14,16 +14,24 @@ import java.awt.event.FocusEvent;
  * JPasswordField. No in-field placeholder trick - a label above it in
  * the form is clearer for password fields than placeholder text that
  * would just be masked anyway.
+ *
+ * Includes a Show/Hide toggle so what you typed can actually be
+ * checked before submitting - particularly useful on the Create
+ * Account and Change Password screens, where a typo isn't just
+ * inconvenient, it locks you out.
  */
 public class ThemedPasswordField extends RoundedPanel
 {
     private final JPasswordField field;
+    private final ThemedButton toggle;
+    private boolean visible = false;
+    private final char defaultEchoChar;
 
     public ThemedPasswordField()
     {
         super(ThemeColor.BG_SIDEBAR, UITheme.RADIUS_BUTTON);
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 14, 0, 14));
+        setBorder(new EmptyBorder(0, 14, 0, 6));
         setPreferredSize(new Dimension(100, 42));
 
         field = new JPasswordField();
@@ -33,8 +41,22 @@ public class ThemedPasswordField extends RoundedPanel
         field.setBackground(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
         field.setBorder(BorderFactory.createEmptyBorder());
         field.setOpaque(false);
+        defaultEchoChar = field.getEchoChar();
 
         add(field, BorderLayout.CENTER);
+
+        toggle = new ThemedButton("Show", false);
+        toggle.setPreferredSize(new Dimension(58, 30));
+        toggle.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(java.awt.event.ActionEvent e)
+            {
+                visible = !visible;
+                field.setEchoChar(visible ? (char) 0 : defaultEchoChar);
+                toggle.setText(visible ? "Hide" : "Show");
+            }
+        });
+        add(toggle, BorderLayout.EAST);
 
         field.addFocusListener(new FocusAdapter()
         {

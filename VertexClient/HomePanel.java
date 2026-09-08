@@ -52,6 +52,7 @@ public class HomePanel extends RoundedPanel
     private final JPanel topPlayersRow;
     private final JPanel recentRow;
     private final JPanel recentSection;
+    private JPanel exploreRow;
 
     private List<String> lastRecentNames = new ArrayList<String>();
     private List<String> lastTopPlayerLines = new ArrayList<String>();
@@ -92,6 +93,13 @@ public class HomePanel extends RoundedPanel
         recentRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         recentSection.add(recentRow);
         content.add(recentSection);
+        content.add(Box.createVerticalStrut(24));
+
+        content.add(sectionLabel("EXPLORE GAMES"));
+        exploreRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        exploreRow.setOpaque(false);
+        exploreRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(exploreRow);
 
         JScrollPane scroll = new JScrollPane(content);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -140,6 +148,29 @@ public class HomePanel extends RoundedPanel
     {
         fetchHistoryInBackground();
         fetchTopPlayersInBackground();
+        rebuildExplore();
+    }
+
+    /** A handful of playable games as a quick jump-in point, so Home has something to look at even for a brand new account with no recent/leaderboard activity yet - skips anything still "Coming Soon" and anything already shown in Recently Played, capped at 6 so this stays a preview, not a second copy of the full Games page. */
+    private void rebuildExplore()
+    {
+        exploreRow.removeAll();
+
+        List<GameInfo> all = GameManager.getCachedGames();
+        int shown = 0;
+        for (int i = 0; i < all.size() && shown < 6; i++)
+        {
+            GameInfo game = all.get(i);
+            if (game.isComingSoon() || lastRecentNames.contains(game.getName()))
+            {
+                continue;
+            }
+            exploreRow.add(buildRecentCard(game));
+            shown++;
+        }
+
+        exploreRow.revalidate();
+        exploreRow.repaint();
     }
 
     // ==================== Recently played ====================
@@ -196,6 +227,7 @@ public class HomePanel extends RoundedPanel
         }
         recentRow.revalidate();
         recentRow.repaint();
+        rebuildExplore();
     }
 
     private JPanel buildRecentCard(final GameInfo game)
