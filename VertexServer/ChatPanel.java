@@ -57,6 +57,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         final String role;
         final String fileName;
         final byte[] fileData;
+        final long timestamp;
 
         ChatEntry(String sender, String text, String colorId, String badgeId, String role, String fileName, byte[] fileData)
         {
@@ -67,6 +68,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             this.role = role;
             this.fileName = fileName;
             this.fileData = fileData;
+            this.timestamp = System.currentTimeMillis();
         }
     }
 
@@ -184,25 +186,24 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private JPanel createInputRow()
     {
-        JPanel row = new JPanel(new BorderLayout(12, 0));
-        row.setOpaque(false);
-        row.setBorder(new EmptyBorder(16, 0, 0, 0));
+        RoundedPanel pill = new RoundedPanel(ThemeColor.BG_PANEL, 20);
+        pill.setLayout(new BorderLayout(8, 0));
+        pill.setBorder(new EmptyBorder(6, 10, 6, 10));
 
-        field = new ThemedTextField("Message...");
-        row.add(field, BorderLayout.CENTER);
-
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        buttons.setOpaque(false);
-
-        ThemedButton attach = new ThemedButton("Attach", false);
-        attach.setPreferredSize(new Dimension(90, 42));
+        ThemedButton attach = new ThemedButton("+", false);
+        attach.setPreferredSize(new Dimension(38, 38));
         attach.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { attachFile(); }
         });
+        pill.add(attach, BorderLayout.WEST);
+
+        field = new ThemedTextField("Message...");
+        field.setBorder(BorderFactory.createEmptyBorder());
+        pill.add(field, BorderLayout.CENTER);
 
         final ThemedButton send = new ThemedButton("Send", true);
-        send.setPreferredSize(new Dimension(100, 42));
+        send.setPreferredSize(new Dimension(80, 38));
 
         ActionListener sendAction = new ActionListener()
         {
@@ -210,10 +211,12 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         };
         send.addActionListener(sendAction);
         field.addActionListener(sendAction);
+        pill.add(send, BorderLayout.EAST);
 
-        buttons.add(attach);
-        buttons.add(send);
-        row.add(buttons, BorderLayout.EAST);
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(16, 0, 0, 0));
+        row.add(pill, BorderLayout.CENTER);
         return row;
     }
 
@@ -252,10 +255,16 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         for (final String key : channelNames.keySet())
         {
-            SidebarButton button = new SidebarButton(channelNames.get(key));
+            // Strip the "@ "/"# " prefix from the button's own label - that distinction is
+            // now carried by the icon/avatar to its left instead, Discord-style, rather than
+            // by a leading character in the text.
+            String rawName = channelNames.get(key);
+            String displayName = rawName.length() > 2 ? rawName.substring(2) : rawName;
+
+            SidebarButton button = new SidebarButton(displayName);
             button.setAlignmentX(Component.LEFT_ALIGNMENT);
             button.setMaximumSize(new Dimension(2000, 40));
-            button.setPreferredSize(new Dimension(190, 40));
+            button.setPreferredSize(new Dimension(150, 40));
             button.addMouseListener(new MouseAdapter()
             {
                 public void mouseClicked(MouseEvent e) { switchChannel(key); }
@@ -269,6 +278,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
             wrapper.setMaximumSize(new Dimension(2000, 40));
             wrapper.setBorder(new EmptyBorder(0, 0, 4, 0));
+            wrapper.add(buildChannelIcon(key, displayName));
+            wrapper.add(Box.createHorizontalStrut(8));
             wrapper.add(button);
 
             sidebarList.add(wrapper);
@@ -276,6 +287,76 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         sidebarList.revalidate();
         sidebarList.repaint();
+    }
+
+    /** DMs get the other person's avatar (fetched via AvatarCache, same as message rows); groups get a simple "#" tile - Discord's own text-channel icon convention, since a group here has no single "person" to represent it with a photo. */
+    private JPanel buildChannelIcon(String key, String displayName)
+    {
+        if (key.startsWith("dm:"))
+        {
+            final ChannelAvatarIcon icon = new ChannelAvatarIcon();
+            AvatarCache.get(displayName, new AvatarCache.Listener()
+            {
+                public void onLoaded(java.awt.Image image) { icon.setImage(image); }
+            });
+            return icon;
+        }
+
+        JPanel tile = new JPanel(new BorderLayout())
+        {
+            protected void paintComponent(java.awt.Graphics g)
+            {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                UITheme.applyAntialiasing(g2);
+                g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+                g2.setFont(UITheme.FONT_NAV_BOLD);
+                java.awt.FontMetrics fm = g2.getFontMetrics();
+                String hash = "#";
+                g2.drawString(hash, (getWidth() - fm.stringWidth(hash)) / 2, (getHeight() + fm.getAscent()) / 2 - 2);
+                g2.dispose();
+            }
+        };
+        tile.setOpaque(false);
+        tile.setPreferredSize(new Dimension(28, 28));
+        tile.setMaximumSize(new Dimension(28, 28));
+        return tile;
+    }
+
+    private static class ChannelAvatarIcon extends JPanel
+    {
+        private java.awt.Image image;
+
+        ChannelAvatarIcon()
+        {
+            setPreferredSize(new Dimension(28, 28));
+            setMaximumSize(new Dimension(28, 28));
+            setOpaque(false);
+        }
+
+        void setImage(java.awt.Image image)
+        {
+            this.image = image;
+            repaint();
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g)
+        {
+            super.paintComponent(g);
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            UITheme.applyAntialiasing(g2);
+            g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+            g2.fillOval(0, 0, getWidth(), getHeight());
+            if (image != null)
+            {
+                g2.setClip(new java.awt.geom.Ellipse2D.Float(0, 0, getWidth(), getHeight()));
+                g2.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+            }
+            g2.dispose();
+        }
     }
 
     private void switchChannel(String key)
@@ -319,9 +400,17 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         }
         else
         {
+            // Discord-style grouping: consecutive messages from the same sender within
+            // GROUP_WINDOW_MS of each other share one avatar/username header instead of
+            // repeating it for every single message.
             for (int i = 0; i < history.size(); i++)
             {
-                messageListPanel.add(buildMessageRow(history.get(i)));
+                ChatEntry entry = history.get(i);
+                ChatEntry previous = i > 0 ? history.get(i - 1) : null;
+                boolean isContinuation = previous != null
+                    && entry.sender != null && entry.sender.equals(previous.sender)
+                    && (entry.timestamp - previous.timestamp) < GROUP_WINDOW_MS;
+                messageListPanel.add(buildMessageRow(entry, isContinuation));
             }
         }
 
@@ -330,16 +419,82 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         scrollToBottom();
     }
 
-    private JPanel buildMessageRow(ChatEntry entry)
+    private static final long GROUP_WINDOW_MS = 5 * 60 * 1000;
+    private static final int AVATAR_COLUMN_WIDTH = 42;
+
+    private JPanel buildMessageRow(final ChatEntry entry, boolean isContinuation)
     {
-        JPanel row = new JPanel();
-        row.setOpaque(false);
-        row.setLayout(new BoxLayout(row, BoxLayout.Y_AXIS));
+        final RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, 6);
+        row.setLayout(new BorderLayout(10, 0));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setBorder(new EmptyBorder(0, 0, 10, 0));
+        row.setBorder(new EmptyBorder(isContinuation ? 1 : 8, 8, 1, 8));
+        row.setMaximumSize(new Dimension(2000, 2000));
+
+        // Discord's own "flush rows that highlight on hover" treatment, rather than chat
+        // bubbles - bubbles read as a 1:1 DM app (iMessage/WhatsApp); Discord (and this app's
+        // own group chats) are closer to a shared room, where flush rows scan faster.
+        row.addMouseListener(new MouseAdapter()
+        {
+            public void mouseEntered(MouseEvent e) { row.setBackgroundRole(ThemeColor.BG_SIDEBAR); }
+            public void mouseExited(MouseEvent e)  { row.setBackgroundRole(ThemeColor.BG_PANEL); }
+        });
+
+        JPanel avatarColumn = new JPanel();
+        avatarColumn.setOpaque(false);
+        avatarColumn.setPreferredSize(new Dimension(AVATAR_COLUMN_WIDTH, 1));
+        if (!isContinuation)
+        {
+            final AvatarBubble bubble = new AvatarBubble();
+            bubble.setBounds(0, 0, 32, 32);
+            avatarColumn.setLayout(null);
+            bubble.setBounds(2, 2, 32, 32);
+            avatarColumn.add(bubble);
+            if (entry.sender != null)
+            {
+                AvatarCache.get(entry.sender, new AvatarCache.Listener()
+                {
+                    public void onLoaded(java.awt.Image image) { bubble.setImage(image); }
+                });
+            }
+        }
+        row.add(avatarColumn, BorderLayout.WEST);
+
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
         boolean isMe = entry.sender != null && Session.isLoggedIn()
             && entry.sender.equals(Session.getCurrentAccount().getUsername());
+
+        if (!isContinuation)
+        {
+            content.add(buildHeaderLine(entry, isMe));
+        }
+
+        if (entry.text != null && !entry.text.isEmpty())
+        {
+            JLabel textLabel = new JLabel("<html><body style='width:340px'>" + escapeHtml(entry.text) + "</body></html>");
+            textLabel.setFont(UITheme.FONT_BODY);
+            textLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+            textLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            content.add(textLabel);
+        }
+
+        if (entry.fileData != null && entry.fileData.length > 0)
+        {
+            content.add(buildFileChip(entry.fileName, entry.fileData));
+        }
+
+        row.add(content, BorderLayout.CENTER);
+        return row;
+    }
+
+    private JPanel buildHeaderLine(ChatEntry entry, boolean isMe)
+    {
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        header.setOpaque(false);
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.setBorder(new EmptyBorder(0, 0, 2, 0));
 
         Color customColor = PlayerColorRegistry.resolve(entry.colorId);
         Color roleColor = "ADMIN".equals(entry.role) ? new Color(230, 90, 90)
@@ -347,7 +502,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         String badgeGlyph = PlayerColorRegistry.resolveBadgeGlyph(entry.badgeId);
         JLabel senderLabel = new JLabel((badgeGlyph != null ? badgeGlyph + " " : "") + entry.sender + (isMe ? " (you)" : ""));
-        senderLabel.setFont(UITheme.FONT_SMALL);
+        senderLabel.setFont(UITheme.FONT_NAV_BOLD);
         if (roleColor != null)
         {
             // Admin/moderator color always wins over a purchased cosmetic color - staff
@@ -364,24 +519,53 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
                 ? ThemeManager.getColor(ThemeColor.ACCENT)
                 : ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         }
-        senderLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.add(senderLabel);
+        header.add(senderLabel);
 
-        if (entry.text != null && !entry.text.isEmpty())
+        JLabel timeLabel = new JLabel(formatTimestamp(entry.timestamp));
+        timeLabel.setFont(UITheme.FONT_SMALL.deriveFont(11f));
+        timeLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        header.add(timeLabel);
+
+        return header;
+    }
+
+    private String formatTimestamp(long millis)
+    {
+        return new java.text.SimpleDateFormat("h:mm a").format(new java.util.Date(millis));
+    }
+
+    /** A small circular avatar - null image just renders as a plain filled circle, matching SettingsPanel's own AvatarBubble (kept as a separate copy here rather than shared, since Swing components can't be reparented across two different container hierarchies anyway). */
+    private static class AvatarBubble extends JPanel
+    {
+        private java.awt.Image image;
+
+        AvatarBubble()
         {
-            JLabel textLabel = new JLabel("<html><body style='width:360px'>" + escapeHtml(entry.text) + "</body></html>");
-            textLabel.setFont(UITheme.FONT_BODY);
-            textLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
-            textLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-            row.add(textLabel);
+            setPreferredSize(new Dimension(32, 32));
+            setOpaque(false);
         }
 
-        if (entry.fileData != null && entry.fileData.length > 0)
+        void setImage(java.awt.Image image)
         {
-            row.add(buildFileChip(entry.fileName, entry.fileData));
+            this.image = image;
+            repaint();
         }
 
-        return row;
+        @Override
+        protected void paintComponent(java.awt.Graphics g)
+        {
+            super.paintComponent(g);
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            UITheme.applyAntialiasing(g2);
+            g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
+            g2.fillOval(0, 0, getWidth(), getHeight());
+            if (image != null)
+            {
+                g2.setClip(new java.awt.geom.Ellipse2D.Float(0, 0, getWidth(), getHeight()));
+                g2.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+            }
+            g2.dispose();
+        }
     }
 
     /** A small clickable chip for a received file attachment - click to save it locally. */
