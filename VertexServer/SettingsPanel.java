@@ -91,8 +91,13 @@ public class SettingsPanel extends RoundedPanel
 
     private JPanel createGeneralSection()
     {
+        JPanel col = new JPanel();
+        col.setOpaque(false);
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+
         JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel label = new JLabel("Launch Vertex on startup");
         label.setFont(UITheme.FONT_BODY);
@@ -105,8 +110,39 @@ public class SettingsPanel extends RoundedPanel
         toggleWrap.setOpaque(false);
         toggleWrap.add(toggle);
         row.add(toggleWrap, BorderLayout.EAST);
+        col.add(row);
 
-        return row;
+        col.add(Box.createVerticalStrut(14));
+
+        JPanel soundRow = new JPanel(new BorderLayout());
+        soundRow.setOpaque(false);
+        soundRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel soundLabel = new JLabel("Notification Sounds");
+        soundLabel.setFont(UITheme.FONT_BODY);
+        soundLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        soundRow.add(soundLabel, BorderLayout.WEST);
+
+        final ToggleSwitch soundToggle = new ToggleSwitch(NotificationSoundSetting.isEnabled());
+        soundToggle.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { NotificationSoundSetting.setEnabled(soundToggle.isOn()); }
+        });
+        JPanel soundToggleWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        soundToggleWrap.setOpaque(false);
+        soundToggleWrap.add(soundToggle);
+        soundRow.add(soundToggleWrap, BorderLayout.EAST);
+        col.add(soundRow);
+
+        JLabel soundDescription = new JLabel("<html><body style='width:420px'>Plays a short system beep when a "
+            + "new chat message or group invite comes in.</body></html>");
+        soundDescription.setFont(UITheme.FONT_SMALL);
+        soundDescription.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        soundDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
+        soundDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
+        col.add(soundDescription);
+
+        return col;
     }
 
     private JPanel createPerformanceSection()

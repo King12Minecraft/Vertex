@@ -1038,6 +1038,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             if (!isMe && !key.equals(currentChannel))
             {
                 NotificationCenter.add("New message", sender + ": " + notificationPreview(message));
+                NotificationSoundSetting.playIfEnabled();
             }
 
             recordAndMaybeRender(key, message);
@@ -1055,6 +1056,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             if (!isMe && !key.equals(currentChannel))
             {
                 NotificationCenter.add("New group message", message.getUsername() + ": " + notificationPreview(message));
+                NotificationSoundSetting.playIfEnabled();
             }
 
             recordAndMaybeRender(key, message);
@@ -1067,6 +1069,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             rebuildSidebar();
             NotificationCenter.add("Added to group",
                 "You were added to " + message.getGroupName() + " by " + message.getUsername());
+            NotificationSoundSetting.playIfEnabled();
         }
     }
 
