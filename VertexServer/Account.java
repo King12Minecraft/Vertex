@@ -25,6 +25,7 @@ public class Account implements java.io.Serializable
     private Role role;
     private String playerColorName;
     private String equippedBadgeId;
+    private String equippedFrameId;
     private int coins;
     private final List<String> ownedItemIds = new ArrayList<String>();
     private String lastLoginDate;
@@ -39,6 +40,7 @@ public class Account implements java.io.Serializable
         this.role = role;
         this.playerColorName = "Default";
         this.equippedBadgeId = "";
+        this.equippedFrameId = "";
         this.lastLoginDate = "";
         this.loginStreak = 0;
     }
@@ -64,6 +66,9 @@ public class Account implements java.io.Serializable
 
     public String getEquippedBadgeId() { return equippedBadgeId; }
     public void setEquippedBadgeId(String equippedBadgeId) { this.equippedBadgeId = equippedBadgeId; }
+
+    public String getEquippedFrameId() { return equippedFrameId; }
+    public void setEquippedFrameId(String equippedFrameId) { this.equippedFrameId = equippedFrameId; }
 
     public int getCoins() { return coins; }
     public void setCoins(int coins) { this.coins = coins; }

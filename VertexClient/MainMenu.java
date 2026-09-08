@@ -62,6 +62,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         setIconImage(icon);
 
         PlayerColorRegistry.fetchInBackground();
+        AvatarFrameRegistry.fetchInBackground();
 
         Sidebar sidebar = new Sidebar(this);
         this.sidebar = sidebar;

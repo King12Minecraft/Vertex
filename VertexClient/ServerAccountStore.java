@@ -76,6 +76,10 @@ public class ServerAccountStore
                 {
                     account.setEquippedBadgeId(parts[10]);
                 }
+                if (parts.length >= 12 && !parts[11].isEmpty())
+                {
+                    account.setEquippedFrameId(parts[11]);
+                }
 
                 accounts.add(account);
                 if (id >= nextAccountId) nextAccountId = id + 1;
@@ -103,7 +107,8 @@ public class ServerAccountStore
                 writer.println(a.getAccountId() + "|" + a.getUsername() + "|" + a.getPasswordHash()
                     + "|" + a.getPasswordSalt() + "|" + a.getRole().name() + "|" + a.getPlayerColorName()
                     + "|" + a.getCoins() + "|" + joinItems(a.getOwnedItemIds())
-                    + "|" + a.getLastLoginDate() + "|" + a.getLoginStreak() + "|" + a.getEquippedBadgeId());
+                    + "|" + a.getLastLoginDate() + "|" + a.getLoginStreak() + "|" + a.getEquippedBadgeId()
+                    + "|" + a.getEquippedFrameId());
             }
         }
         catch (IOException e)
@@ -156,6 +161,7 @@ public class ServerAccountStore
         existing.setCoins(incoming.getCoins());
         existing.setPlayerColorName(incoming.getPlayerColorName());
         existing.setEquippedBadgeId(incoming.getEquippedBadgeId());
+        existing.setEquippedFrameId(incoming.getEquippedFrameId());
         existing.setLastLoginDate(incoming.getLastLoginDate());
         existing.setLoginStreak(incoming.getLoginStreak());
         existing.getOwnedItemIds().clear();
@@ -182,6 +188,7 @@ public class ServerAccountStore
         newAccount.setCoins(synced.getCoins());
         newAccount.setPlayerColorName(synced.getPlayerColorName());
         newAccount.setEquippedBadgeId(synced.getEquippedBadgeId());
+        newAccount.setEquippedFrameId(synced.getEquippedFrameId());
         newAccount.setLastLoginDate(synced.getLastLoginDate());
         newAccount.setLoginStreak(synced.getLoginStreak());
         newAccount.getOwnedItemIds().addAll(synced.getOwnedItemIds());

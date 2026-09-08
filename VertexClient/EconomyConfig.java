@@ -127,6 +127,10 @@ public class EconomyConfig
         list.add(new ShopItemDefinition("badge-diamond", "Diamond", 900, "\u2666", "BADGE"));
         list.add(new ShopItemDefinition("badge-skull", "Skull", 700, "\uD83D\uDC80", "BADGE"));
 
+        list.add(new ShopItemDefinition("frame-pulse-gold", "Pulsing Gold", 1200, "#FFCF53", "FRAME"));
+        list.add(new ShopItemDefinition("frame-neon-cyan", "Neon Pulse", 1200, "#38BDF8", "FRAME"));
+        list.add(new ShopItemDefinition("frame-rainbow", "Rotating Rainbow", 2000, "#F26B8F", "FRAME"));
+
         return list;
     }
 }

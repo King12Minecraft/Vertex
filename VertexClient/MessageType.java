@@ -62,6 +62,8 @@ public enum MessageType
     SELECT_COLOR_RESPONSE,
     SELECT_BADGE_REQUEST,
     SELECT_BADGE_RESPONSE,
+    SELECT_FRAME_REQUEST,
+    SELECT_FRAME_RESPONSE,
 
     // --- Live matchmaking queue counts ---
     QUEUE_UPDATE,

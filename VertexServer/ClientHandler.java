@@ -252,6 +252,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.ONLINE_USERS_REQUEST) return handleOnlineUsers();
         if (request.getType() == MessageType.SELECT_COLOR_REQUEST) return handleSelectColor(request);
         if (request.getType() == MessageType.SELECT_BADGE_REQUEST) return handleSelectBadge(request);
+        if (request.getType() == MessageType.SELECT_FRAME_REQUEST) return handleSelectFrame(request);
         if (request.getType() == MessageType.ADMIN_PLAYER_LIST_REQUEST) return handleAdminPlayerList();
         if (request.getType() == MessageType.FRIEND_REQUEST_SEND) return handleFriendRequestSend(request);
         if (request.getType() == MessageType.FRIEND_ACCEPT_REQUEST) return handleFriendAccept(request);
@@ -1222,6 +1223,42 @@ public class ClientHandler implements Runnable
         }
 
         account.setEquippedBadgeId(itemId);
+        accountStore.updateAccount(account);
+
+        response.setSuccess(true);
+        response.setItemId(itemId);
+        return response;
+    }
+
+    private Message handleSelectFrame(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.SELECT_FRAME_RESPONSE);
+
+        if (loggedInUsername == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+
+        Account account = accountStore.findByUsername(loggedInUsername);
+        String itemId = request.getItemId();
+
+        if (account == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Account not found.");
+            return response;
+        }
+        if (itemId == null || (!"".equals(itemId) && !account.getOwnedItemIds().contains(itemId)))
+        {
+            response.setSuccess(false);
+            response.setErrorText("You don't own that frame.");
+            return response;
+        }
+
+        account.setEquippedFrameId(itemId);
         accountStore.updateAccount(account);
 
         response.setSuccess(true);

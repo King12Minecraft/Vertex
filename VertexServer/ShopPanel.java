@@ -13,6 +13,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -32,6 +33,7 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
 {
     private JPanel itemsGrid;
     private JPanel badgesGrid;
+    private JPanel framesGrid;
     private List<ShopItemInfo> cachedItems;
     private JLabel balanceLabel;
 
@@ -63,6 +65,13 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
         badgesGrid.setOpaque(false);
         badgesGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(badgesGrid);
+        content.add(Box.createVerticalStrut(24));
+
+        content.add(sectionLabel("PROFILE FRAMES"));
+        framesGrid = new JPanel(new GridLayout(0, 4, 18, 18));
+        framesGrid.setOpaque(false);
+        framesGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(framesGrid);
 
         JScrollPane scroll = new JScrollPane(content);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -142,6 +151,7 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
         cachedItems = items;
         itemsGrid.removeAll();
         badgesGrid.removeAll();
+        framesGrid.removeAll();
         if (items != null)
         {
             for (int i = 0; i < items.size(); i++)
@@ -150,6 +160,10 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                 if ("BADGE".equals(item.getType()))
                 {
                     badgesGrid.add(buildShopCard(item));
+                }
+                else if ("FRAME".equals(item.getType()))
+                {
+                    framesGrid.add(buildShopCard(item));
                 }
                 else
                 {
@@ -161,6 +175,8 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
         itemsGrid.repaint();
         badgesGrid.revalidate();
         badgesGrid.repaint();
+        framesGrid.revalidate();
+        framesGrid.repaint();
     }
 
     private boolean isOwned(String itemId)
@@ -190,6 +206,29 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
             swatch = new JPanel(new BorderLayout());
             swatch.setOpaque(false);
             swatch.add(glyph, BorderLayout.CENTER);
+        }
+        else if ("FRAME".equals(item.getType()))
+        {
+            final String frameId = item.getId();
+            swatch = new JPanel()
+            {
+                protected void paintComponent(java.awt.Graphics g)
+                {
+                    super.paintComponent(g);
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    UITheme.applyAntialiasing(g2);
+                    g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
+                    g2.fillOval(6, 6, getWidth() - 12, getHeight() - 12);
+                    AvatarFrameRegistry.paintFrame(g2, 6, 6, getWidth() - 12, frameId);
+                    g2.dispose();
+                }
+            };
+            swatch.setOpaque(false);
+            final Runnable tick = new Runnable()
+            {
+                public void run() { swatch.repaint(); }
+            };
+            AvatarFrameRegistry.addAnimationListener(tick);
         }
         else
         {
@@ -270,6 +309,10 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
         {
             return itemId.equals(Session.getCurrentAccount().getEquippedBadgeId());
         }
+        if ("FRAME".equals(type))
+        {
+            return itemId.equals(Session.getCurrentAccount().getEquippedFrameId());
+        }
         return itemId.equals(Session.getCurrentAccount().getPlayerColorName());
     }
 
@@ -277,13 +320,15 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
     {
         selectButton.setEnabled(false);
         final boolean isBadge = "BADGE".equals(item.getType());
+        final boolean isFrame = "FRAME".equals(item.getType());
 
         Thread worker = new Thread(new Runnable()
         {
             public void run()
             {
                 Message request = new Message();
-                request.setType(isBadge ? MessageType.SELECT_BADGE_REQUEST : MessageType.SELECT_COLOR_REQUEST);
+                request.setType(isBadge ? MessageType.SELECT_BADGE_REQUEST
+                    : isFrame ? MessageType.SELECT_FRAME_REQUEST : MessageType.SELECT_COLOR_REQUEST);
                 request.setItemId(item.getId());
 
                 final Message response = NetworkManager.send(request);
@@ -299,6 +344,10 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                                 if (isBadge)
                                 {
                                     Session.getCurrentAccount().setEquippedBadgeId(item.getId());
+                                }
+                                else if (isFrame)
+                                {
+                                    Session.getCurrentAccount().setEquippedFrameId(item.getId());
                                 }
                                 else
                                 {

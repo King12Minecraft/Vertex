@@ -400,11 +400,16 @@ public class SettingsPanel extends RoundedPanel
     private static class AvatarBubble extends JPanel
     {
         private Image image;
+        private final Runnable animationTick = new Runnable()
+        {
+            public void run() { repaint(); }
+        };
 
         AvatarBubble()
         {
             setPreferredSize(new Dimension(56, 56));
             setOpaque(false);
+            AvatarFrameRegistry.addAnimationListener(animationTick);
         }
 
         void setImage(Image image)
@@ -425,6 +430,11 @@ public class SettingsPanel extends RoundedPanel
             {
                 g2.setClip(new java.awt.geom.Ellipse2D.Float(0, 0, getWidth(), getHeight()));
                 g2.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+                g2.setClip(null);
+            }
+            if (Session.isLoggedIn())
+            {
+                AvatarFrameRegistry.paintFrame(g2, 0, 0, getWidth(), Session.getCurrentAccount().getEquippedFrameId());
             }
             g2.dispose();
         }
