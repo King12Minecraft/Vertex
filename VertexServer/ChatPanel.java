@@ -75,6 +75,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     private final Map<String, String> channelNames = new LinkedHashMap<String, String>();
     private final Map<String, List<ChatEntry>> channelMessages = new LinkedHashMap<String, List<ChatEntry>>();
     private final Map<String, SidebarButton> channelButtons = new LinkedHashMap<String, SidebarButton>();
+    private final java.util.Set<String> unreadChannels = new java.util.HashSet<String>();
     private String currentChannel = null;
 
     private JPanel sidebarList;
@@ -289,12 +290,15 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         sidebarList.repaint();
     }
 
-    /** DMs get the other person's avatar (fetched via AvatarCache, same as message rows); groups get a simple "#" tile - Discord's own text-channel icon convention, since a group here has no single "person" to represent it with a photo. */
+    /** DMs get the other person's avatar (fetched via AvatarCache, same as message rows); groups get a simple "#" tile - Discord's own text-channel icon convention, since a group here has no single "person" to represent it with a photo. Either gets a small unread dot overlaid when this channel has an unseen message. */
     private JPanel buildChannelIcon(String key, String displayName)
     {
+        boolean unread = unreadChannels.contains(key);
+
         if (key.startsWith("dm:"))
         {
             final ChannelAvatarIcon icon = new ChannelAvatarIcon();
+            icon.setUnread(unread);
             AvatarCache.get(displayName, new AvatarCache.Listener()
             {
                 public void onLoaded(java.awt.Image image) { icon.setImage(image); }
@@ -302,6 +306,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             return icon;
         }
 
+        final boolean showUnreadDot = unread;
         JPanel tile = new JPanel(new BorderLayout())
         {
             protected void paintComponent(java.awt.Graphics g)
@@ -316,6 +321,11 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
                 java.awt.FontMetrics fm = g2.getFontMetrics();
                 String hash = "#";
                 g2.drawString(hash, (getWidth() - fm.stringWidth(hash)) / 2, (getHeight() + fm.getAscent()) / 2 - 2);
+                if (showUnreadDot)
+                {
+                    g2.setColor(ThemeManager.getColor(ThemeColor.SUCCESS));
+                    g2.fillOval(getWidth() - 10, -2, 10, 10);
+                }
                 g2.dispose();
             }
         };
@@ -328,6 +338,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     private static class ChannelAvatarIcon extends JPanel
     {
         private java.awt.Image image;
+        private boolean unread;
 
         ChannelAvatarIcon()
         {
@@ -339,6 +350,12 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         void setImage(java.awt.Image image)
         {
             this.image = image;
+            repaint();
+        }
+
+        void setUnread(boolean unread)
+        {
+            this.unread = unread;
             repaint();
         }
 
@@ -354,6 +371,12 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             {
                 g2.setClip(new java.awt.geom.Ellipse2D.Float(0, 0, getWidth(), getHeight()));
                 g2.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+                g2.setClip(null);
+            }
+            if (unread)
+            {
+                g2.setColor(ThemeManager.getColor(ThemeColor.SUCCESS));
+                g2.fillOval(getWidth() - 10, -2, 10, 10);
             }
             g2.dispose();
         }
@@ -363,12 +386,14 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     {
         currentChannel = key;
         headerLabel.setTitle(channelNames.get(key).toUpperCase());
+        unreadChannels.remove(key);
 
         for (Map.Entry<String, SidebarButton> entry : channelButtons.entrySet())
         {
             entry.getValue().setSelected(entry.getKey().equals(key));
         }
 
+        rebuildSidebar();
         renderChannel(key);
     }
 
@@ -863,6 +888,16 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         if (key.equals(currentChannel))
         {
             renderChannel(key);
+        }
+        else
+        {
+            boolean isMe = Session.isLoggedIn() && message.getUsername() != null
+                && message.getUsername().equals(Session.getCurrentAccount().getUsername());
+            if (!isMe)
+            {
+                unreadChannels.add(key);
+                rebuildSidebar();
+            }
         }
     }
 
