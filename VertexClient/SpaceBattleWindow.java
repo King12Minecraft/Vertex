@@ -243,7 +243,8 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
         if (!isOnlineMode)
         {
             recordPlayed(score);
-            SnakeGameOverDialog.show(gamePanel, score, new SnakeGameOverDialog.Choice()
+            String shareText = "I scored " + score + " in Space Battle on Vertex!";
+            SnakeGameOverDialog.show(gamePanel, score, null, shareText, new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain() { startGame(new SpaceBattleGame()); }
                 public void onClose() { SpaceBattleWindow.this.dispose(); }
@@ -317,8 +318,9 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
             {
                 text += "\n+" + reward + " coins.";
             }
+            String shareText = "I finished " + placement + " of " + totalPilots + " in an online Space Battle match on Vertex, with a score of " + message.getScore() + "!";
 
-            SnakeGameOverDialog.show(this, 0, text, new SnakeGameOverDialog.Choice()
+            SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain()
                 {

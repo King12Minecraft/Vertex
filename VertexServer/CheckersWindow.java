@@ -287,7 +287,10 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
             statusLabel.setText(text);
             boardPanel.repaint();
 
-            SnakeGameOverDialog.show(this, 0, text, new SnakeGameOverDialog.Choice()
+            String shareText = "WIN".equals(result) || "OPPONENT_LEFT".equals(result)
+                ? "I won a Checkers match on Vertex!" : null;
+
+            SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain()
                 {

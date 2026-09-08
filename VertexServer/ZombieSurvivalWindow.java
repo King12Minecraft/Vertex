@@ -249,7 +249,10 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
             String message = won
                 ? "You survived all " + ZombieSurvivalGame.WAVE_COUNT + " waves! Zombies killed: " + kills
                 : null;
-            SnakeGameOverDialog.show(gamePanel, kills, message, new SnakeGameOverDialog.Choice()
+            String shareText = won
+                ? "I survived all " + ZombieSurvivalGame.WAVE_COUNT + " waves in Zombie Survival on Vertex! Zombies killed: " + kills
+                : "I killed " + kills + " zombies in Zombie Survival on Vertex!";
+            SnakeGameOverDialog.show(gamePanel, kills, message, shareText, new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain() { startGame(new ZombieSurvivalGame()); }
                 public void onClose() { ZombieSurvivalWindow.this.dispose(); }
@@ -327,8 +330,11 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
             {
                 text += "\n+" + reward + " coins.";
             }
+            String shareText = won
+                ? "I survived all " + ZombieSurvivalGame.WAVE_COUNT + " waves in an online Zombie Survival match on Vertex!"
+                : "I made it to wave " + waveReached + " in an online Zombie Survival match on Vertex!";
 
-            SnakeGameOverDialog.show(this, 0, text, new SnakeGameOverDialog.Choice()
+            SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain()
                 {

@@ -36,11 +36,17 @@ public class SnakeGameOverDialog
 
     public static void show(Component anchor, int score, final Choice choice)
     {
-        show(anchor, score, null, choice);
+        show(anchor, score, null, null, choice);
     }
 
     /** Same dialog, but with a custom headline/summary line instead of the generic "Game Over" + "Score: N" - used for a win screen (e.g. Zombie Survival clearing all waves) where "Game Over" reads wrong but a restart option still makes sense. customMessage may be null to fall back to the original plain score display. */
     public static void show(Component anchor, int score, String customMessage, final Choice choice)
+    {
+        show(anchor, score, customMessage, null, choice);
+    }
+
+    /** shareText, when non-null, adds a Share button that opens ScoreShareDialog with that exact text - callers build their own wording ("I scored 42 in Snake!", "I won a Checkers match on Vertex!") since only they know what's actually worth bragging about for that game. Null skips the Share button entirely, same as the two simpler overloads above. */
+    public static void show(Component anchor, int score, String customMessage, final String shareText, final Choice choice)
     {
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(anchor);
         final JDialog dialog = new JDialog(owner, true);
@@ -75,6 +81,17 @@ public class SnakeGameOverDialog
         JPanel buttonRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonRow.setOpaque(false);
         buttonRow.setBorder(new EmptyBorder(18, 24, 20, 24));
+
+        if (shareText != null)
+        {
+            ThemedButton shareButton = new ThemedButton("Share", false);
+            shareButton.setPreferredSize(new Dimension(80, 38));
+            shareButton.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e) { ScoreShareDialog.show(dialog.getOwner(), shareText); }
+            });
+            buttonRow.add(shareButton);
+        }
 
         ThemedButton closeButton = new ThemedButton("Close", false);
         closeButton.setPreferredSize(new Dimension(90, 38));

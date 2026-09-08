@@ -141,7 +141,8 @@ public class SnakeWindow extends JFrame
             public void run()
             {
                 recordPlayed(game.getScore());
-                SnakeGameOverDialog.show(snakePanel, game.getScore(), new SnakeGameOverDialog.Choice()
+                String shareText = "I scored " + game.getScore() + " in Snake on Vertex!";
+                SnakeGameOverDialog.show(snakePanel, game.getScore(), null, shareText, new SnakeGameOverDialog.Choice()
                 {
                     public void onPlayAgain() { startGame(mode); }
                     public void onClose() { SnakeWindow.this.dispose(); }
