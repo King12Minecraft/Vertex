@@ -550,7 +550,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         final RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
         card.setLayout(new BorderLayout());
         card.setBorder(new EmptyBorder(16, 16, 16, 16));
-        card.setPreferredSize(new Dimension(260, 340));
+        card.setPreferredSize(new Dimension(260, 375));
         card.enableTopAccent();
         card.addMouseListener(new MouseAdapter()
         {
@@ -640,6 +640,17 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         });
         info.add(Box.createVerticalStrut(10));
         info.add(play);
+
+        ThemedButton rules = new ThemedButton("Rules", false);
+        rules.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rules.setMaximumSize(new Dimension(500, 30));
+        rules.setPreferredSize(new Dimension(228, 30));
+        rules.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { GameRulesDialog.show(rules, game.getName(), game.getGameId()); }
+        });
+        info.add(Box.createVerticalStrut(6));
+        info.add(rules);
 
         card.add(info, BorderLayout.CENTER);
         return card;
