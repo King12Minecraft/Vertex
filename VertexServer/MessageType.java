@@ -158,6 +158,9 @@ public enum MessageType
     // --- Typing indicator (DMs and groups) ---
     TYPING_INDICATOR,
 
+    // --- Message reactions (DMs and groups) ---
+    MESSAGE_REACTION,
+
     // --- Connect Four (1v1, ELO-rated) ---
     CONNECT4_FIND_MATCH_REQUEST,
     CONNECT4_LEAVE_QUEUE_REQUEST,

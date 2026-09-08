@@ -38,6 +38,7 @@ public class Message implements Serializable
 
     // --- Phase 9: General Chat field. Sender identity reuses "username". ---
     private String chatText;
+    private String chatMessageId;
 
     // --- Phase 9 continued: Private messages & group chats ---
     private String toUsername;
@@ -101,6 +102,10 @@ public class Message implements Serializable
     /** Chat message body. Sender's username is carried in the "username" field. */
     public String getChatText() { return chatText; }
     public void setChatText(String chatText) { this.chatText = chatText; }
+
+    /** A per-message identifier assigned when a DM/group chat message is broadcast (ChatManager/GroupChatManager) - lets a later MESSAGE_REACTION reference exactly which message it's reacting to, in an otherwise session-only, non-persisted chat history. */
+    public String getChatMessageId() { return chatMessageId; }
+    public void setChatMessageId(String chatMessageId) { this.chatMessageId = chatMessageId; }
 
     /** DM recipient. On delivery, "username" is the sender - this stays the intended recipient either way. */
     public String getToUsername() { return toUsername; }

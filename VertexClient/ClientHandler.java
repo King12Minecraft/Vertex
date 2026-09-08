@@ -244,6 +244,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.GROUP_CREATE_REQUEST) return handleGroupCreate(request);
         if (request.getType() == MessageType.GROUP_MESSAGE) return handleGroupMessage(request);
         if (request.getType() == MessageType.TYPING_INDICATOR) return handleTypingIndicator(request);
+        if (request.getType() == MessageType.MESSAGE_REACTION) return handleMessageReaction(request);
         if (request.getType() == MessageType.SHOP_ITEMS_REQUEST) return handleShopItems();
         if (request.getType() == MessageType.PURCHASE_REQUEST) return handlePurchase(request);
         if (request.getType() == MessageType.CHALLENGES_REQUEST) return handleChallenges();
@@ -976,6 +977,7 @@ public class ClientHandler implements Runnable
         delivery.setSenderBadgeId(badgeId);
         delivery.setSenderRole(role);
         delivery.setChatText(trimmedText);
+        delivery.setChatMessageId(java.util.UUID.randomUUID().toString());
         delivery.setFileName(validFileName);
         delivery.setFileData(validFileData);
 
@@ -1049,6 +1051,38 @@ public class ClientHandler implements Runnable
         else if (request.getGroupId() != null)
         {
             groupChatManager.relayTyping(request.getGroupId(), loggedInUsername);
+        }
+        return null;
+    }
+
+    /** Same relay shape as handleTypingIndicator - fire-and-forget, no response, sent back to the sender too (via sendMessage(notice) below for the DM case, and relayReaction including the sender for the group case) so their own reaction badge appears without a separate local-echo path. getChatMessageId() identifies which message; getItemId() carries the emoji character (reused rather than adding a dedicated field). */
+    private Message handleMessageReaction(Message request)
+    {
+        if (loggedInUsername == null || moderationManager.isMuted(loggedInUsername))
+        {
+            return null;
+        }
+
+        Message notice = new Message();
+        notice.setType(MessageType.MESSAGE_REACTION);
+        notice.setUsername(loggedInUsername);
+        notice.setChatMessageId(request.getChatMessageId());
+        notice.setItemId(request.getItemId());
+
+        if (request.getToUsername() != null)
+        {
+            notice.setToUsername(request.getToUsername());
+            ClientHandler recipient = chatManager.findByUsername(request.getToUsername());
+            if (recipient != null && recipient != this)
+            {
+                recipient.sendMessage(notice);
+            }
+            sendMessage(notice);
+        }
+        else if (request.getGroupId() != null)
+        {
+            notice.setGroupId(request.getGroupId());
+            groupChatManager.relayReaction(request.getGroupId(), notice);
         }
         return null;
     }

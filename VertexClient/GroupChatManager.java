@@ -93,6 +93,19 @@ public class GroupChatManager
         }
     }
 
+    /** Unlike relayTyping, this goes to every member INCLUDING the sender - a reaction badge needs to show up in the sender's own view too, not just everyone else's (a typing indicator never needs to be shown to the person doing the typing). notice's type/groupId/username/chatMessageId/itemId are all already set by the caller (handleMessageReaction). */
+    public synchronized void relayReaction(String groupId, Message notice)
+    {
+        Group group = groups.get(groupId);
+        if (group == null) return;
+
+        for (int i = 0; i < group.memberUsernames.size(); i++)
+        {
+            ClientHandler target = chatManager.findByUsername(group.memberUsernames.get(i));
+            if (target != null) target.sendMessage(notice);
+        }
+    }
+
     public synchronized void sendGroupMessage(String groupId, String senderUsername, String senderColorId, String senderBadgeId,
                                                String senderRole, String text, String fileName, byte[] fileData)
     {
@@ -116,6 +129,7 @@ public class GroupChatManager
         msg.setSenderBadgeId(senderBadgeId);
         msg.setSenderRole(senderRole);
         msg.setChatText(trimmedText);
+        msg.setChatMessageId(java.util.UUID.randomUUID().toString());
         msg.setFileName(validFileName);
         msg.setFileData(validFileData);
 

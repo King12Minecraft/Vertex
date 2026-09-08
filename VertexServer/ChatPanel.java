@@ -59,8 +59,11 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         final String fileName;
         final byte[] fileData;
         final long timestamp;
+        final String messageId;
+        /** emoji -> usernames who reacted with it. LinkedHashMap so reaction pills stay in the order they were first added, rather than jumping around as counts change. */
+        final java.util.Map<String, java.util.Set<String>> reactions = new java.util.LinkedHashMap<String, java.util.Set<String>>();
 
-        ChatEntry(String sender, String text, String colorId, String badgeId, String role, String fileName, byte[] fileData)
+        ChatEntry(String sender, String text, String colorId, String badgeId, String role, String fileName, byte[] fileData, String messageId)
         {
             this.sender = sender;
             this.text = text;
@@ -70,6 +73,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             this.fileName = fileName;
             this.fileData = fileData;
             this.timestamp = System.currentTimeMillis();
+            this.messageId = messageId;
         }
     }
 
@@ -333,6 +337,76 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     /** Shows "X is typing..." and auto-hides it after TYPING_DISPLAY_MS if no further indicator arrives - restarted on every new signal from the same channel, same "heartbeat with a timeout" idea used elsewhere (e.g. ConnectionIndicator). */
     private static final int TYPING_DISPLAY_MS = 4000;
     private javax.swing.Timer typingHideTimer;
+
+    /** Finds the target message by ID across every channel (not just the current one - a reaction can land while you're viewing a different conversation) and adds/removes that user's reaction, re-rendering only if it's the channel currently on screen. */
+    private void applyReaction(Message message)
+    {
+        String messageId = message.getChatMessageId();
+        String emoji = message.getItemId();
+        String reactor = message.getUsername();
+        if (messageId == null || emoji == null || reactor == null)
+        {
+            return;
+        }
+
+        String owningChannel = null;
+        for (java.util.Map.Entry<String, List<ChatEntry>> entry : channelMessages.entrySet())
+        {
+            for (ChatEntry chatEntry : entry.getValue())
+            {
+                if (messageId.equals(chatEntry.messageId))
+                {
+                    java.util.Set<String> reactors = chatEntry.reactions.get(emoji);
+                    if (reactors == null)
+                    {
+                        reactors = new java.util.LinkedHashSet<String>();
+                        chatEntry.reactions.put(emoji, reactors);
+                    }
+                    if (!reactors.add(reactor))
+                    {
+                        // Already reacted with this emoji - toggle it off instead of stacking duplicates.
+                        reactors.remove(reactor);
+                        if (reactors.isEmpty())
+                        {
+                            chatEntry.reactions.remove(emoji);
+                        }
+                    }
+                    owningChannel = entry.getKey();
+                    break;
+                }
+            }
+            if (owningChannel != null) break;
+        }
+
+        if (owningChannel != null && owningChannel.equals(currentChannel))
+        {
+            renderChannel(currentChannel, false);
+        }
+    }
+
+    private static final String[] QUICK_REACTIONS = { "\uD83D\uDC4D", "\u2764\uFE0F", "\uD83D\uDE02", "\uD83D\uDD25" };
+
+    private void sendReaction(String messageId, String emoji)
+    {
+        if (currentChannel == null) return;
+        Message request = new Message();
+        request.setType(MessageType.MESSAGE_REACTION);
+        request.setChatMessageId(messageId);
+        request.setItemId(emoji);
+        if (currentChannel.startsWith("dm:"))
+        {
+            request.setToUsername(channelNames.get(currentChannel).substring(2));
+        }
+        else if (currentChannel.startsWith("group:"))
+        {
+            request.setGroupId(currentChannel.substring("group:".length()));
+        }
+        else
+        {
+            return;
+        }
+        NetworkManager.sendAsync(request);
+    }
 
     private void showTypingIndicator(String username)
     {
@@ -655,8 +729,79 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             content.add(buildFileChip(entry.fileName, entry.fileData));
         }
 
+        if (entry.messageId != null)
+        {
+            content.add(buildReactionRow(entry));
+        }
+
         row.add(content, BorderLayout.CENTER);
         return row;
+    }
+
+    /** Existing reaction pills (tap one to toggle your own reaction on/off) plus a small "+" that reveals the quick-pick emoji row. Only shown for messages that actually have a messageId - older in-memory entries from before this feature existed (there shouldn't be any in practice, but defensively) just skip it. */
+    private JPanel buildReactionRow(final ChatEntry entry)
+    {
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setBorder(new EmptyBorder(0, 0, 0, 0));
+
+        String myUsername = Session.isLoggedIn() ? Session.getCurrentAccount().getUsername() : null;
+
+        for (java.util.Map.Entry<String, java.util.Set<String>> reaction : entry.reactions.entrySet())
+        {
+            final String emoji = reaction.getKey();
+            boolean mine = myUsername != null && reaction.getValue().contains(myUsername);
+            RoundedPanel pill = new RoundedPanel(mine ? ThemeColor.ACCENT : ThemeColor.BG_APP, 10);
+            pill.setLayout(new BorderLayout());
+            pill.setBorder(new EmptyBorder(2, 8, 2, 8));
+            pill.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            JLabel label = new JLabel(emoji + " " + reaction.getValue().size());
+            label.setFont(UITheme.FONT_SMALL);
+            pill.add(label, BorderLayout.CENTER);
+            pill.addMouseListener(new MouseAdapter()
+            {
+                public void mouseClicked(MouseEvent e) { sendReaction(entry.messageId, emoji); }
+            });
+            row.add(pill);
+        }
+
+        final JLabel addReaction = new JLabel("+");
+        addReaction.setFont(UITheme.FONT_SMALL);
+        addReaction.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        addReaction.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        addReaction.setBorder(new EmptyBorder(2, 6, 2, 6));
+        addReaction.addMouseListener(new MouseAdapter()
+        {
+            public void mouseClicked(MouseEvent e) { showQuickReactionPicker(addReaction, entry.messageId); }
+        });
+        row.add(addReaction);
+
+        return row;
+    }
+
+    private void showQuickReactionPicker(Component anchor, final String messageId)
+    {
+        final javax.swing.JPopupMenu popup = new javax.swing.JPopupMenu();
+        JPanel picker = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        picker.setBackground(ThemeManager.getColor(ThemeColor.BG_PANEL));
+        for (final String emoji : QUICK_REACTIONS)
+        {
+            JLabel option = new JLabel(emoji);
+            option.setFont(UITheme.FONT_BODY.deriveFont(16f));
+            option.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            option.addMouseListener(new MouseAdapter()
+            {
+                public void mouseClicked(MouseEvent e)
+                {
+                    sendReaction(messageId, emoji);
+                    popup.setVisible(false);
+                }
+            });
+            picker.add(option);
+        }
+        popup.add(picker);
+        popup.show(anchor, 0, anchor.getHeight());
     }
 
     private JPanel buildHeaderLine(ChatEntry entry, boolean isMe)
@@ -1000,7 +1145,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     {
         MessageType type = message.getType();
         if (type != MessageType.PRIVATE_MESSAGE && type != MessageType.GROUP_MESSAGE
-            && type != MessageType.GROUP_ADDED && type != MessageType.TYPING_INDICATOR)
+            && type != MessageType.GROUP_ADDED && type != MessageType.TYPING_INDICATOR
+            && type != MessageType.MESSAGE_REACTION)
         {
             return;
         }
@@ -1013,6 +1159,11 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private void handleIncoming(Message message)
     {
+        if (message.getType() == MessageType.MESSAGE_REACTION)
+        {
+            applyReaction(message);
+            return;
+        }
         if (message.getType() == MessageType.TYPING_INDICATOR)
         {
             String key = message.getGroupId() != null ? "group:" + message.getGroupId()
@@ -1099,7 +1250,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             channelMessages.put(key, history);
         }
         history.add(new ChatEntry(message.getUsername(), message.getChatText(), message.getSenderColorId(),
-            message.getSenderBadgeId(), message.getSenderRole(), message.getFileName(), message.getFileData()));
+            message.getSenderBadgeId(), message.getSenderRole(), message.getFileName(), message.getFileData(),
+            message.getChatMessageId()));
 
         boolean isMe = Session.isLoggedIn() && message.getUsername() != null
             && message.getUsername().equals(Session.getCurrentAccount().getUsername());
