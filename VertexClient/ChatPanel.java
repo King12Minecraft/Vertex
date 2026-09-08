@@ -671,8 +671,16 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             : "MODERATOR".equals(entry.role) ? new Color(90, 170, 230) : null;
 
         String badgeGlyph = PlayerColorRegistry.resolveBadgeGlyph(entry.badgeId);
-        JLabel senderLabel = new JLabel((badgeGlyph != null ? badgeGlyph + " " : "") + entry.sender + (isMe ? " (you)" : ""));
+        final JLabel senderLabel = new JLabel((badgeGlyph != null ? badgeGlyph + " " : "") + entry.sender + (isMe ? " (you)" : ""));
         senderLabel.setFont(UITheme.FONT_NAV_BOLD);
+        if (entry.sender != null && !isMe)
+        {
+            senderLabel.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            senderLabel.addMouseListener(new MouseAdapter()
+            {
+                public void mouseClicked(MouseEvent e) { PlayerProfileDialog.show(senderLabel, entry.sender); }
+            });
+        }
         if (roleColor != null)
         {
             // Admin/moderator color always wins over a purchased cosmetic color - staff

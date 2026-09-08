@@ -52,4 +52,17 @@ public class AchievementDefinitions
     {
         return ALL;
     }
+
+    /** Null if no achievement with that id is defined - callers should fall back to showing the raw id in that case rather than crashing. */
+    public static String findName(String id)
+    {
+        for (int i = 0; i < ALL.size(); i++)
+        {
+            if (ALL.get(i).id.equals(id))
+            {
+                return ALL.get(i).name;
+            }
+        }
+        return null;
+    }
 }

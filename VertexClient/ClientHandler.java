@@ -337,6 +337,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.ADMIN_ACCOUNT_LIST_REQUEST) return handleAdminAccountList();
         if (request.getType() == MessageType.ADMIN_SET_ROLE_REQUEST) return handleAdminSetRole(request);
         if (request.getType() == MessageType.ADMIN_LOG_REQUEST) return handleAdminLog();
+        if (request.getType() == MessageType.PLAYER_PROFILE_REQUEST) return handlePlayerProfile(request);
 
         Message response = new Message();
         response.setSuccess(false);
@@ -553,6 +554,32 @@ public class ClientHandler implements Runnable
 
         response.setSuccess(true);
         response.setAdminLogEntries(adminLog.getRecent());
+        return response;
+    }
+
+    /** Read-only lookup of another account's public info - role, equipped cosmetics, unlocked achievements, and ratings across every rated game. Reuses getUsername() for the target (request) and getSyncRatings() for the ratings list (response) rather than adding dedicated fields, same "gameId:rating" shape that field already carries for satellite account sync. Coins are deliberately NOT included - that's private, this is a public profile view. */
+    private Message handlePlayerProfile(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.PLAYER_PROFILE_RESPONSE);
+
+        String targetUsername = request.getUsername();
+        Account target = targetUsername == null ? null : accountStore.findByUsername(targetUsername);
+        if (target == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No such player.");
+            return response;
+        }
+
+        response.setSuccess(true);
+        response.setUsername(target.getUsername());
+        response.setSenderRole(target.getRole().name());
+        response.setSenderColorId(target.getPlayerColorName());
+        response.setSenderBadgeId(target.getEquippedBadgeId());
+        response.setItemId(target.getEquippedFrameId());
+        response.setUnlockedAchievementIds(new java.util.ArrayList<String>(achievementManager.getUnlocked(target.getAccountId())));
+        response.setSyncRatings(leaderboardManager.getAllRatingsForAccount(target.getAccountId()));
         return response;
     }
 

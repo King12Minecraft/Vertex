@@ -378,6 +378,11 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         JLabel nameLabel = new JLabel(username);
         nameLabel.setFont(UITheme.FONT_BODY);
         nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        nameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        nameLabel.addMouseListener(new MouseAdapter()
+        {
+            public void mouseClicked(MouseEvent e) { PlayerProfileDialog.show(nameLabel, username); }
+        });
         left.add(nameLabel);
 
         JLabel statusLabel = new JLabel(isOnline ? "Online" : "Offline");

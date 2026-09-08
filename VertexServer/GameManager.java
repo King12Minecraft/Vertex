@@ -27,6 +27,19 @@ public class GameManager
         return cachedGames;
     }
 
+    /** Null if no cached game has that id (e.g. cache hasn't loaded yet) - callers should fall back to showing the raw id in that case rather than crashing. */
+    public static GameInfo findCachedGame(String gameId)
+    {
+        for (int i = 0; i < cachedGames.size(); i++)
+        {
+            if (cachedGames.get(i).getGameId().equals(gameId))
+            {
+                return cachedGames.get(i);
+            }
+        }
+        return null;
+    }
+
     public static void addListener(Runnable listener)
     {
         listeners.add(listener);

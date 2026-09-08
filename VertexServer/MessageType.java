@@ -184,6 +184,10 @@ public enum MessageType
     SQWARS_UPDATE,
     SQWARS_RESULT,
 
+    // --- Viewing another player's profile (read-only) ---
+    PLAYER_PROFILE_REQUEST,
+    PLAYER_PROFILE_RESPONSE,
+
     // --- Chess (1v1 turn-based, standard rules minus castling/en passant) ---
     CHESS_FIND_MATCH_REQUEST,
     CHESS_LEAVE_QUEUE_REQUEST,
