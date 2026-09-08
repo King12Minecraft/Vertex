@@ -25,6 +25,9 @@ import java.awt.event.MouseEvent;
  */
 public class TopBar extends RoundedPanel
 {
+    private GlobalSearchField searchField;
+
+    public GlobalSearchField getSearchField() { return searchField; }
     private final JLabel titleLabel;
     private final JLabel onlineCountLabel;
     private final JLabel usernameLabel;
@@ -48,7 +51,9 @@ public class TopBar extends RoundedPanel
         rightPanel.setOpaque(false);
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.X_AXIS));
 
-        rightPanel.add(new GlobalSearchField(navigationListener));
+        GlobalSearchField searchField = new GlobalSearchField(navigationListener);
+        this.searchField = searchField;
+        rightPanel.add(searchField);
         rightPanel.add(javax.swing.Box.createHorizontalStrut(12));
 
         rightPanel.add(new QuickPlayDropdown());

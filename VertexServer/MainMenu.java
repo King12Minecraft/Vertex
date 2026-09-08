@@ -1,6 +1,9 @@
+import javax.swing.AbstractAction;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.AlphaComposite;
@@ -13,6 +16,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 
 /**
@@ -67,6 +71,22 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         Sidebar sidebar = new Sidebar(this);
         this.sidebar = sidebar;
         topBar = new TopBar(this);
+
+        // Ctrl+K jumps straight to the search bar - same shortcut most apps with a
+        // top-bar search field use (Slack, GitHub, etc.), so it's the expected muscle
+        // memory rather than something someone has to discover.
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+            KeyStroke.getKeyStroke(KeyEvent.VK_K, java.awt.event.InputEvent.CTRL_DOWN_MASK), "focusSearch");
+        getRootPane().getActionMap().put("focusSearch", new AbstractAction()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (topBar.getSearchField() != null)
+                {
+                    topBar.getSearchField().focusSearchField();
+                }
+            }
+        });
 
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);

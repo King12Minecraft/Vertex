@@ -51,6 +51,12 @@ public class GlobalSearchField extends JPanel
         fetchFriendsOnce();
     }
 
+    /** Called from MainMenu's Ctrl+K binding - hands focus straight to the search text field. */
+    public void focusSearchField()
+    {
+        field.requestFocusInWindow();
+    }
+
     private void fetchFriendsOnce()
     {
         Thread worker = new Thread(new Runnable()
