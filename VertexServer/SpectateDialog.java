@@ -42,6 +42,7 @@ public class SpectateDialog
         Frame owner = (Frame) javax.swing.SwingUtilities.getWindowAncestor(anchor);
         dialog = new JDialog(owner, true);
         dialog.setUndecorated(true);
+        DialogUtils.enableEscapeToClose(dialog);
 
         RoundedPanel root = new RoundedPanel(ThemeColor.BG_PANEL, 16);
         root.setLayout(new BorderLayout());

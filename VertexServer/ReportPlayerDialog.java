@@ -36,6 +36,7 @@ public class ReportPlayerDialog
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(anchor);
         final JDialog dialog = new JDialog(owner, true);
         dialog.setUndecorated(true);
+        DialogUtils.enableEscapeToClose(dialog);
         dialog.setBackground(new Color(0, 0, 0, 0));
 
         RoundedPanel root = new RoundedPanel(ThemeColor.BG_PANEL, 16);

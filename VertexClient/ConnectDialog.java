@@ -34,6 +34,7 @@ public class ConnectDialog
     {
         final JDialog dialog = new JDialog((JFrame) null, "Connect to Server", true);
         dialog.setUndecorated(true);
+        DialogUtils.enableEscapeToClose(dialog);
 
         RoundedPanel root = new RoundedPanel(ThemeColor.BG_PANEL, 16);
         root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));

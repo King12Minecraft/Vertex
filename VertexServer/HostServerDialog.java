@@ -40,6 +40,7 @@ public class HostServerDialog
     {
         final JDialog dialog = new JDialog((JFrame) SwingUtilities.getWindowAncestor(anchor), "Host a Server", true);
         dialog.setUndecorated(true);
+        DialogUtils.enableEscapeToClose(dialog);
 
         RoundedPanel root = new RoundedPanel(ThemeColor.BG_PANEL, 16);
         root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));

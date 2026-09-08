@@ -55,6 +55,7 @@ public class AvatarEditorDialog
         Frame owner = (Frame) SwingUtilities.getWindowAncestor(anchor);
         final JDialog dialog = new JDialog(owner, "Edit Avatar", true);
         dialog.setResizable(false);
+        DialogUtils.enableEscapeToClose(dialog);
 
         RoundedPanel root = new RoundedPanel(ThemeColor.BG_PANEL, 16);
         root.setLayout(new BorderLayout());
