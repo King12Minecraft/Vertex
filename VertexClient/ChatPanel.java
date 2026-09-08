@@ -4,6 +4,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JComponent;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -81,6 +82,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     private JPanel sidebarList;
     private JPanel messageListPanel;
     private JScrollPane scrollPane;
+    private JPanel jumpToBottomBar;
     private ThemedTextField field;
     private PageHeader headerLabel;
 
@@ -104,6 +106,48 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         renderChannel(currentChannel);
 
         NetworkManager.addPushListener(this);
+        prepopulateFriendDMs();
+    }
+
+    /** Adds a DM entry for every friend up front, rather than only ever showing conversations you've already started - previously the sidebar was completely empty until you manually opened a DM or someone messaged you first, even for people already on your friends list. Doesn't overwrite any DM channel that already has messages/was already open. */
+    private void prepopulateFriendDMs()
+    {
+        Thread worker = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.FRIEND_LIST_REQUEST);
+                final Message response = NetworkManager.send(request);
+
+                SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        if (response == null || !response.isSuccess() || response.getFriendUsernames() == null)
+                        {
+                            return;
+                        }
+                        boolean changed = false;
+                        for (String friend : response.getFriendUsernames())
+                        {
+                            String key = "dm:" + friend.toLowerCase();
+                            if (!channelNames.containsKey(key))
+                            {
+                                channelNames.put(key, "@ " + friend);
+                                channelMessages.put(key, new ArrayList<ChatEntry>());
+                                changed = true;
+                            }
+                        }
+                        if (changed)
+                        {
+                            rebuildSidebar();
+                        }
+                    }
+                });
+            }
+        });
+        worker.start();
     }
 
     private PageHeader createHeader()
@@ -181,8 +225,34 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         ThemedScrollBarUI.apply(scrollPane);
         messageArea.add(scrollPane, BorderLayout.CENTER);
+        enableFileDrop(messageListPanel);
+
+        messageArea.add(createJumpToBottomBar(), BorderLayout.SOUTH);
 
         return messageArea;
+    }
+
+    /** A "New messages" bar that appears just above the input box (same spot Discord puts its own jump-to-latest prompt) whenever a message arrives while you're scrolled up reading history - clicking it jumps down and hides itself. Hidden by default. */
+    private JPanel createJumpToBottomBar()
+    {
+        jumpToBottomBar = new JPanel(new BorderLayout());
+        jumpToBottomBar.setOpaque(false);
+        jumpToBottomBar.setBorder(new EmptyBorder(6, 0, 0, 0));
+        jumpToBottomBar.setVisible(false);
+
+        ThemedButton jumpButton = new ThemedButton("New messages \u2193", true);
+        jumpButton.setPreferredSize(new Dimension(2000, 30));
+        jumpButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                jumpToBottomBar.setVisible(false);
+                scrollToBottom();
+            }
+        });
+        jumpToBottomBar.add(jumpButton, BorderLayout.CENTER);
+
+        return jumpToBottomBar;
     }
 
     private JPanel createInputRow()
@@ -402,6 +472,13 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     /** key is null when there are no DMs or groups yet at all (General Chat was removed - Private Messages and Group Chats are the only channel types now) - shown as a dedicated empty state rather than crashing on a null lookup. */
     private void renderChannel(String key)
     {
+        renderChannel(key, true);
+    }
+
+    /** forceScroll is true for a full channel switch (always land at the latest message), false when called because a new message arrived in the channel you're already viewing (only auto-scroll if you were already near the bottom - otherwise show the "New messages" bar instead of yanking you down mid-read). */
+    private void renderChannel(String key, boolean forceScroll)
+    {
+        boolean wasNearBottom = forceScroll || isScrolledNearBottom();
         messageListPanel.removeAll();
 
         if (key == null)
@@ -441,7 +518,17 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         messageListPanel.revalidate();
         messageListPanel.repaint();
-        scrollToBottom();
+
+        if (wasNearBottom)
+        {
+            jumpToBottomBar.setVisible(false);
+            scrollToBottom();
+        }
+        else
+        {
+            jumpToBottomBar.setVisible(true);
+            jumpToBottomBar.getParent().revalidate();
+        }
     }
 
     private static final long GROUP_WINDOW_MS = 5 * 60 * 1000;
@@ -679,6 +766,15 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         });
     }
 
+    /** Within this many pixels of the bottom counts as "already at the bottom" for auto-scroll purposes - exact equality is too strict since the scrollbar's max shifts slightly as content re-renders. */
+    private static final int NEAR_BOTTOM_THRESHOLD_PX = 60;
+
+    private boolean isScrolledNearBottom()
+    {
+        JScrollBar bar = scrollPane.getVerticalScrollBar();
+        return (bar.getMaximum() - bar.getValue() - bar.getVisibleAmount()) <= NEAR_BOTTOM_THRESHOLD_PX;
+    }
+
     // ---- Sending ----
 
     private void sendCurrentChannelMessage()
@@ -722,8 +818,12 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         {
             return;
         }
+        sendFile(chooser.getSelectedFile());
+    }
 
-        File selected = chooser.getSelectedFile();
+    /** Shared by the Attach button's file chooser and drag-and-drop - both end up with a plain java.io.File and take it from there the same way. */
+    private void sendFile(File selected)
+    {
         if (selected.length() > NetworkConfig.MAX_FILE_SIZE_BYTES)
         {
             GameHubDialog.show(this, "Chat", "That file is too large - the limit is "
@@ -753,6 +853,42 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         {
             GameHubDialog.show(this, "Chat", "Can't reach the server - is it running?");
         }
+    }
+
+    /** Lets someone drag a file from their file manager straight onto the message list instead of always going through the Attach button's file chooser - same size check and send path either way (sendFile). Only the first file is used if multiple are dropped at once, same "one attachment per message" limit the Attach button already has. */
+    private void enableFileDrop(JComponent target)
+    {
+        target.setTransferHandler(new javax.swing.TransferHandler()
+        {
+            public boolean canImport(TransferSupport support)
+            {
+                return support.isDataFlavorSupported(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
+            }
+
+            @SuppressWarnings("unchecked")
+            public boolean importData(TransferSupport support)
+            {
+                if (!canImport(support))
+                {
+                    return false;
+                }
+                try
+                {
+                    List<File> files = (List<File>) support.getTransferable()
+                        .getTransferData(java.awt.datatransfer.DataFlavor.javaFileListFlavor);
+                    if (!files.isEmpty())
+                    {
+                        sendFile(files.get(0));
+                        return true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    GameHubDialog.show(ChatPanel.this, "Chat", "Could not read that file.");
+                }
+                return false;
+            }
+        });
     }
 
     /** Shared by both text and file sends - only the payload differs. currentChannel is only ever null when there are no DMs/groups yet, in which case there's nothing to send to. */
@@ -885,14 +1021,19 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         history.add(new ChatEntry(message.getUsername(), message.getChatText(), message.getSenderColorId(),
             message.getSenderBadgeId(), message.getSenderRole(), message.getFileName(), message.getFileData()));
 
+        boolean isMe = Session.isLoggedIn() && message.getUsername() != null
+            && message.getUsername().equals(Session.getCurrentAccount().getUsername());
+
         if (key.equals(currentChannel))
         {
-            renderChannel(key);
+            // Force the scroll for your own outgoing message (the server echoes it back
+            // through this same path) even if you'd scrolled up - you should always see
+            // what you just sent. Anyone else's message only auto-scrolls if you were
+            // already near the bottom.
+            renderChannel(key, isMe);
         }
         else
         {
-            boolean isMe = Session.isLoggedIn() && message.getUsername() != null
-                && message.getUsername().equals(Session.getCurrentAccount().getUsername());
             if (!isMe)
             {
                 unreadChannels.add(key);
