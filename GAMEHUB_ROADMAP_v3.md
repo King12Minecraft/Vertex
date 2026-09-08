@@ -1,5 +1,7 @@
 # GAMEHUB — CONSOLIDATED ROADMAP (v3)
 
+> **Historical planning document.** For what actually exists today, see [`FEATURES.md`](FEATURES.md) — the project has diverged from this roadmap in a lot of places since it was written.
+
 This merges the original v1 phase plan with the v2 additions (notifications,
 expanded chat, friends, economy extras, profile management) and the feature
 backlog into ONE ordered build sequence. This supersedes the separate v1

@@ -1,5 +1,7 @@
 # GAMEHUB — MASTER PROJECT INSTRUCTIONS (v2)
 
+> **Historical planning document.** Kept for context on how the project was originally scoped, but the project has diverged from it significantly since (new games added, some early features like the original custom-game-upload system and General Chat were later removed and replaced). **For what actually exists today, see [`FEATURES.md`](FEATURES.md).**
+
 This is an update to the original GameHub master instructions. Everything from
 v1 still applies. This version adds: a Notification Centre, an expanded chat
 system (general chat, user-created group chats, private messages), a friend

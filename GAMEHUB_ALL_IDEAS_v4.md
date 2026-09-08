@@ -1,5 +1,7 @@
 # GAMEHUB — ALL PROJECT IDEAS (v4 Consolidated)
 
+> **Historical planning document.** For what actually exists today, see [`FEATURES.md`](FEATURES.md) — many items marked "not built yet" below have since been built (often differently than described here), and some early features described as built were later removed and replaced (the original custom-game-upload system → Game Suggestions; General Chat → removed entirely).
+
 Every feature discussed so far, in one place. Organized by category, with
 a rough phase reference (see `GAMEHUB_ROADMAP_v3.md`) so nothing gets
 lost. Nothing here is built yet except what's explicitly marked (Phase 1

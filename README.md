@@ -1,6 +1,8 @@
 # Vertex
 
-A full multiplayer gaming platform built in Java, using BlueJ, as a school project. Sixteen games, ELO ratings, a party system, tournaments, and an optional multi-server sync setup where players can host their own servers while still sharing one account.
+A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 19 playable games, ELO ratings, a party system, tournaments, and an optional multi-server sync setup where players can host their own servers while still sharing one account.
+
+**See [`FEATURES.md`](FEATURES.md) for the complete, current feature list.** The summaries below are kept short on purpose.
 
 ## Running it
 
@@ -45,7 +47,11 @@ Default port is **7777**, but this is fully configurable — hosting asks which 
 - **Chess** — full rules including castling, en passant, checkmate/stalemate detection. Resign or offer a draw mid-game. Spectate any live match, or replay a finished one move-by-move.
 - **Battleship** — classic hunt-and-sink, 1v1. Spectators see both fleets fully revealed (there's nothing to hide once you're just watching); replays step through every shot in order.
 - **Rock Paper Scissors** — best of 5, simultaneous blind moves each round. Spectator and replay support included.
+- **Connect Four** — classic 7×6 drop-and-connect, standard rules.
+- **Checkers** — standard American rules, mandatory captures and multi-jump continuation, kinging.
 - **Racing** — 3 to 6 players, shared track, with power-ups: shields, speed boosts, and coin pickups. Not ELO-rated — scored and ranked on a leaderboard instead.
+- **Zombie Survival** — 2 to 4 players, co-op wave shooter — same seed, independent local simulation. Not ELO-rated — survive all 8 waves for a full coin reward.
+- **Space Battle** — 3 to 6 players, arcade dogfight against asteroids and enemy fighters. Not ELO-rated — ranked by score.
 - **Fight Arena** — 1v1, 2v2, 3v3, or free-for-all. Queue solo or with a party (your party always ends up on the same team). 2v2/3v3 also support a lightweight team tournament: register your party, wait for an opposing party, winner takes it.
 - **Among Us** — round-based social deduction with a small group.
 - **Tic-Tac-Toe** — online ranked matches, or practice offline against a simple AI.
@@ -56,14 +62,19 @@ Default port is **7777**, but this is fully configurable — hosting asks which 
 
 **Single-player (no server needed to play, though wins/scores still get tracked if you're logged in):** Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, and RPS against a simple AI. Snake, Tetris, and Dino Dash all support pausing mid-game (press **P**).
 
+**Coming soon:** Square Wars — listed honestly as not yet built.
+
 ## Everything else
 
-- **Accounts & progression** — coins, daily login streaks, an ELO rating per competitive game, a shop for cosmetics (username colors, chat badges), and 10 achievements tied to real milestones (first win, win counts, coin totals, total plays, racing placement).
-- **Social** — friends (with search/filter and the ability to pin favorites to the top of the list), direct messages, group chat, party invites (with a shareable, copyable code), and a live badge on the sidebar when a friend comes online.
-- **Notifications** — a bell icon with a live feed, achievement unlock toasts, and a one-click "Clear All."
-- **Customization** — 11 full themes including an animated Glitch mode, with the mode-select screen remembering which option (e.g. "vs Player" vs "vs AI") you picked last time for each game.
-- **Admin & moderation tools** — player management, bans, report review, and (new) a live view of every satellite server that's synced with yours.
-- **Quality of life** — confirm-before-close on any active match (so an accidental click doesn't silently hand your opponent a win), and a low-end hardware mode for older machines.
+- **Accounts & progression** — coins (now earned from every game, not just a handful — see `FEATURES.md`), daily login streaks, an ELO rating per competitive game, a shop for cosmetics (username colors, chat badges), avatars (upload an image or paint one directly in-app), and achievements tied to real milestones.
+- **Social** — friends (search/filter/pin), direct messages, group chat with a Discord-style redesign (avatars, grouped messages, typing indicators, unread badges, drag-and-drop file attach), party invites, high-score sharing, and a community game-suggestions board.
+- **Notifications** — a bell icon with a live feed, achievement unlock toasts, notification sounds, and a one-click "Clear All."
+- **Customization** — 11 full themes including an animated Glitch mode; every game now renders with a fixed palette regardless of theme choice; the mode-select screen remembers which option you picked last time for each game.
+- **Performance** — a Settings toggle for lower-end hardware (reduced rendering quality, halved frame rate) plus a live FPS counter, on top of the existing `-LowEnd` launcher scripts.
+- **Admin & moderation tools** — a real Admin Panel (player role management, an audit log), moderators, staff-colored chat usernames, a feedback system, and a live view of every satellite server that's synced with yours.
+- **Quality of life** — a global search bar, Escape closes every dialog, confirm-before-close on any active match, and auto-reconnect after a dropped connection.
+
+Full details on all of the above: [`FEATURES.md`](FEATURES.md).
 
 ## Repo structure
 
