@@ -109,6 +109,11 @@ public class GameLauncher
                 CheckersWindow window = new CheckersWindow();
                 window.setVisible(true);
             }
+            else if ("square-wars".equals(game.getGameId()))
+            {
+                SquareWarsWindow window = new SquareWarsWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

@@ -174,6 +174,14 @@ public enum MessageType
     CHECKERS_UPDATE,
     CHECKERS_RESULT,
 
+    // --- Square Wars (real-time shared-grid territory control - see SquareWarsMatch) ---
+    SQWARS_FIND_MATCH_REQUEST,
+    SQWARS_LEAVE_QUEUE_REQUEST,
+    SQWARS_MATCH_FOUND,
+    SQWARS_CLAIM_REQUEST,
+    SQWARS_UPDATE,
+    SQWARS_RESULT,
+
     // --- Chess (1v1 turn-based, standard rules minus castling/en passant) ---
     CHESS_FIND_MATCH_REQUEST,
     CHESS_LEAVE_QUEUE_REQUEST,

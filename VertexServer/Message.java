@@ -360,6 +360,13 @@ public class Message implements Serializable
     public int getSpaceReward() { return spaceReward; }
     public void setSpaceReward(int spaceReward) { this.spaceReward = spaceReward; }
 
+    // ---- Square Wars (real-time shared-grid territory control - see SquareWarsMatch) ----
+    private int sqWarsReward;
+
+    /** Coins awarded for finishing with the most cells (split evenly on a tie for the top spot, 0 otherwise) - SQWARS_RESULT. */
+    public int getSqWarsReward() { return sqWarsReward; }
+    public void setSqWarsReward(int sqWarsReward) { this.sqWarsReward = sqWarsReward; }
+
     // ---- Among Us (round-based social deduction - see AmongUsMatch for why this isn't live movement) ----
     private String amongRole;
     private java.util.List<String> amongTasks;

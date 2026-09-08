@@ -171,6 +171,25 @@ public class EconomyManager
         return reward;
     }
 
+    /** Generic coin grant with an arbitrary amount and a plain-text reason for the transaction log - for games like Square Wars where the reward is a computed split (total prize / number of tied winners) rather than one of the fixed per-game formulas the other award* methods use. */
+    public void awardCoins(ClientHandler player, int amount, String reason)
+    {
+        String username = player.getLoggedInUsername();
+        if (username == null || amount <= 0) return;
+        Account account = accountStore.findByUsername(username);
+        if (account == null) return;
+
+        account.setCoins(account.getCoins() + amount);
+        transactionManager.log(account.getAccountId(), amount, reason);
+        accountStore.updateAccount(account);
+        checkCoinAchievement(account);
+
+        Message walletUpdate = new Message();
+        walletUpdate.setType(MessageType.WALLET_UPDATE);
+        walletUpdate.setCoins(account.getCoins());
+        player.sendMessage(walletUpdate);
+    }
+
     public void awardSnakeScore(ClientHandler player, int score)
     {
         String username = player.getLoggedInUsername();
