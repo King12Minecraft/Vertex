@@ -153,6 +153,9 @@ public enum MessageType
     // --- Game invites (Friends/Group Chat) ---
     GAME_INVITE,
 
+    // --- Typing indicator (DMs and groups) ---
+    TYPING_INDICATOR,
+
     // --- Connect Four (1v1, ELO-rated) ---
     CONNECT4_FIND_MATCH_REQUEST,
     CONNECT4_LEAVE_QUEUE_REQUEST,

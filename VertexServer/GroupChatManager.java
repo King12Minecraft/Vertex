@@ -74,6 +74,25 @@ public class GroupChatManager
         return group;
     }
 
+    public synchronized void relayTyping(String groupId, String senderUsername)
+    {
+        Group group = groups.get(groupId);
+        if (group == null || !group.memberUsernames.contains(senderUsername)) return;
+
+        Message notice = new Message();
+        notice.setType(MessageType.TYPING_INDICATOR);
+        notice.setGroupId(groupId);
+        notice.setUsername(senderUsername);
+
+        for (int i = 0; i < group.memberUsernames.size(); i++)
+        {
+            String member = group.memberUsernames.get(i);
+            if (member.equalsIgnoreCase(senderUsername)) continue;
+            ClientHandler target = chatManager.findByUsername(member);
+            if (target != null) target.sendMessage(notice);
+        }
+    }
+
     public synchronized void sendGroupMessage(String groupId, String senderUsername, String senderColorId, String senderBadgeId,
                                                String senderRole, String text, String fileName, byte[] fileData)
     {

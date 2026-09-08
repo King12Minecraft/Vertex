@@ -237,6 +237,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.PRIVATE_MESSAGE) return handlePrivateMessage(request);
         if (request.getType() == MessageType.GROUP_CREATE_REQUEST) return handleGroupCreate(request);
         if (request.getType() == MessageType.GROUP_MESSAGE) return handleGroupMessage(request);
+        if (request.getType() == MessageType.TYPING_INDICATOR) return handleTypingIndicator(request);
         if (request.getType() == MessageType.SHOP_ITEMS_REQUEST) return handleShopItems();
         if (request.getType() == MessageType.PURCHASE_REQUEST) return handlePurchase(request);
         if (request.getType() == MessageType.CHALLENGES_REQUEST) return handleChallenges();
@@ -984,6 +985,33 @@ public class ClientHandler implements Runnable
             String role = account != null ? account.getRole().name() : "PLAYER";
             groupChatManager.sendGroupMessage(request.getGroupId(), loggedInUsername, colorId, badgeId, role,
                 request.getChatText(), request.getFileName(), request.getFileData());
+        }
+        return null;
+    }
+
+    /** Fire-and-forget, no response - either relayed straight to a DM recipient (getToUsername()) or broadcast to a group's other members (getGroupId(), via GroupChatManager, same member-lookup pattern sendGroupMessage already uses). Muted players are silently dropped, same policy as an actual muted chat message - a mute should also stop "X is typing..." from appearing, not just the message itself. */
+    private Message handleTypingIndicator(Message request)
+    {
+        if (loggedInUsername == null || moderationManager.isMuted(loggedInUsername))
+        {
+            return null;
+        }
+
+        if (request.getToUsername() != null)
+        {
+            ClientHandler recipient = chatManager.findByUsername(request.getToUsername());
+            if (recipient != null && recipient != this)
+            {
+                Message notice = new Message();
+                notice.setType(MessageType.TYPING_INDICATOR);
+                notice.setUsername(loggedInUsername);
+                notice.setToUsername(request.getToUsername());
+                recipient.sendMessage(notice);
+            }
+        }
+        else if (request.getGroupId() != null)
+        {
+            groupChatManager.relayTyping(request.getGroupId(), loggedInUsername);
         }
         return null;
     }

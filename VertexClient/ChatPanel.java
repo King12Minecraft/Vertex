@@ -84,6 +84,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     private JScrollPane scrollPane;
     private JPanel jumpToBottomBar;
     private ThemedTextField field;
+    private JLabel typingLabel;
     private PageHeader headerLabel;
 
     public ChatPanel()
@@ -257,6 +258,11 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private JPanel createInputRow()
     {
+        typingLabel = new JLabel(" ");
+        typingLabel.setFont(UITheme.FONT_SMALL);
+        typingLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        typingLabel.setBorder(new EmptyBorder(0, 4, 4, 0));
+
         RoundedPanel pill = new RoundedPanel(ThemeColor.BG_PANEL, 20);
         pill.setLayout(new BorderLayout(8, 0));
         pill.setBorder(new EmptyBorder(6, 10, 6, 10));
@@ -271,6 +277,10 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         field = new ThemedTextField("Message...");
         field.setBorder(BorderFactory.createEmptyBorder());
+        field.addChangeListener(new Runnable()
+        {
+            public void run() { maybeSendTypingIndicator(); }
+        });
         pill.add(field, BorderLayout.CENTER);
 
         final ThemedButton send = new ThemedButton("Send", true);
@@ -287,8 +297,56 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
         row.setBorder(new EmptyBorder(16, 0, 0, 0));
+        row.add(typingLabel, BorderLayout.NORTH);
         row.add(pill, BorderLayout.CENTER);
         return row;
+    }
+
+    private static final long TYPING_THROTTLE_MS = 3000;
+    private long lastTypingSentAt = 0;
+
+    /** Only fires once every TYPING_THROTTLE_MS while someone keeps typing, not on every keystroke - a typing indicator is a "still going" heartbeat, not something that needs per-character precision. */
+    private void maybeSendTypingIndicator()
+    {
+        if (currentChannel == null) return;
+        long now = System.currentTimeMillis();
+        if (now - lastTypingSentAt < TYPING_THROTTLE_MS) return;
+        lastTypingSentAt = now;
+
+        Message request = new Message();
+        request.setType(MessageType.TYPING_INDICATOR);
+        if (currentChannel.startsWith("dm:"))
+        {
+            request.setToUsername(channelNames.get(currentChannel).substring(2));
+        }
+        else if (currentChannel.startsWith("group:"))
+        {
+            request.setGroupId(currentChannel.substring("group:".length()));
+        }
+        else
+        {
+            return;
+        }
+        NetworkManager.sendAsync(request);
+    }
+
+    /** Shows "X is typing..." and auto-hides it after TYPING_DISPLAY_MS if no further indicator arrives - restarted on every new signal from the same channel, same "heartbeat with a timeout" idea used elsewhere (e.g. ConnectionIndicator). */
+    private static final int TYPING_DISPLAY_MS = 4000;
+    private javax.swing.Timer typingHideTimer;
+
+    private void showTypingIndicator(String username)
+    {
+        typingLabel.setText(username + " is typing...");
+        if (typingHideTimer != null)
+        {
+            typingHideTimer.stop();
+        }
+        typingHideTimer = new javax.swing.Timer(TYPING_DISPLAY_MS, new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { typingLabel.setText(" "); }
+        });
+        typingHideTimer.setRepeats(false);
+        typingHideTimer.start();
     }
 
     // ---- Channel management (called by the New DM / New Group dialogs) ----
@@ -933,7 +991,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     public void onPush(final Message message)
     {
         MessageType type = message.getType();
-        if (type != MessageType.PRIVATE_MESSAGE && type != MessageType.GROUP_MESSAGE && type != MessageType.GROUP_ADDED)
+        if (type != MessageType.PRIVATE_MESSAGE && type != MessageType.GROUP_MESSAGE
+            && type != MessageType.GROUP_ADDED && type != MessageType.TYPING_INDICATOR)
         {
             return;
         }
@@ -946,6 +1005,16 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private void handleIncoming(Message message)
     {
+        if (message.getType() == MessageType.TYPING_INDICATOR)
+        {
+            String key = message.getGroupId() != null ? "group:" + message.getGroupId()
+                : "dm:" + (message.getUsername() != null ? message.getUsername().toLowerCase() : "");
+            if (key.equals(currentChannel) && message.getUsername() != null)
+            {
+                showTypingIndicator(message.getUsername());
+            }
+            return;
+        }
         MessageType type = message.getType();
 
         if (type == MessageType.PRIVATE_MESSAGE)
