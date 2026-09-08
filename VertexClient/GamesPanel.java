@@ -563,6 +563,11 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
         JPanel art = new GameCardArt(game.getGameId());
         art.setPreferredSize(new Dimension(228, 100));
+        art.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        art.addMouseListener(new MouseAdapter()
+        {
+            public void mouseClicked(MouseEvent e) { GameDetailDialog.show(art, game); }
+        });
         artWrap.add(art, BorderLayout.CENTER);
 
         final ThemedButton pin = new ThemedButton(PinnedGamesStore.isPinned(game.getGameId()) ? "Pinned" : "Pin", false);
@@ -592,6 +597,11 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         name.setFont(UITheme.FONT_NAV_BOLD);
         name.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         name.setAlignmentX(Component.LEFT_ALIGNMENT);
+        name.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        name.addMouseListener(new MouseAdapter()
+        {
+            public void mouseClicked(MouseEvent e) { GameDetailDialog.show(name, game); }
+        });
 
         JLabel type = new JLabel(game.getType());
         type.setFont(UITheme.FONT_SMALL);
