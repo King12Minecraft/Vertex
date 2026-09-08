@@ -48,6 +48,9 @@ public class TopBar extends RoundedPanel
         rightPanel.setOpaque(false);
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.X_AXIS));
 
+        rightPanel.add(new GlobalSearchField(navigationListener));
+        rightPanel.add(javax.swing.Box.createHorizontalStrut(12));
+
         rightPanel.add(new QuickPlayDropdown());
         rightPanel.add(javax.swing.Box.createHorizontalStrut(12));
 
