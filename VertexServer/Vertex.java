@@ -1,3 +1,6 @@
+import ui.SplashScreen;
+import net.ClientUpdateChecker;
+import account.AuthWindow;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 

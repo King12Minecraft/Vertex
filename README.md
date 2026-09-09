@@ -78,12 +78,26 @@ Full details on all of the above: [`FEATURES.md`](FEATURES.md).
 
 ## Repo structure
 
-There are two source folders. This is a flat, single-package BlueJ project, so "client" and "server" aren't separate modules, just separate entry points (`Vertex.java` vs `ServerMain.java`) into the same set of classes - both folders carry the full engine and are intentionally identical in content:
+There are two source folders. "Client" and "server" aren't separate modules, just separate entry points (`Vertex.java` vs `ServerMain.java`) into the same set of classes - both folders carry the full engine and are intentionally identical in content:
 
 - **`VertexClient/`** — built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs, and is the edit source of truth: make changes here first.
 - **`VertexServer/`** — a synced copy of `VertexClient/`, built and shipped as `VertexServer.jar` (`Main-Class: ServerMain`). This is what someone hosting runs — starting it brings up the server *and* opens the same game window `VertexClient` would, already connected, so the host can play too.
 
 There used to be a third `Vertex/` master folder that both of these synced from; it's gone now so the repo only ever shows the two folders someone would actually run.
+
+**Packages.** Both folders are organized into 9 Java packages by category, rather than one flat pile of 240 files in the default package:
+
+- `net` — networking core: `Message`, `MessageType`, `NetworkManager`, `ClientHandler`, `GameServer`, connection state
+- `account` — accounts, auth, sessions, profile viewing
+- `theme` — the theming system and all 11 themes
+- `ui` — generic reusable widgets (buttons, panels, dialogs not tied to a specific feature)
+- `pages` — the app's top-level navigable pages (Home, Games, Chat, Settings, Admin, etc.)
+- `economy` — coins, cosmetics, achievements, leaderboards, local device preferences
+- `social` — chat, friends, party, moderation-facing dialogs
+- `admin` — admin log, feedback, game suggestions
+- `games` — every game's logic/window/match classes, plus the shared game-launching/registry/tournament/replay infrastructure
+
+Only `Vertex.java` and `ServerMain.java` — the two actual entry points `java -jar` runs — stay in the default (unpackaged) package; everything else lives in one of the 9 packages above. If you're adding a new class, put it in the package that matches what it's for, and add `package <name>;` as its first line.
 
 Why not trim these down to only the files each one strictly needs? Because `ServerMain` opens the full game client in-process the moment hosting starts (see above) - so the server side ends up needing almost the entire client UI anyway. Splitting them for real would mean the server launches the client as a *separate process* instead of embedding it - a real architecture change (and one that would break "host from BlueJ and get a playable window immediately," since finding a client jar to launch as a subprocess doesn't work the same way when running compiled classes straight out of BlueJ rather than a built jar). Noted as a possible future improvement, not done here.
 
