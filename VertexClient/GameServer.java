@@ -50,6 +50,7 @@ public class GameServer
     private final ConnectFourMatchManager connectFourMatchManager = new ConnectFourMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final CheckersMatchManager checkersMatchManager = new CheckersMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final SquareWarsMatchManager squareWarsMatchManager = new SquareWarsMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager);
+    private final TriviaMatchManager triviaMatchManager = new TriviaMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager);
     private final AvatarStore avatarStore = new AvatarStore();
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
@@ -126,7 +127,8 @@ public class GameServer
                     leaderboardManager, partyManager, achievementManager, tournamentManager, replayManager,
                     teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry,
                     feedbackManager, gameSuggestionStore, zombieSurvivalMatchManager, spaceBattleMatchManager, adminLog,
-                    connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager);
+                    connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager,
+                    triviaMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

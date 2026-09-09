@@ -30,6 +30,8 @@ public class ClientHandler implements Runnable
     private CheckersMatchManager checkersMatchManager;
     private SquareWarsMatch currentSquareWarsMatch;
     private SquareWarsMatchManager squareWarsMatchManager;
+    private TriviaMatch currentTriviaMatch;
+    private TriviaMatchManager triviaMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -75,7 +77,8 @@ public class ClientHandler implements Runnable
                           GameSuggestionStore gameSuggestionStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
                           SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog,
                           ConnectFourMatchManager connectFourMatchManager, AvatarStore avatarStore,
-                          CheckersMatchManager checkersMatchManager, SquareWarsMatchManager squareWarsMatchManager)
+                          CheckersMatchManager checkersMatchManager, SquareWarsMatchManager squareWarsMatchManager,
+                          TriviaMatchManager triviaMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -111,6 +114,7 @@ public class ClientHandler implements Runnable
         this.avatarStore = avatarStore;
         this.checkersMatchManager = checkersMatchManager;
         this.squareWarsMatchManager = squareWarsMatchManager;
+        this.triviaMatchManager = triviaMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -119,6 +123,7 @@ public class ClientHandler implements Runnable
     public void setCurrentConnectFourMatch(ConnectFourMatch match) { this.currentConnectFourMatch = match; }
     public void setCurrentCheckersMatch(CheckersMatch match) { this.currentCheckersMatch = match; }
     public void setCurrentSquareWarsMatch(SquareWarsMatch match) { this.currentSquareWarsMatch = match; }
+    public void setCurrentTriviaMatch(TriviaMatch match) { this.currentTriviaMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -191,6 +196,7 @@ public class ClientHandler implements Runnable
             connectFourMatchManager.cancelWaiting(this);
             checkersMatchManager.cancelWaiting(this);
             squareWarsMatchManager.cancelWaiting(this);
+            triviaMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -207,6 +213,7 @@ public class ClientHandler implements Runnable
             if (currentConnectFourMatch != null) currentConnectFourMatch.handleDisconnect(this);
             if (currentCheckersMatch != null) currentCheckersMatch.handleDisconnect(this);
             if (currentSquareWarsMatch != null) currentSquareWarsMatch.handleDisconnect(this);
+            if (currentTriviaMatch != null) currentTriviaMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -312,6 +319,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.SQWARS_FIND_MATCH_REQUEST) return handleSquareWarsFindMatch();
         if (request.getType() == MessageType.SQWARS_LEAVE_QUEUE_REQUEST) return handleSquareWarsLeaveQueue();
         if (request.getType() == MessageType.SQWARS_CLAIM_REQUEST) return handleSquareWarsClaim(request);
+        if (request.getType() == MessageType.TRIVIA_FIND_MATCH_REQUEST) return handleTriviaFindMatch();
+        if (request.getType() == MessageType.TRIVIA_LEAVE_QUEUE_REQUEST) return handleTriviaLeaveQueue();
+        if (request.getType() == MessageType.TRIVIA_ANSWER_REQUEST) return handleTriviaAnswer(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2055,6 +2065,34 @@ public class ClientHandler implements Runnable
         if (currentSquareWarsMatch != null)
         {
             currentSquareWarsMatch.claim(this, request.getCellIndex());
+        }
+        return null;
+    }
+
+    // ==================== Trivia Blitz ====================
+
+    private Message handleTriviaFindMatch()
+    {
+        if (loggedInUsername != null) triviaMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleTriviaLeaveQueue()
+    {
+        triviaMatchManager.cancelWaiting(this);
+        if (currentTriviaMatch != null)
+        {
+            currentTriviaMatch.handleDisconnect(this);
+            currentTriviaMatch = null;
+        }
+        return null;
+    }
+
+    private Message handleTriviaAnswer(Message request)
+    {
+        if (currentTriviaMatch != null)
+        {
+            currentTriviaMatch.submitAnswer(this, request.getCellIndex());
         }
         return null;
     }

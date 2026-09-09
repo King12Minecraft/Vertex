@@ -90,6 +90,10 @@ public class GameRules
         RULES.put("space-battle", "3-6 pilots each fly the same seeded sequence of asteroids and "
             + "enemy fighters independently. Rotate and thrust to fly, fire to shoot. Ranked by "
             + "score at the end of the time limit - 1st, 2nd, and 3rd place earn coins.");
+
+        RULES.put("trivia-blitz", "2-6 players answer the same 8 general-knowledge questions. "
+            + "Pick an answer before the timer runs out - correct answers score points, with a "
+            + "bonus for answering faster. Highest total score after all questions wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

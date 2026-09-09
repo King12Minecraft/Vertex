@@ -365,6 +365,43 @@ public class Message implements Serializable
     public int getSpaceReward() { return spaceReward; }
     public void setSpaceReward(int spaceReward) { this.spaceReward = spaceReward; }
 
+    // ---- Trivia Blitz (round-based quiz, 2-6 players - see TriviaMatch) ----
+    private String triviaQuestion;
+    private java.util.List<String> triviaOptions;
+    private int triviaCorrectIndex;
+    private int triviaRound;
+    private int triviaTotalRounds;
+    private java.util.List<String> triviaScores;
+    private int triviaReward;
+
+    /** The current round's question text - TRIVIA_ROUND_START. */
+    public String getTriviaQuestion() { return triviaQuestion; }
+    public void setTriviaQuestion(String triviaQuestion) { this.triviaQuestion = triviaQuestion; }
+
+    /** The current round's 4 answer choices, in display order - TRIVIA_ROUND_START. */
+    public java.util.List<String> getTriviaOptions() { return triviaOptions; }
+    public void setTriviaOptions(java.util.List<String> triviaOptions) { this.triviaOptions = triviaOptions; }
+
+    /** Index into getTriviaOptions() of the correct answer - only sent on TRIVIA_ROUND_RESULT, never on TRIVIA_ROUND_START (that would give the answer away). */
+    public int getTriviaCorrectIndex() { return triviaCorrectIndex; }
+    public void setTriviaCorrectIndex(int triviaCorrectIndex) { this.triviaCorrectIndex = triviaCorrectIndex; }
+
+    /** 1-based current round number - TRIVIA_ROUND_START/TRIVIA_ROUND_RESULT. */
+    public int getTriviaRound() { return triviaRound; }
+    public void setTriviaRound(int triviaRound) { this.triviaRound = triviaRound; }
+
+    /** Total rounds this match runs for - TRIVIA_ROUND_START. */
+    public int getTriviaTotalRounds() { return triviaTotalRounds; }
+    public void setTriviaTotalRounds(int triviaTotalRounds) { this.triviaTotalRounds = triviaTotalRounds; }
+
+    /** Everyone's cumulative score so far, "username:score" per entry - TRIVIA_ROUND_RESULT/TRIVIA_RESULT. */
+    public java.util.List<String> getTriviaScores() { return triviaScores; }
+    public void setTriviaScores(java.util.List<String> triviaScores) { this.triviaScores = triviaScores; }
+
+    /** Coins awarded for finishing with the top score (split evenly on a tie for 1st) - TRIVIA_RESULT. */
+    public int getTriviaReward() { return triviaReward; }
+    public void setTriviaReward(int triviaReward) { this.triviaReward = triviaReward; }
+
     // ---- Square Wars (real-time shared-grid territory control - see SquareWarsMatch) ----
     private int sqWarsReward;
 

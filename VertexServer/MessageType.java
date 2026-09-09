@@ -187,6 +187,15 @@ public enum MessageType
     SQWARS_UPDATE,
     SQWARS_RESULT,
 
+    // --- Trivia Blitz (round-based quiz, 2-6 players - see TriviaMatch) ---
+    TRIVIA_FIND_MATCH_REQUEST,
+    TRIVIA_LEAVE_QUEUE_REQUEST,
+    TRIVIA_MATCH_FOUND,
+    TRIVIA_ANSWER_REQUEST,
+    TRIVIA_ROUND_START,
+    TRIVIA_ROUND_RESULT,
+    TRIVIA_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

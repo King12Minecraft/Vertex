@@ -42,6 +42,7 @@ public class GameMetadata
         tag("connect-four", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("checkers", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("space-battle", HARD, "2D", "Multiplayer", "Online", "Real-Time");
+        tag("trivia-blitz", EASY, "2D", "Multiplayer", "Online", "Quiz");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)
