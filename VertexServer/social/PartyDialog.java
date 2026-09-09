@@ -1,4 +1,5 @@
 package social;
+import ui.DialogUtils;
 import ui.GameHubDialog;
 import account.Session;
 import net.MessageType;
@@ -48,10 +49,11 @@ public class PartyDialog extends JDialog implements NetworkManager.PushListener
     {
         super((Frame) javax.swing.SwingUtilities.getWindowAncestor(anchor), "Party", false);
         setUndecorated(true);
+        DialogUtils.enableEscapeToClose(this);
 
         RoundedPanel root = new RoundedPanel(ThemeColor.BG_PANEL, 16);
         root.setLayout(new BorderLayout());
-        root.setPreferredSize(new Dimension(340, 320));
+        root.setPreferredSize(new Dimension(400, 320));
         getRootPane().setBorder(BorderFactory.createLineBorder(ThemeManager.getColor(ThemeColor.BORDER), 1));
 
         JLabel title = new JLabel("Party");
@@ -134,10 +136,30 @@ public class PartyDialog extends JDialog implements NetworkManager.PushListener
         codeRow.add(joinWrap, BorderLayout.EAST);
 
         contentArea.add(codeRow);
+        contentArea.add(Box.createVerticalStrut(16));
+        contentArea.add(closeButtonRow());
 
         contentArea.revalidate();
         contentArea.repaint();
         pack();
+    }
+
+    /** A plain dismiss button with no side effects - separate from Create/Leave, since this dialog was previously undecorated with no way to close it at all except by leaving your party (or, if you weren't in one yet, no way to close it whatsoever). Escape now also works (see the constructor), but a visible button matters just as much - not everyone reaches for Escape first. */
+    private JPanel closeButtonRow()
+    {
+        JPanel row = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(2000, 36));
+
+        ThemedButton close = new ThemedButton("Close", false);
+        close.setPreferredSize(new Dimension(90, 34));
+        close.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { dispose(); }
+        });
+        row.add(close);
+        return row;
     }
 
     private void attemptJoin()

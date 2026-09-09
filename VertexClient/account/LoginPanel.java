@@ -59,7 +59,7 @@ public class LoginPanel extends JPanel
         RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(38, 40, 34, 40));
-        card.setPreferredSize(new Dimension(380, 400));
+        card.setPreferredSize(new Dimension(400, 400));
         card.enableTopAccent();
 
         final JLabel title = new JLabel("Welcome back");
