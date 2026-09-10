@@ -48,7 +48,24 @@ public class ModerationManager
     }
 
     private final Map<String, Long> mutedUntil = new HashMap<String, Long>();
-    private final Set<String> bannedUsernames = new HashSet<String>();
+    private final Map<String, BanRecord> bans = new HashMap<String, BanRecord>();
+
+    /** A single ban's details, kept for admins to review (who was banned, why, by whom, when) rather than just a bare yes/no. */
+    public static class BanRecord
+    {
+        public final String username;
+        public final String reason;
+        public final String bannedBy;
+        public final long bannedAtMillis;
+
+        public BanRecord(String username, String reason, String bannedBy, long bannedAtMillis)
+        {
+            this.username = username;
+            this.reason = reason;
+            this.bannedBy = bannedBy;
+            this.bannedAtMillis = bannedAtMillis;
+        }
+    }
     private final List<Report> reports = new ArrayList<Report>();
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM d, h:mm a");
 
@@ -88,21 +105,32 @@ public class ModerationManager
 
     // ---- Ban (persisted) ----
 
-    public synchronized void ban(String username)
+    public synchronized void ban(String username, String reason, String bannedBy)
     {
-        bannedUsernames.add(username.toLowerCase());
+        bans.put(username.toLowerCase(), new BanRecord(username, reason, bannedBy, System.currentTimeMillis()));
         saveBans();
     }
 
     public synchronized void unban(String username)
     {
-        bannedUsernames.remove(username.toLowerCase());
+        bans.remove(username.toLowerCase());
         saveBans();
     }
 
     public synchronized boolean isBanned(String username)
     {
-        return bannedUsernames.contains(username.toLowerCase());
+        return bans.containsKey(username.toLowerCase());
+    }
+
+    /** Newest first, for the admin ban list. */
+    public synchronized List<BanRecord> getBans()
+    {
+        List<BanRecord> list = new ArrayList<BanRecord>(bans.values());
+        java.util.Collections.sort(list, new java.util.Comparator<BanRecord>()
+        {
+            public int compare(BanRecord a, BanRecord b) { return Long.compare(b.bannedAtMillis, a.bannedAtMillis); }
+        });
+        return list;
     }
 
     // ---- Reports (persisted) ----
@@ -165,10 +193,18 @@ public class ModerationManager
             String line;
             while ((line = reader.readLine()) != null)
             {
-                if (!line.trim().isEmpty())
-                {
-                    bannedUsernames.add(line.trim().toLowerCase());
-                }
+                line = line.trim();
+                if (line.isEmpty()) continue;
+
+                // Pipe-delimited "username|reason|bannedBy|timestamp" going forward - but a ban
+                // file from before reasons existed just has one bare username per line, so that
+                // still loads correctly (as a ban with an empty reason) rather than breaking.
+                String[] parts = line.split("\\|", -1);
+                String username = parts[0];
+                String reason = parts.length > 1 ? parts[1] : "";
+                String bannedBy = parts.length > 2 ? parts[2] : "";
+                long timestamp = parts.length > 3 ? parseLongSafe(parts[3]) : System.currentTimeMillis();
+                bans.put(username.toLowerCase(), new BanRecord(username, reason, bannedBy, timestamp));
             }
         }
         catch (IOException e)
@@ -181,15 +217,21 @@ public class ModerationManager
         }
     }
 
+    private long parseLongSafe(String text)
+    {
+        try { return Long.parseLong(text); } catch (NumberFormatException e) { return System.currentTimeMillis(); }
+    }
+
     private void saveBans()
     {
         PrintWriter writer = null;
         try
         {
             writer = new PrintWriter(new FileWriter(BANS_FILE));
-            for (String username : bannedUsernames)
+            for (BanRecord ban : bans.values())
             {
-                writer.println(username);
+                writer.println(ban.username + "|" + ban.reason.replace("|", " ").replace("\n", " ")
+                    + "|" + ban.bannedBy + "|" + ban.bannedAtMillis);
             }
         }
         catch (IOException e)

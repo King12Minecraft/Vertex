@@ -400,6 +400,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.ADMIN_SET_ROLE_REQUEST) return handleAdminSetRole(request);
         if (request.getType() == MessageType.ADMIN_LOG_REQUEST) return handleAdminLog();
         if (request.getType() == MessageType.PLAYER_PROFILE_REQUEST) return handlePlayerProfile(request);
+        if (request.getType() == MessageType.ADMIN_BAN_REQUEST) return handleAdminBan(request);
+        if (request.getType() == MessageType.ADMIN_UNBAN_REQUEST) return handleAdminUnban(request);
+        if (request.getType() == MessageType.ADMIN_BAN_LIST_REQUEST) return handleAdminBanList();
 
         Message response = new Message();
         response.setSuccess(false);
@@ -642,6 +645,104 @@ public class ClientHandler implements Runnable
         response.setItemId(target.getEquippedFrameId());
         response.setUnlockedAchievementIds(new java.util.ArrayList<String>(achievementManager.getUnlocked(target.getAccountId())));
         response.setSyncRatings(leaderboardManager.getAllRatingsForAccount(target.getAccountId()));
+        return response;
+    }
+
+    // ==================== Bans ====================
+
+    /** Moderator or Admin - bans immediately disconnect the target if they're currently online (not just blocked on their next login attempt), and never allow banning another Admin. */
+    private Message handleAdminBan(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.ADMIN_BAN_RESPONSE);
+
+        if (!isModeratorOrAdmin())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Moderators/Admins only.");
+            return response;
+        }
+
+        String target = request.getTargetUsername();
+        String reason = request.getChatText();
+        if (target == null || target.trim().isEmpty())
+        {
+            response.setSuccess(false);
+            response.setErrorText("No username given.");
+            return response;
+        }
+
+        Account targetAccount = accountStore.findByUsername(target);
+        if (targetAccount != null && targetAccount.getRole() == Role.ADMIN)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Can't ban an Admin.");
+            return response;
+        }
+
+        moderationManager.ban(target, reason == null ? "" : reason, loggedInUsername);
+        adminLog.log(loggedInUsername, "Banned " + target
+            + (reason != null && !reason.trim().isEmpty() ? " (" + reason.trim() + ")" : ""));
+
+        ClientHandler targetHandler = chatManager.findByUsername(target);
+        if (targetHandler != null)
+        {
+            targetHandler.forceDisconnect("You have been banned"
+                + (reason != null && !reason.trim().isEmpty() ? ": " + reason.trim() : "."));
+        }
+
+        response.setSuccess(true);
+        return response;
+    }
+
+    private Message handleAdminUnban(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.ADMIN_UNBAN_RESPONSE);
+
+        if (!isModeratorOrAdmin())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Moderators/Admins only.");
+            return response;
+        }
+
+        String target = request.getTargetUsername();
+        if (target == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No username given.");
+            return response;
+        }
+
+        moderationManager.unban(target);
+        adminLog.log(loggedInUsername, "Unbanned " + target);
+
+        response.setSuccess(true);
+        return response;
+    }
+
+    private Message handleAdminBanList()
+    {
+        Message response = new Message();
+        response.setType(MessageType.ADMIN_BAN_LIST_RESPONSE);
+
+        if (!isModeratorOrAdmin())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Moderators/Admins only.");
+            return response;
+        }
+
+        List<ModerationManager.BanRecord> bans = moderationManager.getBans();
+        List<String> lines = new ArrayList<String>();
+        for (int i = 0; i < bans.size(); i++)
+        {
+            ModerationManager.BanRecord b = bans.get(i);
+            lines.add(b.username + "|" + b.reason + "|" + b.bannedBy + "|" + b.bannedAtMillis);
+        }
+        response.setSuccess(true);
+        response.setBanRecords(lines);
         return response;
     }
 
@@ -1593,7 +1694,7 @@ public class ClientHandler implements Runnable
             return response;
         }
 
-        moderationManager.ban(request.getUsername());
+        moderationManager.ban(request.getUsername(), "", loggedInUsername);
 
         ClientHandler target = chatManager.findByUsername(request.getUsername());
         if (target != null)

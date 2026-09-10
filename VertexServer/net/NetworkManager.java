@@ -339,6 +339,9 @@ public class NetworkManager
         MessageType.ADMIN_SET_ROLE_RESPONSE,
         MessageType.ADMIN_LOG_RESPONSE,
         MessageType.PLAYER_PROFILE_RESPONSE,
+        MessageType.ADMIN_BAN_RESPONSE,
+        MessageType.ADMIN_UNBAN_RESPONSE,
+        MessageType.ADMIN_BAN_LIST_RESPONSE,
         MessageType.AVATAR_UPLOAD_RESPONSE,
         MessageType.AVATAR_DOWNLOAD_RESPONSE);
 

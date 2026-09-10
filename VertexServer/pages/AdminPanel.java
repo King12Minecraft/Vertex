@@ -51,11 +51,13 @@ public class AdminPanel extends RoundedPanel
     private static final String OVERVIEW = "OVERVIEW";
     private static final String PLAYERS = "PLAYERS";
     private static final String LOG = "LOG";
+    private static final String BANS = "BANS";
 
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
     private JPanel playersGrid;
     private JPanel logList;
+    private JPanel bansGrid;
 
     public AdminPanel()
     {
@@ -69,6 +71,7 @@ public class AdminPanel extends RoundedPanel
         cards.add(createOverview(), OVERVIEW);
         cards.add(createPlayersView(), PLAYERS);
         cards.add(createLogView(), LOG);
+        cards.add(createBansView(), BANS);
         add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, OVERVIEW);
     }
@@ -80,12 +83,13 @@ public class AdminPanel extends RoundedPanel
 
         grid.add(sectionCard("Players", "Manage account roles - promote to Moderator or revert to Player.",
             new Runnable() { public void run() { openPlayers(); } }));
+        grid.add(sectionCard("Bans", "Ban or unban players, with a reason kept on record.",
+            new Runnable() { public void run() { openBans(); } }));
         grid.add(sectionCard("Admin Log", "See every approval, removal, and role change made on this server.",
             new Runnable() { public void run() { openLog(); } }));
         grid.add(placeholderCard("Games", "Publish, update, and manage games.", "a future phase"));
         grid.add(placeholderCard("Economy", "Coin balances and shop items.", "a future phase"));
         grid.add(placeholderCard("Announcements", "Post platform-wide notices.", "a future phase"));
-        grid.add(placeholderCard("Server Status", "Live server health and stats.", "a future phase"));
 
         JScrollPane scroll = new JScrollPane(grid);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -106,6 +110,12 @@ public class AdminPanel extends RoundedPanel
     {
         cardLayout.show(cards, LOG);
         refreshLog();
+    }
+
+    private void openBans()
+    {
+        cardLayout.show(cards, BANS);
+        refreshBans();
     }
 
     // ==================== Players ====================
@@ -232,25 +242,42 @@ public class AdminPanel extends RoundedPanel
             note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             right.add(note);
         }
-        else if ("MODERATOR".equals(role))
-        {
-            ThemedButton demote = new ThemedButton("Revert to Player", false);
-            demote.setPreferredSize(new Dimension(160, 32));
-            demote.addActionListener(new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e) { setRole(username, "PLAYER"); }
-            });
-            right.add(demote);
-        }
         else
         {
-            ThemedButton promote = new ThemedButton("Promote to Moderator", true);
-            promote.setPreferredSize(new Dimension(180, 32));
-            promote.addActionListener(new ActionListener()
+            if ("MODERATOR".equals(role))
             {
-                public void actionPerformed(ActionEvent e) { setRole(username, "MODERATOR"); }
+                ThemedButton demote = new ThemedButton("Revert to Player", false);
+                demote.setPreferredSize(new Dimension(160, 32));
+                demote.addActionListener(new ActionListener()
+                {
+                    public void actionPerformed(ActionEvent e) { setRole(username, "PLAYER"); }
+                });
+                right.add(demote);
+            }
+            else
+            {
+                ThemedButton promote = new ThemedButton("Promote to Moderator", true);
+                promote.setPreferredSize(new Dimension(180, 32));
+                promote.addActionListener(new ActionListener()
+                {
+                    public void actionPerformed(ActionEvent e) { setRole(username, "MODERATOR"); }
+                });
+                right.add(promote);
+            }
+
+            ThemedButton ban = new ThemedButton("Ban", false);
+            ban.setPreferredSize(new Dimension(70, 32));
+            ban.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    BanReasonDialog.show(AdminPanel.this, username, new Runnable()
+                    {
+                        public void run() { refreshPlayers(); }
+                    });
+                }
             });
-            right.add(promote);
+            right.add(ban);
         }
 
         row.add(right, BorderLayout.EAST);
@@ -378,6 +405,154 @@ public class AdminPanel extends RoundedPanel
 
         logList.revalidate();
         logList.repaint();
+    }
+
+    // ==================== Bans ====================
+
+    private JScrollPane createBansView()
+    {
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
+        content.add(backRow());
+        content.add(sectionTitle("BANS"));
+
+        bansGrid = new JPanel();
+        bansGrid.setOpaque(false);
+        bansGrid.setLayout(new BoxLayout(bansGrid, BoxLayout.Y_AXIS));
+        bansGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(bansGrid);
+
+        JScrollPane scroll = new JScrollPane(content);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        ThemedScrollBarUI.apply(scroll);
+        return scroll;
+    }
+
+    private void refreshBans()
+    {
+        bansGrid.removeAll();
+        JLabel loading = new JLabel("Loading bans...");
+        loading.setFont(UITheme.FONT_BODY);
+        loading.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        loading.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bansGrid.add(loading);
+        bansGrid.revalidate();
+        bansGrid.repaint();
+
+        Thread worker = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.ADMIN_BAN_LIST_REQUEST);
+                final Message response = NetworkManager.send(request);
+
+                SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run() { renderBans(response); }
+                });
+            }
+        });
+        worker.start();
+    }
+
+    private void renderBans(Message response)
+    {
+        bansGrid.removeAll();
+
+        if (response == null || !response.isSuccess() || response.getBanRecords() == null
+            || response.getBanRecords().isEmpty())
+        {
+            JLabel empty = new JLabel(response != null && !response.isSuccess() && response.getErrorText() != null
+                ? response.getErrorText() : "No one is banned right now.");
+            empty.setFont(UITheme.FONT_BODY);
+            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            bansGrid.add(empty);
+        }
+        else
+        {
+            List<String> records = response.getBanRecords();
+            for (int i = 0; i < records.size(); i++)
+            {
+                String[] parts = records.get(i).split("\\|", -1);
+                if (parts.length < 4) continue;
+                bansGrid.add(buildBanRow(parts[0], parts[1], parts[2], parts[3]));
+                bansGrid.add(javax.swing.Box.createVerticalStrut(10));
+            }
+        }
+
+        bansGrid.revalidate();
+        bansGrid.repaint();
+    }
+
+    private JPanel buildBanRow(final String username, String reason, String bannedBy, String timestampMillis)
+    {
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        row.setLayout(new BorderLayout());
+        row.setBorder(new EmptyBorder(12, 16, 12, 16));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setMaximumSize(new Dimension(900, 64));
+
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+
+        JLabel name = new JLabel(username);
+        name.setFont(UITheme.FONT_NAV_BOLD);
+        name.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        name.setAlignmentX(Component.LEFT_ALIGNMENT);
+        left.add(name);
+
+        String when = "";
+        try
+        {
+            when = new java.text.SimpleDateFormat("MMM d, yyyy").format(new java.util.Date(Long.parseLong(timestampMillis)));
+        }
+        catch (NumberFormatException ignored) { }
+
+        String detail = (reason == null || reason.trim().isEmpty() ? "No reason given" : reason)
+            + " - banned by " + (bannedBy == null || bannedBy.isEmpty() ? "unknown" : bannedBy)
+            + (when.isEmpty() ? "" : " on " + when);
+        JLabel detailLabel = new JLabel(detail);
+        detailLabel.setFont(UITheme.FONT_SMALL);
+        detailLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        detailLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        left.add(detailLabel);
+
+        row.add(left, BorderLayout.WEST);
+
+        ThemedButton unban = new ThemedButton("Unban", false);
+        unban.setPreferredSize(new Dimension(90, 32));
+        unban.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                Thread worker = new Thread(new Runnable()
+                {
+                    public void run()
+                    {
+                        Message request = new Message();
+                        request.setType(MessageType.ADMIN_UNBAN_REQUEST);
+                        request.setTargetUsername(username);
+                        NetworkManager.send(request);
+                        SwingUtilities.invokeLater(new Runnable()
+                        {
+                            public void run() { refreshBans(); }
+                        });
+                    }
+                });
+                worker.start();
+            }
+        });
+        row.add(unban, BorderLayout.EAST);
+
+        return row;
     }
 
     // ==================== Shared bits ====================

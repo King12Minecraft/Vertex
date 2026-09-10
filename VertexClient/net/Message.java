@@ -711,4 +711,11 @@ public class Message implements Serializable
     /** "PLAYER" or "MODERATOR" only - ADMIN_SET_ROLE_REQUEST never allows granting ADMIN itself, same reasoning CreateAccountPanel's bootstrap-only admin comment gives: that role is earned by owning the server's first account, not handed out through a client request. */
     public String getNewRole() { return newRole; }
     public void setNewRole(String newRole) { this.newRole = newRole; }
+
+    // ---- Bans (admin only - see ModerationManager) ----
+    private java.util.List<String> banRecords;
+
+    /** Every current ban, newest first, "username|reason|bannedBy|epochMillis" per entry - ADMIN_BAN_LIST_RESPONSE. Reuses getTargetUsername() for who to ban/unban and getChatText() for the ban reason (ADMIN_BAN_REQUEST) rather than adding two more single-purpose fields. */
+    public java.util.List<String> getBanRecords() { return banRecords; }
+    public void setBanRecords(java.util.List<String> banRecords) { this.banRecords = banRecords; }
 }
