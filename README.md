@@ -18,6 +18,8 @@ The server has to be running before a client can connect. On a weaker machine, u
 
 **Double-click it (Windows):** `Vertex.bat` and `VertexServer.bat` don't require Java on your PATH — they check the common install locations (BlueJ's own bundled JDK included) automatically and use whichever one they find, so there's nothing to configure on any machine you copy these to. `Run-*-LowEnd.bat` do the same auto-detection, plus the low-memory JVM flags for older hardware.
 
+**Pin it to your taskbar:** Windows won't let you pin a `.bat` file directly (that option is greyed out for script files) — run `Create-Desktop-Shortcut.bat` once instead. It creates proper Windows shortcuts on your Desktop (with the Vertex icon) for both the client and the server; right-click either one and choose "Pin to taskbar."
+
 **With BlueJ:** open `VertexServer` and `VertexClient` as separate projects, compile the server first, run `ServerMain`, then run `Vertex` from one or more client instances.
 
 Either way, the first screen asks whether you want to **host a server** or **connect to one** — see below.
