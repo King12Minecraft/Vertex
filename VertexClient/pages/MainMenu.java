@@ -61,6 +61,20 @@ import java.awt.image.BufferedImage;
  */
 public class MainMenu extends JFrame implements NavigationListener, NetworkManager.PushListener
 {
+    /** One MainMenu per app run - lets FriendsPanel's "Message" button and GlobalSearchField's friend results deep-link straight into a specific DM (navigate to Chat, then open that conversation) without threading a callback through their own constructors. */
+    private static MainMenu instance;
+
+    /** Navigates to the Chat page and opens a DM with the given user - a real deep link, not just "go to Messages and figure it out," which is what both call sites used to do (or, in FriendsPanel's case, used a separate standalone chat dialog with none of ChatPanel's avatars/grouping/typing indicators/reactions). No-op if MainMenu hasn't finished constructing yet. */
+    public static void openDirectMessage(String username)
+    {
+        if (instance == null) return;
+        instance.onNavigate(Pages.CHAT);
+        if (ChatPanel.getInstance() != null)
+        {
+            ChatPanel.getInstance().openDirectMessage(username);
+        }
+    }
+
     private static final int TRANSITION_MS = 220;
 
     private final TopBar topBar;
@@ -74,6 +88,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     public MainMenu()
     {
         super("Vertex");
+        instance = this;
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1000, 650));
 

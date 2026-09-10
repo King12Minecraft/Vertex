@@ -34,11 +34,7 @@ import java.util.List;
  * A search box in the top bar for jumping straight to a game or a
  * friend without navigating through pages first. Games launch
  * directly (GameLauncher.launch, same as clicking its card anywhere
- * else); friends navigate to the Messages page - opening the exact
- * DM from here would need routing into whichever ChatPanel instance
- * MainMenu currently owns, which isn't exposed to TopBar, so this
- * stops at "take me to Messages" rather than deep-linking the
- * specific conversation.
+ * else); friends open their DM directly too (MainMenu.openDirectMessage).
  */
 public class GlobalSearchField extends JPanel
 {
@@ -167,7 +163,7 @@ public class GlobalSearchField extends JPanel
                     {
                         resultsPopup.setVisible(false);
                         field.clear();
-                        navigationListener.onNavigate(Pages.CHAT);
+                        MainMenu.openDirectMessage(friend);
                     }
                 }));
             }

@@ -1,7 +1,6 @@
 package pages;
 import games.ServerBrowserDialog;
 import games.GamePickerDialog;
-import social.FriendChatDialog;
 import account.PlayerProfileDialog;
 import ui.StatusDot;
 import economy.PinnedFriendsStore;
@@ -418,7 +417,7 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         {
             public void actionPerformed(ActionEvent e)
             {
-                new FriendChatDialog(FriendsPanel.this, username).setVisible(true);
+                MainMenu.openDirectMessage(username);
             }
         });
 

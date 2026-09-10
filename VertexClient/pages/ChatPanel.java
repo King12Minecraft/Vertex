@@ -115,9 +115,18 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     private JLabel typingLabel;
     private PageHeader headerLabel;
 
+    /** MainMenu only ever constructs one ChatPanel for the app's lifetime - this lets FriendsPanel's "Message" button and GlobalSearchField's friend results deep-link into a specific DM (via MainMenu.openDirectMessage) without needing a callback threaded through their own constructors. */
+    private static ChatPanel instance;
+
+    public static ChatPanel getInstance()
+    {
+        return instance;
+    }
+
     public ChatPanel()
     {
         super(ThemeColor.BG_APP, 0);
+        instance = this;
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(0, 32, 24, 32));
 
