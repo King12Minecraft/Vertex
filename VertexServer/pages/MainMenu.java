@@ -76,8 +76,40 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         super("Vertex");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1000, 650));
-        setSize(1280, 800);
-        setLocationRelativeTo(null);
+
+        Dimension savedSize = WindowSizeMemory.loadSize();
+        java.awt.Point savedPosition = WindowSizeMemory.loadPosition();
+        if (savedSize != null)
+        {
+            setSize(savedSize);
+        }
+        else
+        {
+            setSize(1280, 800);
+        }
+        if (savedPosition != null)
+        {
+            setLocation(savedPosition);
+        }
+        else
+        {
+            setLocationRelativeTo(null);
+        }
+        if (WindowSizeMemory.loadMaximized())
+        {
+            setExtendedState(JFrame.MAXIMIZED_BOTH);
+        }
+
+        addWindowListener(new java.awt.event.WindowAdapter()
+        {
+            public void windowClosing(java.awt.event.WindowEvent e) { saveWindowState(); }
+        });
+        addComponentListener(new ComponentAdapter()
+        {
+            public void componentResized(ComponentEvent e) { saveWindowState(); }
+            public void componentMoved(ComponentEvent e) { saveWindowState(); }
+        });
+
         SignatureOverlay.attach(this);
         GlitchEffectOverlay.attach(this);
 
@@ -294,6 +326,20 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     }
 
     /** Lays the outgoing page's screenshot over the (already-swapped) new page, fading it out to reveal what's underneath. */
+    /** Skips saving while maximized/minimized - getSize()/getLocation() report the maximized bounds in that state, which would overwrite the actual restored-window size someone had before maximizing. The maximized flag itself is still saved separately, so "was maximized" is remembered without losing "what size to restore to if un-maximized next time." */
+    private void saveWindowState()
+    {
+        boolean maximized = (getExtendedState() & JFrame.MAXIMIZED_BOTH) == JFrame.MAXIMIZED_BOTH;
+        if (maximized)
+        {
+            WindowSizeMemory.save(null, null, true);
+        }
+        else if (getExtendedState() == JFrame.NORMAL)
+        {
+            WindowSizeMemory.save(getSize(), getLocation(), false);
+        }
+    }
+
     private void runFadeTransition(final BufferedImage snapshot)
     {
         final FadeOverlay overlay = new FadeOverlay(snapshot);
