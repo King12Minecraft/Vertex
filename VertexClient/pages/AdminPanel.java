@@ -278,10 +278,73 @@ public class AdminPanel extends RoundedPanel
                 }
             });
             right.add(ban);
+
+            final ThemedButton mute = new ThemedButton("Mute", false);
+            mute.setPreferredSize(new Dimension(76, 32));
+            mute.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e) { showMuteDurationPicker(mute, username); }
+            });
+            right.add(mute);
+
+            ThemedButton kick = new ThemedButton("Kick", false);
+            kick.setPreferredSize(new Dimension(76, 32));
+            kick.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e) { sendModAction(MessageType.MOD_KICK_REQUEST, username, 0); }
+            });
+            right.add(kick);
         }
 
         row.add(right, BorderLayout.EAST);
         return row;
+    }
+
+    /** A tiny popup with a few preset durations - a full dialog felt like overkill for "how long," and 5/15/60 covers the realistic range of a mute (long enough to cool someone down, short enough that a mistaken mute isn't a big deal). */
+    private void showMuteDurationPicker(Component anchor, final String username)
+    {
+        final javax.swing.JPopupMenu popup = new javax.swing.JPopupMenu();
+        JPanel picker = new JPanel();
+        picker.setLayout(new BoxLayout(picker, BoxLayout.Y_AXIS));
+        picker.setBackground(ThemeManager.getColor(ThemeColor.BG_PANEL));
+        picker.setBorder(new EmptyBorder(6, 6, 6, 6));
+
+        int[] durations = { 5, 15, 60 };
+        for (final int minutes : durations)
+        {
+            ThemedButton option = new ThemedButton(minutes + " minutes", false);
+            option.setAlignmentX(Component.LEFT_ALIGNMENT);
+            option.setMaximumSize(new Dimension(160, 32));
+            option.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    popup.setVisible(false);
+                    sendModAction(MessageType.MOD_MUTE_REQUEST, username, minutes);
+                }
+            });
+            picker.add(option);
+            picker.add(javax.swing.Box.createVerticalStrut(4));
+        }
+
+        popup.add(picker);
+        popup.show(anchor, 0, anchor.getHeight());
+    }
+
+    private void sendModAction(final MessageType type, final String username, final int minutes)
+    {
+        Thread worker = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(type);
+                request.setUsername(username);
+                if (minutes > 0) request.setMuteDurationMinutes(minutes);
+                NetworkManager.send(request);
+            }
+        });
+        worker.start();
     }
 
     private Color roleColor(String role)

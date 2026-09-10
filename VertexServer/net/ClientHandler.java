@@ -1626,6 +1626,7 @@ public class ClientHandler implements Runnable
 
         int minutes = request.getMuteDurationMinutes() > 0 ? request.getMuteDurationMinutes() : 10;
         moderationManager.mute(request.getUsername(), minutes);
+        adminLog.log(loggedInUsername, "Muted " + request.getUsername() + " for " + minutes + " minutes");
 
         ClientHandler target = chatManager.findByUsername(request.getUsername());
         if (target != null)
@@ -1653,6 +1654,7 @@ public class ClientHandler implements Runnable
         }
 
         moderationManager.unmute(request.getUsername());
+        adminLog.log(loggedInUsername, "Unmuted " + request.getUsername());
         response.setSuccess(true);
         return response;
     }
@@ -1677,6 +1679,7 @@ public class ClientHandler implements Runnable
             return response;
         }
 
+        adminLog.log(loggedInUsername, "Kicked " + request.getUsername());
         target.forceDisconnect("You've been kicked by a moderator.");
         response.setSuccess(true);
         return response;
