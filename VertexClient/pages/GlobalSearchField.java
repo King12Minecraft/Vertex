@@ -127,6 +127,16 @@ public class GlobalSearchField extends JPanel
             return;
         }
 
+        if (resultsPopup != null)
+        {
+            // The previous popup was never told to close - only its Java reference got
+            // replaced each keystroke, leaving one stray popup window behind per
+            // character typed. Those accumulate and can end up silently eating clicks/
+            // focus meant for the rest of the app, which is what "stuck in the search
+            // bar" was actually being caused by.
+            resultsPopup.setVisible(false);
+        }
+
         resultsPopup = new JPopupMenu();
         resultsPopup.setBorder(BorderFactory.createLineBorder(ThemeManager.getColor(ThemeColor.BORDER), 1));
 
