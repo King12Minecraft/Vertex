@@ -600,6 +600,11 @@ public class Message implements Serializable
     public java.util.List<String> getUnlockedAchievementIds() { return unlockedAchievementIds; }
     public void setUnlockedAchievementIds(java.util.List<String> unlockedAchievementIds) { this.unlockedAchievementIds = unlockedAchievementIds; }
 
+    /** Current values for every progress-trackable achievement metric, "key:value" per entry (e.g. "wins:chess:3", "coins:450", "total-plays:23") - ACHIEVEMENTS_RESPONSE. Lets AchievementsPanel show "3/5" style progress on locked achievements instead of just locked/unlocked. */
+    private java.util.List<String> achievementMetrics;
+    public java.util.List<String> getAchievementMetrics() { return achievementMetrics; }
+    public void setAchievementMetrics(java.util.List<String> achievementMetrics) { this.achievementMetrics = achievementMetrics; }
+
     // ---- Tournaments (4-player single-elimination brackets) ----
     private String tournamentId;
     private java.util.List<String> tournamentEntries;

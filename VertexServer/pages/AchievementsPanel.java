@@ -73,7 +73,7 @@ public class AchievementsPanel extends RoundedPanel
         ThemedScrollBarUI.apply(scroll);
         add(scroll, BorderLayout.CENTER);
 
-        renderLocked(new HashSet<String>());
+        renderLocked(new HashSet<String>(), new java.util.HashMap<String, Integer>());
         fetchInBackground();
     }
 
@@ -96,7 +96,8 @@ public class AchievementsPanel extends RoundedPanel
                             return;
                         }
                         List<String> unlockedList = response.getUnlockedAchievementIds();
-                        renderLocked(unlockedList == null ? new HashSet<String>() : new HashSet<String>(unlockedList));
+                        renderLocked(unlockedList == null ? new HashSet<String>() : new HashSet<String>(unlockedList),
+                            parseMetrics(response.getAchievementMetrics()));
                     }
                 });
             }
@@ -104,7 +105,26 @@ public class AchievementsPanel extends RoundedPanel
         worker.start();
     }
 
-    private void renderLocked(Set<String> unlockedIds)
+    /** "wins:chess:3" -> {"wins:chess": 3}; "coins:450" -> {"coins": 450} - the metric key is everything before the final colon, matching how Definition.metricKey is written (see its own javadoc). */
+    private java.util.Map<String, Integer> parseMetrics(List<String> raw)
+    {
+        java.util.Map<String, Integer> map = new java.util.HashMap<String, Integer>();
+        if (raw == null) return map;
+        for (int i = 0; i < raw.size(); i++)
+        {
+            String entry = raw.get(i);
+            int lastColon = entry.lastIndexOf(':');
+            if (lastColon < 0) continue;
+            try
+            {
+                map.put(entry.substring(0, lastColon), Integer.parseInt(entry.substring(lastColon + 1)));
+            }
+            catch (NumberFormatException ignored) { }
+        }
+        return map;
+    }
+
+    private void renderLocked(Set<String> unlockedIds, java.util.Map<String, Integer> metrics)
     {
         list.removeAll();
 
@@ -126,7 +146,7 @@ public class AchievementsPanel extends RoundedPanel
         {
             AchievementDefinitions.Definition def = all.get(i);
             boolean unlocked = unlockedIds.contains(def.id);
-            list.add(buildCard(def, unlocked));
+            list.add(buildCard(def, unlocked, metrics));
             list.add(Box.createVerticalStrut(8));
         }
 
@@ -134,12 +154,13 @@ public class AchievementsPanel extends RoundedPanel
         list.repaint();
     }
 
-    private JPanel buildCard(AchievementDefinitions.Definition def, boolean unlocked)
+    private JPanel buildCard(AchievementDefinitions.Definition def, boolean unlocked, java.util.Map<String, Integer> metrics)
     {
+        boolean showProgress = !unlocked && def.metricKey != null;
         RoundedPanel card = new RoundedPanel(unlocked ? ThemeColor.BG_PANEL_HOVER : ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         card.setLayout(new BorderLayout());
         card.setBorder(new EmptyBorder(12, 16, 12, 16));
-        card.setMaximumSize(new Dimension(2000, 64));
+        card.setMaximumSize(new Dimension(2000, showProgress ? 78 : 64));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (unlocked)
         {
@@ -161,8 +182,49 @@ public class AchievementsPanel extends RoundedPanel
 
         textCol.add(nameLabel);
         textCol.add(descLabel);
+
+        if (showProgress)
+        {
+            Integer current = metrics.get(def.metricKey);
+            int currentValue = current != null ? Math.min(current, def.target) : 0;
+            textCol.add(buildProgressBar(currentValue, def.target));
+        }
+
         card.add(textCol, BorderLayout.CENTER);
 
         return card;
+    }
+
+    private JPanel buildProgressBar(final int current, final int target)
+    {
+        JPanel row = new JPanel(new BorderLayout(8, 0));
+        row.setOpaque(false);
+        row.setBorder(new EmptyBorder(6, 0, 0, 0));
+        row.setMaximumSize(new Dimension(2000, 14));
+
+        JPanel track = new JPanel(null)
+        {
+            protected void paintComponent(java.awt.Graphics g)
+            {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                UITheme.applyAntialiasing(g2);
+                g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
+                int fillWidth = target > 0 ? (int) (getWidth() * (current / (double) target)) : 0;
+                g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
+                g2.fillRoundRect(0, 0, Math.max(fillWidth, current > 0 ? 6 : 0), getHeight(), 6, 6);
+                g2.dispose();
+            }
+        };
+        track.setOpaque(false);
+        row.add(track, BorderLayout.CENTER);
+
+        JLabel fraction = new JLabel(current + "/" + target);
+        fraction.setFont(UITheme.FONT_SMALL.deriveFont(10f));
+        fraction.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        row.add(fraction, BorderLayout.EAST);
+
+        return row;
     }
 }

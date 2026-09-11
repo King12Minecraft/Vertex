@@ -2340,12 +2340,33 @@ public class ClientHandler implements Runnable
         if (loggedInAccountId != null)
         {
             response.setUnlockedAchievementIds(new java.util.ArrayList<String>(achievementManager.getUnlocked(loggedInAccountId)));
+            response.setAchievementMetrics(computeAchievementMetrics(loggedInAccountId));
         }
         else
         {
             response.setUnlockedAchievementIds(new java.util.ArrayList<String>());
+            response.setAchievementMetrics(new java.util.ArrayList<String>());
         }
         return response;
+    }
+
+    /** Current values for every progress-trackable achievement (see AchievementDefinitions' metricKey javadoc for the "key:value" shape) - kept here rather than in AchievementManager since it pulls from three different managers (LeaderboardManager for win counts, GameHistoryManager for total plays, the account itself for coins) that AchievementManager doesn't otherwise depend on. */
+    private java.util.List<String> computeAchievementMetrics(int accountId)
+    {
+        java.util.List<String> metrics = new java.util.ArrayList<String>();
+        String[] winGames = { "chess", "battleship", "rock-paper-scissors", "tictactoe-online", "fight-arena" };
+        for (String gameId : winGames)
+        {
+            int wins = leaderboardManager.getRecord(gameId, accountId)[0];
+            metrics.add("wins:" + gameId + ":" + wins);
+        }
+
+        Account account = accountStore.findByUsername(loggedInUsername);
+        int coins = account != null ? account.getCoins() : 0;
+        metrics.add("coins:" + coins);
+
+        metrics.add("total-plays:" + gameHistoryManager.getTotalPlayCount(accountId));
+        return metrics;
     }
 
     // ==================== Tournaments ====================
