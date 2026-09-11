@@ -122,6 +122,11 @@ public class GameLauncher
                 TriviaWindow window = new TriviaWindow();
                 window.setVisible(true);
             }
+            else if ("minesweeper".equals(game.getGameId()))
+            {
+                MinesweeperWindow window = new MinesweeperWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

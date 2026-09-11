@@ -28,6 +28,7 @@ public class EconomyConfig
 
     /** Flat reward for solving a Puzzle Quest puzzle - this game has no score concept (just move count), so there's nothing to scale a reward against. */
     public static final int PUZZLE_QUEST_REWARD = 10;
+    public static final int MINESWEEPER_REWARD = 15;
 
     /**
      * Score-based rewards for the remaining practice-mode games that

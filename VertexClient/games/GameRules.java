@@ -96,6 +96,11 @@ public class GameRules
         RULES.put("trivia-blitz", "2-6 players answer the same 8 general-knowledge questions. "
             + "Pick an answer before the timer runs out - correct answers score points, with a "
             + "bonus for answering faster. Highest total score after all questions wins.");
+
+        RULES.put("minesweeper", "Left-click a cell to reveal it - a number shows how many mines "
+            + "are in the 8 surrounding cells, or the cell opens up a wider empty area if there "
+            + "are none nearby. Right-click to flag a cell you think hides a mine. Reveal every "
+            + "non-mine cell to win - reveal a mine and it's game over.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

@@ -45,6 +45,7 @@ public class GameMetadata
         tag("checkers", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("space-battle", HARD, "2D", "Multiplayer", "Online", "Real-Time");
         tag("trivia-blitz", EASY, "2D", "Multiplayer", "Online", "Quiz");
+        tag("minesweeper", MEDIUM, "2D", "Single Player", "Puzzle");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)

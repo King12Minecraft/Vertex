@@ -1339,6 +1339,10 @@ public class ClientHandler implements Runnable
             {
                 economyManager.awardPuzzleQuestCompletion(this);
             }
+            else if ("minesweeper".equals(gameId))
+            {
+                economyManager.awardMinesweeperCompletion(this);
+            }
             else if ("pingpong".equals(gameId) || "2048".equals(gameId) || "dino-dash".equals(gameId)
                 || "tetris".equals(gameId) || "crossing-road".equals(gameId) || "aim-trainer".equals(gameId))
             {

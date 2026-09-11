@@ -267,6 +267,25 @@ public class EconomyManager
         player.sendMessage(walletUpdate);
     }
 
+    public void awardMinesweeperCompletion(ClientHandler player)
+    {
+        String username = player.getLoggedInUsername();
+        if (username == null) return;
+        Account account = accountStore.findByUsername(username);
+        if (account == null) return;
+
+        int reward = EconomyConfig.MINESWEEPER_REWARD;
+        account.setCoins(account.getCoins() + reward);
+        transactionManager.log(account.getAccountId(), reward, "Cleared a Minesweeper board");
+        accountStore.updateAccount(account);
+        checkCoinAchievement(account);
+
+        Message walletUpdate = new Message();
+        walletUpdate.setType(MessageType.WALLET_UPDATE);
+        walletUpdate.setCoins(account.getCoins());
+        player.sendMessage(walletUpdate);
+    }
+
     public synchronized PurchaseResult purchase(ClientHandler buyer, String itemId, int[] outNewBalance)
     {
         String username = buyer.getLoggedInUsername();
