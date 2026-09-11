@@ -64,6 +64,12 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     /** One MainMenu per app run - lets FriendsPanel's "Message" button and GlobalSearchField's friend results deep-link straight into a specific DM (navigate to Chat, then open that conversation) without threading a callback through their own constructors. */
     private static MainMenu instance;
 
+    /** Lets other classes anchor a dialog to the app's one real Frame when they don't have their own window ancestor to use - AchievementToast is the first case (it's a standalone JWindow, not tied to any Frame, so ScoreShareDialog needs something else to anchor to when its "Share" link is clicked). */
+    public static MainMenu getInstance()
+    {
+        return instance;
+    }
+
     /** Navigates to the Chat page and opens a DM with the given user - a real deep link, not just "go to Messages and figure it out," which is what both call sites used to do (or, in FriendsPanel's case, used a separate standalone chat dialog with none of ChatPanel's avatars/grouping/typing indicators/reactions). No-op if MainMenu hasn't finished constructing yet. */
     public static void openDirectMessage(String username)
     {

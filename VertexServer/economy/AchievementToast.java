@@ -74,6 +74,29 @@ public class AchievementToast
         descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(descLabel);
 
+        final JLabel shareLink = new JLabel("Share");
+        shareLink.setFont(UITheme.FONT_SMALL);
+        shareLink.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
+        shareLink.setAlignmentX(Component.LEFT_ALIGNMENT);
+        shareLink.setBorder(new EmptyBorder(8, 0, 0, 0));
+        shareLink.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        final String shareText = "I just unlocked \"" + achievementName + "\" on Vertex!";
+        shareLink.addMouseListener(new java.awt.event.MouseAdapter()
+        {
+            public void mouseClicked(java.awt.event.MouseEvent e)
+            {
+                // pages.MainMenu is the app's one real Frame - this JWindow itself isn't
+                // one, so ScoreShareDialog (which needs a Frame to anchor its own JDialog
+                // to) can't use anything from inside this toast directly.
+                if (pages.MainMenu.getInstance() != null)
+                {
+                    social.ScoreShareDialog.show(pages.MainMenu.getInstance(), shareText);
+                }
+                window.dispose();
+            }
+        });
+        body.add(shareLink);
+
         root.add(body, BorderLayout.CENTER);
 
         window.pack();
