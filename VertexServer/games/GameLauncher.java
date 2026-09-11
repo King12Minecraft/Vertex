@@ -127,6 +127,11 @@ public class GameLauncher
                 MinesweeperWindow window = new MinesweeperWindow();
                 window.setVisible(true);
             }
+            else if ("dots-and-boxes".equals(game.getGameId()))
+            {
+                DotsAndBoxesWindow window = new DotsAndBoxesWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

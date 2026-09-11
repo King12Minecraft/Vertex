@@ -32,6 +32,8 @@ import games.RacingMatchManager;
 import games.RacingMatch;
 import games.TriviaMatchManager;
 import games.TriviaMatch;
+import games.DotsAndBoxesMatchManager;
+import games.DotsAndBoxesMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -83,6 +85,8 @@ public class ClientHandler implements Runnable
     private SquareWarsMatchManager squareWarsMatchManager;
     private TriviaMatch currentTriviaMatch;
     private TriviaMatchManager triviaMatchManager;
+    private DotsAndBoxesMatch currentDotsAndBoxesMatch;
+    private DotsAndBoxesMatchManager dotsAndBoxesMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -129,7 +133,7 @@ public class ClientHandler implements Runnable
                           SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog,
                           ConnectFourMatchManager connectFourMatchManager, AvatarStore avatarStore,
                           CheckersMatchManager checkersMatchManager, SquareWarsMatchManager squareWarsMatchManager,
-                          TriviaMatchManager triviaMatchManager)
+                          TriviaMatchManager triviaMatchManager, DotsAndBoxesMatchManager dotsAndBoxesMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -166,6 +170,7 @@ public class ClientHandler implements Runnable
         this.checkersMatchManager = checkersMatchManager;
         this.squareWarsMatchManager = squareWarsMatchManager;
         this.triviaMatchManager = triviaMatchManager;
+        this.dotsAndBoxesMatchManager = dotsAndBoxesMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -175,6 +180,7 @@ public class ClientHandler implements Runnable
     public void setCurrentCheckersMatch(CheckersMatch match) { this.currentCheckersMatch = match; }
     public void setCurrentSquareWarsMatch(SquareWarsMatch match) { this.currentSquareWarsMatch = match; }
     public void setCurrentTriviaMatch(TriviaMatch match) { this.currentTriviaMatch = match; }
+    public void setCurrentDotsAndBoxesMatch(DotsAndBoxesMatch match) { this.currentDotsAndBoxesMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -248,6 +254,7 @@ public class ClientHandler implements Runnable
             checkersMatchManager.cancelWaiting(this);
             squareWarsMatchManager.cancelWaiting(this);
             triviaMatchManager.cancelWaiting(this);
+            dotsAndBoxesMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -265,6 +272,7 @@ public class ClientHandler implements Runnable
             if (currentCheckersMatch != null) currentCheckersMatch.handleDisconnect(this);
             if (currentSquareWarsMatch != null) currentSquareWarsMatch.handleDisconnect(this);
             if (currentTriviaMatch != null) currentTriviaMatch.handleDisconnect(this);
+            if (currentDotsAndBoxesMatch != null) currentDotsAndBoxesMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -373,6 +381,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.TRIVIA_FIND_MATCH_REQUEST) return handleTriviaFindMatch();
         if (request.getType() == MessageType.TRIVIA_LEAVE_QUEUE_REQUEST) return handleTriviaLeaveQueue();
         if (request.getType() == MessageType.TRIVIA_ANSWER_REQUEST) return handleTriviaAnswer(request);
+        if (request.getType() == MessageType.DOTS_FIND_MATCH_REQUEST) return handleDotsFindMatch();
+        if (request.getType() == MessageType.DOTS_LEAVE_QUEUE_REQUEST) return handleDotsLeaveQueue();
+        if (request.getType() == MessageType.DOTS_LINE_REQUEST) return handleDotsLine(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2252,6 +2263,34 @@ public class ClientHandler implements Runnable
         if (currentTriviaMatch != null)
         {
             currentTriviaMatch.submitAnswer(this, request.getCellIndex());
+        }
+        return null;
+    }
+
+    // ==================== Dots and Boxes ====================
+
+    private Message handleDotsFindMatch()
+    {
+        if (loggedInUsername != null) dotsAndBoxesMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleDotsLeaveQueue()
+    {
+        dotsAndBoxesMatchManager.cancelWaiting(this);
+        if (currentDotsAndBoxesMatch != null)
+        {
+            currentDotsAndBoxesMatch.handleDisconnect(this);
+            currentDotsAndBoxesMatch = null;
+        }
+        return null;
+    }
+
+    private Message handleDotsLine(Message request)
+    {
+        if (currentDotsAndBoxesMatch != null)
+        {
+            currentDotsAndBoxesMatch.drawLine(this, request.getCellIndex());
         }
         return null;
     }

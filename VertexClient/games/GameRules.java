@@ -101,6 +101,10 @@ public class GameRules
             + "are in the 8 surrounding cells, or the cell opens up a wider empty area if there "
             + "are none nearby. Right-click to flag a cell you think hides a mine. Reveal every "
             + "non-mine cell to win - reveal a mine and it's game over.");
+
+        RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
+            + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
+            + "Most boxes owned once every line is drawn wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

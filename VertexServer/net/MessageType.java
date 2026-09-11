@@ -198,6 +198,14 @@ public enum MessageType
     TRIVIA_ROUND_RESULT,
     TRIVIA_RESULT,
 
+    // --- Dots and Boxes (1v1, ELO-rated, turn-based - see DotsAndBoxesMatch) ---
+    DOTS_FIND_MATCH_REQUEST,
+    DOTS_LEAVE_QUEUE_REQUEST,
+    DOTS_MATCH_FOUND,
+    DOTS_LINE_REQUEST,
+    DOTS_UPDATE,
+    DOTS_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,
