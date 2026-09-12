@@ -302,8 +302,50 @@ public class SettingsPanel extends RoundedPanel
             public void actionPerformed(ActionEvent e) { ServerBrowserDialog.show(switchServer); }
         });
         col.add(switchServer);
+        col.add(Box.createVerticalStrut(10));
+
+        final ThemedButton copyDiagnostics = new ThemedButton("Copy Diagnostic Info", false);
+        copyDiagnostics.setAlignmentX(Component.LEFT_ALIGNMENT);
+        copyDiagnostics.setMaximumSize(new Dimension(220, 38));
+        copyDiagnostics.setPreferredSize(new Dimension(220, 38));
+        copyDiagnostics.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                java.awt.Toolkit.getDefaultToolkit().getSystemClipboard()
+                    .setContents(new java.awt.datatransfer.StringSelection(buildDiagnosticInfo()), null);
+                copyDiagnostics.setText("Copied!");
+            }
+        });
+        col.add(copyDiagnostics);
+
+        JLabel diagNote = new JLabel("<html><body style='width:420px'>Useful to paste into a bug report - "
+            + "includes your Java version, OS, and which server you're connected to. No account info or "
+            + "message content.</body></html>");
+        diagNote.setFont(UITheme.FONT_SMALL);
+        diagNote.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        diagNote.setAlignmentX(Component.LEFT_ALIGNMENT);
+        diagNote.setBorder(new EmptyBorder(6, 0, 0, 0));
+        col.add(diagNote);
 
         return col;
+    }
+
+    /** Deliberately excludes anything account-specific (username, coins, etc.) - this is meant to be safely pasteable into a public bug report without exposing personal info, just the environment details that actually help diagnose a problem. */
+    private String buildDiagnosticInfo()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Vertex Diagnostic Info\n");
+        sb.append("-----------------------\n");
+        sb.append("Java: ").append(System.getProperty("java.version"))
+            .append(" (").append(System.getProperty("java.vendor")).append(")\n");
+        sb.append("OS: ").append(System.getProperty("os.name")).append(" ")
+            .append(System.getProperty("os.version")).append(" (").append(System.getProperty("os.arch")).append(")\n");
+        sb.append("Max heap: ").append(Runtime.getRuntime().maxMemory() / (1024 * 1024)).append(" MB\n");
+        sb.append("Server: ").append(NetworkConfig.getServerHost()).append(":").append(NetworkConfig.getServerPort()).append("\n");
+        sb.append("Connection state: ").append(NetworkManager.getState()).append("\n");
+        sb.append("Performance Mode: ").append(PerformanceMode.isEnabled() ? "On" : "Off").append("\n");
+        return sb.toString();
     }
 
     /**
