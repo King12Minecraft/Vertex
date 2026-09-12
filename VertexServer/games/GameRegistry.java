@@ -33,6 +33,7 @@ public class GameRegistry
         games.add(new GameInfo("trivia-blitz", "Trivia Blitz", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("minesweeper", "Minesweeper", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("dots-and-boxes", "Dots and Boxes", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("reversi", "Reversi", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
     }
 

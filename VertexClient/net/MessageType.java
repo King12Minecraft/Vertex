@@ -206,6 +206,15 @@ public enum MessageType
     DOTS_UPDATE,
     DOTS_RESULT,
 
+    // --- Reversi/Othello (1v1, ELO-rated, turn-based - see ReversiMatch) ---
+    REVERSI_FIND_MATCH_REQUEST,
+    REVERSI_LEAVE_QUEUE_REQUEST,
+    REVERSI_MATCH_FOUND,
+    REVERSI_MOVE_REQUEST,
+    REVERSI_MOVE_REJECTED,
+    REVERSI_UPDATE,
+    REVERSI_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

@@ -8,6 +8,7 @@ import games.TournamentManager;
 import economy.AvatarStore;
 import games.TriviaMatchManager;
 import games.DotsAndBoxesMatchManager;
+import games.ReversiMatchManager;
 import games.SquareWarsMatchManager;
 import games.CheckersMatchManager;
 import games.ConnectFourMatchManager;
@@ -87,6 +88,7 @@ public class GameServer
     private final SquareWarsMatchManager squareWarsMatchManager = new SquareWarsMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager);
     private final TriviaMatchManager triviaMatchManager = new TriviaMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager);
     private final DotsAndBoxesMatchManager dotsAndBoxesMatchManager = new DotsAndBoxesMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
+    private final ReversiMatchManager reversiMatchManager = new ReversiMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final AvatarStore avatarStore = new AvatarStore();
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
@@ -164,7 +166,7 @@ public class GameServer
                     teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry,
                     feedbackManager, gameSuggestionStore, zombieSurvivalMatchManager, spaceBattleMatchManager, adminLog,
                     connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager,
-                    triviaMatchManager, dotsAndBoxesMatchManager);
+                    triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

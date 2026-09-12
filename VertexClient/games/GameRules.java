@@ -105,6 +105,11 @@ public class GameRules
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
+
+        RULES.put("reversi", "8x8 board. Place a piece so it flanks one or more of your opponent's "
+            + "pieces in a straight line (any direction) between your new piece and another piece "
+            + "of yours already on the board - every flanked piece flips to your color. If you have "
+            + "no legal move, your turn is skipped. Most pieces once neither player can move wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

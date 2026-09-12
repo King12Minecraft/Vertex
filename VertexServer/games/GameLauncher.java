@@ -132,6 +132,11 @@ public class GameLauncher
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();
                 window.setVisible(true);
             }
+            else if ("reversi".equals(game.getGameId()))
+            {
+                ReversiWindow window = new ReversiWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

@@ -23,6 +23,8 @@ public class EconomyConfig
         if ("among-us".equals(gameId))         return 20;
         if ("connect-four".equals(gameId))     return 15;
         if ("checkers".equals(gameId))         return 15;
+        if ("reversi".equals(gameId))          return 15;
+        if ("dots-and-boxes".equals(gameId))   return 15;
         return 0;
     }
 

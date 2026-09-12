@@ -47,6 +47,7 @@ public class GameMetadata
         tag("trivia-blitz", EASY, "2D", "Multiplayer", "Online", "Quiz");
         tag("minesweeper", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("dots-and-boxes", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
+        tag("reversi", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)
