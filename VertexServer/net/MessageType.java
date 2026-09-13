@@ -215,6 +215,14 @@ public enum MessageType
     REVERSI_UPDATE,
     REVERSI_RESULT,
 
+    // --- Memory Match (1v1, ELO-rated, turn-based - see MemoryMatchMatch) ---
+    MEMORY_FIND_MATCH_REQUEST,
+    MEMORY_LEAVE_QUEUE_REQUEST,
+    MEMORY_MATCH_FOUND,
+    MEMORY_FLIP_REQUEST,
+    MEMORY_UPDATE,
+    MEMORY_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

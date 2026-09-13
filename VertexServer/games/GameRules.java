@@ -110,6 +110,10 @@ public class GameRules
             + "pieces in a straight line (any direction) between your new piece and another piece "
             + "of yours already on the board - every flanked piece flips to your color. If you have "
             + "no legal move, your turn is skipped. Most pieces once neither player can move wins.");
+
+        RULES.put("memory-match", "16 face-down cards, 8 matching pairs. On your turn, flip two "
+            + "cards - find a match and you keep them and go again; miss, and they flip back "
+            + "face-down and it's your opponent's turn. Most pairs once every card is matched wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

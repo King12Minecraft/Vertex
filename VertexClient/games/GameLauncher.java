@@ -137,6 +137,11 @@ public class GameLauncher
                 ReversiWindow window = new ReversiWindow();
                 window.setVisible(true);
             }
+            else if ("memory-match".equals(game.getGameId()))
+            {
+                MemoryMatchWindow window = new MemoryMatchWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

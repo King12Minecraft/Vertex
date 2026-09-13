@@ -36,6 +36,8 @@ import games.DotsAndBoxesMatchManager;
 import games.DotsAndBoxesMatch;
 import games.ReversiMatchManager;
 import games.ReversiMatch;
+import games.MemoryMatchMatchManager;
+import games.MemoryMatchMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -91,6 +93,8 @@ public class ClientHandler implements Runnable
     private DotsAndBoxesMatchManager dotsAndBoxesMatchManager;
     private ReversiMatch currentReversiMatch;
     private ReversiMatchManager reversiMatchManager;
+    private MemoryMatchMatch currentMemoryMatchMatch;
+    private MemoryMatchMatchManager memoryMatchMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -138,7 +142,7 @@ public class ClientHandler implements Runnable
                           ConnectFourMatchManager connectFourMatchManager, AvatarStore avatarStore,
                           CheckersMatchManager checkersMatchManager, SquareWarsMatchManager squareWarsMatchManager,
                           TriviaMatchManager triviaMatchManager, DotsAndBoxesMatchManager dotsAndBoxesMatchManager,
-                          ReversiMatchManager reversiMatchManager)
+                          ReversiMatchManager reversiMatchManager, MemoryMatchMatchManager memoryMatchMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -177,6 +181,7 @@ public class ClientHandler implements Runnable
         this.triviaMatchManager = triviaMatchManager;
         this.dotsAndBoxesMatchManager = dotsAndBoxesMatchManager;
         this.reversiMatchManager = reversiMatchManager;
+        this.memoryMatchMatchManager = memoryMatchMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -188,6 +193,7 @@ public class ClientHandler implements Runnable
     public void setCurrentTriviaMatch(TriviaMatch match) { this.currentTriviaMatch = match; }
     public void setCurrentDotsAndBoxesMatch(DotsAndBoxesMatch match) { this.currentDotsAndBoxesMatch = match; }
     public void setCurrentReversiMatch(ReversiMatch match) { this.currentReversiMatch = match; }
+    public void setCurrentMemoryMatchMatch(MemoryMatchMatch match) { this.currentMemoryMatchMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -263,6 +269,7 @@ public class ClientHandler implements Runnable
             triviaMatchManager.cancelWaiting(this);
             dotsAndBoxesMatchManager.cancelWaiting(this);
             reversiMatchManager.cancelWaiting(this);
+            memoryMatchMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -282,6 +289,7 @@ public class ClientHandler implements Runnable
             if (currentTriviaMatch != null) currentTriviaMatch.handleDisconnect(this);
             if (currentDotsAndBoxesMatch != null) currentDotsAndBoxesMatch.handleDisconnect(this);
             if (currentReversiMatch != null) currentReversiMatch.handleDisconnect(this);
+            if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -396,6 +404,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.REVERSI_FIND_MATCH_REQUEST) return handleReversiFindMatch();
         if (request.getType() == MessageType.REVERSI_LEAVE_QUEUE_REQUEST) return handleReversiLeaveQueue();
         if (request.getType() == MessageType.REVERSI_MOVE_REQUEST) return handleReversiMove(request);
+        if (request.getType() == MessageType.MEMORY_FIND_MATCH_REQUEST) return handleMemoryFindMatch();
+        if (request.getType() == MessageType.MEMORY_LEAVE_QUEUE_REQUEST) return handleMemoryLeaveQueue();
+        if (request.getType() == MessageType.MEMORY_FLIP_REQUEST) return handleMemoryFlip(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2331,6 +2342,34 @@ public class ClientHandler implements Runnable
         if (currentReversiMatch != null)
         {
             currentReversiMatch.placePiece(this, request.getCellIndex());
+        }
+        return null;
+    }
+
+    // ==================== Memory Match ====================
+
+    private Message handleMemoryFindMatch()
+    {
+        if (loggedInUsername != null) memoryMatchMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleMemoryLeaveQueue()
+    {
+        memoryMatchMatchManager.cancelWaiting(this);
+        if (currentMemoryMatchMatch != null)
+        {
+            currentMemoryMatchMatch.handleDisconnect(this);
+            currentMemoryMatchMatch = null;
+        }
+        return null;
+    }
+
+    private Message handleMemoryFlip(Message request)
+    {
+        if (currentMemoryMatchMatch != null)
+        {
+            currentMemoryMatchMatch.flipCard(this, request.getCellIndex());
         }
         return null;
     }
