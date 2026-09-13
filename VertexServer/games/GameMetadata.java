@@ -48,11 +48,13 @@ public class GameMetadata
         tag("minesweeper", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("sudoku", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("simon-says", EASY, "2D", "Single Player", "Memory");
+        tag("whack-a-mole", EASY, "2D", "Single Player", "Reaction");
         tag("dots-and-boxes", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("reversi", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("memory-match", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("air-hockey", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
         tag("word-duel", MEDIUM, "2D", "Multiplayer", "Online", "Word Game", "ELO-Rated");
+        tag("dice-duel", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)

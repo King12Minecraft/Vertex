@@ -42,6 +42,8 @@ import games.AirHockeyMatchManager;
 import games.AirHockeyMatch;
 import games.WordDuelMatchManager;
 import games.WordDuelMatch;
+import games.DiceDuelMatchManager;
+import games.DiceDuelMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -103,6 +105,8 @@ public class ClientHandler implements Runnable
     private AirHockeyMatchManager airHockeyMatchManager;
     private WordDuelMatch currentWordDuelMatch;
     private WordDuelMatchManager wordDuelMatchManager;
+    private DiceDuelMatch currentDiceDuelMatch;
+    private DiceDuelMatchManager diceDuelMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -151,7 +155,8 @@ public class ClientHandler implements Runnable
                           CheckersMatchManager checkersMatchManager, SquareWarsMatchManager squareWarsMatchManager,
                           TriviaMatchManager triviaMatchManager, DotsAndBoxesMatchManager dotsAndBoxesMatchManager,
                           ReversiMatchManager reversiMatchManager, MemoryMatchMatchManager memoryMatchMatchManager,
-                          AirHockeyMatchManager airHockeyMatchManager, WordDuelMatchManager wordDuelMatchManager)
+                          AirHockeyMatchManager airHockeyMatchManager, WordDuelMatchManager wordDuelMatchManager,
+                          DiceDuelMatchManager diceDuelMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -193,6 +198,7 @@ public class ClientHandler implements Runnable
         this.memoryMatchMatchManager = memoryMatchMatchManager;
         this.airHockeyMatchManager = airHockeyMatchManager;
         this.wordDuelMatchManager = wordDuelMatchManager;
+        this.diceDuelMatchManager = diceDuelMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -207,6 +213,7 @@ public class ClientHandler implements Runnable
     public void setCurrentMemoryMatchMatch(MemoryMatchMatch match) { this.currentMemoryMatchMatch = match; }
     public void setCurrentAirHockeyMatch(AirHockeyMatch match) { this.currentAirHockeyMatch = match; }
     public void setCurrentWordDuelMatch(WordDuelMatch match) { this.currentWordDuelMatch = match; }
+    public void setCurrentDiceDuelMatch(DiceDuelMatch match) { this.currentDiceDuelMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -285,6 +292,7 @@ public class ClientHandler implements Runnable
             memoryMatchMatchManager.cancelWaiting(this);
             airHockeyMatchManager.cancelWaiting(this);
             wordDuelMatchManager.cancelWaiting(this);
+            diceDuelMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -307,6 +315,7 @@ public class ClientHandler implements Runnable
             if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
             if (currentAirHockeyMatch != null) currentAirHockeyMatch.handleDisconnect(this);
             if (currentWordDuelMatch != null) currentWordDuelMatch.handleDisconnect(this);
+            if (currentDiceDuelMatch != null) currentDiceDuelMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -430,6 +439,10 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.WORDDUEL_FIND_MATCH_REQUEST) return handleWordDuelFindMatch();
         if (request.getType() == MessageType.WORDDUEL_LEAVE_QUEUE_REQUEST) return handleWordDuelLeaveQueue();
         if (request.getType() == MessageType.WORDDUEL_SUBMIT_REQUEST) return handleWordDuelSubmit(request);
+        if (request.getType() == MessageType.DICEDUEL_FIND_MATCH_REQUEST) return handleDiceDuelFindMatch();
+        if (request.getType() == MessageType.DICEDUEL_LEAVE_QUEUE_REQUEST) return handleDiceDuelLeaveQueue();
+        if (request.getType() == MessageType.DICEDUEL_REROLL_REQUEST) return handleDiceDuelReroll(request);
+        if (request.getType() == MessageType.DICEDUEL_LOCK_REQUEST) return handleDiceDuelLock(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2461,6 +2474,54 @@ public class ClientHandler implements Runnable
         if (currentWordDuelMatch != null)
         {
             currentWordDuelMatch.submitWord(this, request.getChatText());
+        }
+        return null;
+    }
+
+    // ==================== Dice Duel ====================
+
+    private Message handleDiceDuelFindMatch()
+    {
+        if (loggedInUsername != null) diceDuelMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleDiceDuelLeaveQueue()
+    {
+        diceDuelMatchManager.cancelWaiting(this);
+        if (currentDiceDuelMatch != null)
+        {
+            currentDiceDuelMatch.handleDisconnect(this);
+            currentDiceDuelMatch = null;
+        }
+        return null;
+    }
+
+    /** Reuses getChatText() for a comma-separated list of dice indices to re-roll (e.g. "0,2,4") - a generic free-text field, same reuse pattern already used elsewhere. */
+    private Message handleDiceDuelReroll(Message request)
+    {
+        if (currentDiceDuelMatch != null && request.getChatText() != null)
+        {
+            java.util.List<Integer> indices = new java.util.ArrayList<Integer>();
+            if (!request.getChatText().trim().isEmpty())
+            {
+                for (String part : request.getChatText().split(","))
+                {
+                    try { indices.add(Integer.parseInt(part.trim())); }
+                    catch (NumberFormatException ignored) { }
+                }
+            }
+            currentDiceDuelMatch.reroll(this, indices);
+        }
+        return null;
+    }
+
+    /** Reuses getChatText() for the category name being locked in (e.g. "THREES"). */
+    private Message handleDiceDuelLock(Message request)
+    {
+        if (currentDiceDuelMatch != null)
+        {
+            currentDiceDuelMatch.lockCategory(this, request.getChatText());
         }
         return null;
     }

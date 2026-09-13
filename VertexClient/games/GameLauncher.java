@@ -137,6 +137,11 @@ public class GameLauncher
                 SimonWindow window = new SimonWindow();
                 window.setVisible(true);
             }
+            else if ("whack-a-mole".equals(game.getGameId()))
+            {
+                WhackAMoleWindow window = new WhackAMoleWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();
@@ -160,6 +165,11 @@ public class GameLauncher
             else if ("word-duel".equals(game.getGameId()))
             {
                 WordDuelWindow window = new WordDuelWindow();
+                window.setVisible(true);
+            }
+            else if ("dice-duel".equals(game.getGameId()))
+            {
+                DiceDuelWindow window = new DiceDuelWindow();
                 window.setVisible(true);
             }
             else if ("connect-four".equals(game.getGameId()))

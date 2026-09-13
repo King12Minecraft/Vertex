@@ -239,6 +239,15 @@ public enum MessageType
     WORDDUEL_UPDATE,
     WORDDUEL_RESULT,
 
+    // --- Dice Duel (1v1, ELO-rated, turn-based - see DiceDuelMatch) ---
+    DICEDUEL_FIND_MATCH_REQUEST,
+    DICEDUEL_LEAVE_QUEUE_REQUEST,
+    DICEDUEL_MATCH_FOUND,
+    DICEDUEL_REROLL_REQUEST,
+    DICEDUEL_LOCK_REQUEST,
+    DICEDUEL_UPDATE,
+    DICEDUEL_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

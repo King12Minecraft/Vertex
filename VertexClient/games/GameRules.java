@@ -110,6 +110,10 @@ public class GameRules
             + "same order. Get it right and the sequence grows by one more color; get it wrong and "
             + "the game ends. Your score is how many rounds you reached.");
 
+        RULES.put("whack-a-mole", "Moles pop up at random across the grid for a shrinking window "
+            + "of time - click one before it ducks back down to score. Runs for 30 seconds and "
+            + "gets faster as it goes.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
@@ -130,6 +134,11 @@ public class GameRules
             + "to type out the longest real word you can build using only those letters (each "
             + "letter only as many times as it appears in the draw). Only your longest valid word "
             + "counts - keep trying better ones as time allows. Longest word when time runs out wins.");
+
+        RULES.put("dice-duel", "Roll 5 dice. You can re-roll any subset of them up to twice, "
+            + "then lock your final roll into one of 7 scoring categories (Ones through Sixes, or "
+            + "Three of a Kind) - each category can only be used once. Once both players have "
+            + "filled all 7 categories, highest total score wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

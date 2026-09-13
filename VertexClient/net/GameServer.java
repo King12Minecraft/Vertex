@@ -12,6 +12,7 @@ import games.ReversiMatchManager;
 import games.MemoryMatchMatchManager;
 import games.AirHockeyMatchManager;
 import games.WordDuelMatchManager;
+import games.DiceDuelMatchManager;
 import games.SquareWarsMatchManager;
 import games.CheckersMatchManager;
 import games.ConnectFourMatchManager;
@@ -95,6 +96,7 @@ public class GameServer
     private final MemoryMatchMatchManager memoryMatchMatchManager = new MemoryMatchMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final AirHockeyMatchManager airHockeyMatchManager = new AirHockeyMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final WordDuelMatchManager wordDuelMatchManager = new WordDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
+    private final DiceDuelMatchManager diceDuelMatchManager = new DiceDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final AvatarStore avatarStore = new AvatarStore();
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
@@ -173,7 +175,7 @@ public class GameServer
                     feedbackManager, gameSuggestionStore, zombieSurvivalMatchManager, spaceBattleMatchManager, adminLog,
                     connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager,
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
-                    airHockeyMatchManager, wordDuelMatchManager);
+                    airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

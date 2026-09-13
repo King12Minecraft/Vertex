@@ -34,11 +34,13 @@ public class GameRegistry
         games.add(new GameInfo("minesweeper", "Minesweeper", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("sudoku", "Sudoku", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("simon-says", "Simon Says", "Single Player", "Practice Mode", false, false, "1.0"));
+        games.add(new GameInfo("whack-a-mole", "Whack-a-Mole", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("dots-and-boxes", "Dots and Boxes", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("reversi", "Reversi", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("memory-match", "Memory Match", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("air-hockey", "Air Hockey", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("word-duel", "Word Duel", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("dice-duel", "Dice Duel", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
     }
 

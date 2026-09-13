@@ -27,6 +27,7 @@ public class EconomyConfig
         if ("memory-match".equals(gameId))     return 15;
         if ("air-hockey".equals(gameId))       return 20;
         if ("word-duel".equals(gameId))        return 15;
+        if ("dice-duel".equals(gameId))        return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         return 0;
     }
@@ -55,6 +56,7 @@ public class EconomyConfig
         if ("crossing-road".equals(gameId))  return Math.min(25, score / 3);
         if ("aim-trainer".equals(gameId))    return Math.min(20, score);
         if ("simon-says".equals(gameId))     return Math.min(25, score * 2);
+        if ("whack-a-mole".equals(gameId))   return Math.min(30, score * 2);
         return 0;
     }
 
