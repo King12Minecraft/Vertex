@@ -26,6 +26,7 @@ public class EconomyConfig
         if ("reversi".equals(gameId))          return 15;
         if ("memory-match".equals(gameId))     return 15;
         if ("air-hockey".equals(gameId))       return 20;
+        if ("word-duel".equals(gameId))        return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         return 0;
     }

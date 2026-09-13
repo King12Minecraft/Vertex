@@ -231,6 +231,14 @@ public enum MessageType
     AIRHOCKEY_UPDATE,
     AIRHOCKEY_RESULT,
 
+    // --- Word Duel (1v1, ELO-rated, simultaneous - see WordDuelMatch) ---
+    WORDDUEL_FIND_MATCH_REQUEST,
+    WORDDUEL_LEAVE_QUEUE_REQUEST,
+    WORDDUEL_MATCH_FOUND,
+    WORDDUEL_SUBMIT_REQUEST,
+    WORDDUEL_UPDATE,
+    WORDDUEL_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

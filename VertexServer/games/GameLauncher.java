@@ -147,6 +147,11 @@ public class GameLauncher
                 AirHockeyWindow window = new AirHockeyWindow();
                 window.setVisible(true);
             }
+            else if ("word-duel".equals(game.getGameId()))
+            {
+                WordDuelWindow window = new WordDuelWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

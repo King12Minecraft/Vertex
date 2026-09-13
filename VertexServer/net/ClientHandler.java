@@ -40,6 +40,8 @@ import games.MemoryMatchMatchManager;
 import games.MemoryMatchMatch;
 import games.AirHockeyMatchManager;
 import games.AirHockeyMatch;
+import games.WordDuelMatchManager;
+import games.WordDuelMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -99,6 +101,8 @@ public class ClientHandler implements Runnable
     private MemoryMatchMatchManager memoryMatchMatchManager;
     private AirHockeyMatch currentAirHockeyMatch;
     private AirHockeyMatchManager airHockeyMatchManager;
+    private WordDuelMatch currentWordDuelMatch;
+    private WordDuelMatchManager wordDuelMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -147,7 +151,7 @@ public class ClientHandler implements Runnable
                           CheckersMatchManager checkersMatchManager, SquareWarsMatchManager squareWarsMatchManager,
                           TriviaMatchManager triviaMatchManager, DotsAndBoxesMatchManager dotsAndBoxesMatchManager,
                           ReversiMatchManager reversiMatchManager, MemoryMatchMatchManager memoryMatchMatchManager,
-                          AirHockeyMatchManager airHockeyMatchManager)
+                          AirHockeyMatchManager airHockeyMatchManager, WordDuelMatchManager wordDuelMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -188,6 +192,7 @@ public class ClientHandler implements Runnable
         this.reversiMatchManager = reversiMatchManager;
         this.memoryMatchMatchManager = memoryMatchMatchManager;
         this.airHockeyMatchManager = airHockeyMatchManager;
+        this.wordDuelMatchManager = wordDuelMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -201,6 +206,7 @@ public class ClientHandler implements Runnable
     public void setCurrentReversiMatch(ReversiMatch match) { this.currentReversiMatch = match; }
     public void setCurrentMemoryMatchMatch(MemoryMatchMatch match) { this.currentMemoryMatchMatch = match; }
     public void setCurrentAirHockeyMatch(AirHockeyMatch match) { this.currentAirHockeyMatch = match; }
+    public void setCurrentWordDuelMatch(WordDuelMatch match) { this.currentWordDuelMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -278,6 +284,7 @@ public class ClientHandler implements Runnable
             reversiMatchManager.cancelWaiting(this);
             memoryMatchMatchManager.cancelWaiting(this);
             airHockeyMatchManager.cancelWaiting(this);
+            wordDuelMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -299,6 +306,7 @@ public class ClientHandler implements Runnable
             if (currentReversiMatch != null) currentReversiMatch.handleDisconnect(this);
             if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
             if (currentAirHockeyMatch != null) currentAirHockeyMatch.handleDisconnect(this);
+            if (currentWordDuelMatch != null) currentWordDuelMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -419,6 +427,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.AIRHOCKEY_FIND_MATCH_REQUEST) return handleAirHockeyFindMatch();
         if (request.getType() == MessageType.AIRHOCKEY_LEAVE_QUEUE_REQUEST) return handleAirHockeyLeaveQueue();
         if (request.getType() == MessageType.AIRHOCKEY_MOVE_REQUEST) return handleAirHockeyMove(request);
+        if (request.getType() == MessageType.WORDDUEL_FIND_MATCH_REQUEST) return handleWordDuelFindMatch();
+        if (request.getType() == MessageType.WORDDUEL_LEAVE_QUEUE_REQUEST) return handleWordDuelLeaveQueue();
+        if (request.getType() == MessageType.WORDDUEL_SUBMIT_REQUEST) return handleWordDuelSubmit(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2421,6 +2432,35 @@ public class ClientHandler implements Runnable
             {
                 // Malformed position report - just drop it, the next one will correct it.
             }
+        }
+        return null;
+    }
+
+    // ==================== Word Duel ====================
+
+    private Message handleWordDuelFindMatch()
+    {
+        if (loggedInUsername != null) wordDuelMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleWordDuelLeaveQueue()
+    {
+        wordDuelMatchManager.cancelWaiting(this);
+        if (currentWordDuelMatch != null)
+        {
+            currentWordDuelMatch.handleDisconnect(this);
+            currentWordDuelMatch = null;
+        }
+        return null;
+    }
+
+    /** Reuses getChatText() for the submitted word - a generic free-text field, same reuse pattern already used elsewhere. */
+    private Message handleWordDuelSubmit(Message request)
+    {
+        if (currentWordDuelMatch != null)
+        {
+            currentWordDuelMatch.submitWord(this, request.getChatText());
         }
         return null;
     }

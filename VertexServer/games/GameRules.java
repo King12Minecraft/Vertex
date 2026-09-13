@@ -117,6 +117,11 @@ public class GameRules
 
         RULES.put("air-hockey", "Move your paddle to hit the puck into your opponent's goal - "
             + "you defend the goal on your side of the table. First to 7 goals wins.");
+
+        RULES.put("word-duel", "Both players get the same 9 random letters. You have 60 seconds "
+            + "to type out the longest real word you can build using only those letters (each "
+            + "letter only as many times as it appears in the draw). Only your longest valid word "
+            + "counts - keep trying better ones as time allows. Longest word when time runs out wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

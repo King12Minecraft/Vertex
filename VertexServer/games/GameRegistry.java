@@ -36,6 +36,7 @@ public class GameRegistry
         games.add(new GameInfo("reversi", "Reversi", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("memory-match", "Memory Match", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("air-hockey", "Air Hockey", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("word-duel", "Word Duel", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
     }
 
