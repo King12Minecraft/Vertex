@@ -142,6 +142,11 @@ public class GameLauncher
                 MemoryMatchWindow window = new MemoryMatchWindow();
                 window.setVisible(true);
             }
+            else if ("air-hockey".equals(game.getGameId()))
+            {
+                AirHockeyWindow window = new AirHockeyWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

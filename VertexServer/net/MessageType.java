@@ -223,6 +223,14 @@ public enum MessageType
     MEMORY_UPDATE,
     MEMORY_RESULT,
 
+    // --- Air Hockey (1v1, ELO-rated, real-time shared physics - see AirHockeyMatch) ---
+    AIRHOCKEY_FIND_MATCH_REQUEST,
+    AIRHOCKEY_LEAVE_QUEUE_REQUEST,
+    AIRHOCKEY_MATCH_FOUND,
+    AIRHOCKEY_MOVE_REQUEST,
+    AIRHOCKEY_UPDATE,
+    AIRHOCKEY_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

@@ -38,6 +38,8 @@ import games.ReversiMatchManager;
 import games.ReversiMatch;
 import games.MemoryMatchMatchManager;
 import games.MemoryMatchMatch;
+import games.AirHockeyMatchManager;
+import games.AirHockeyMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -95,6 +97,8 @@ public class ClientHandler implements Runnable
     private ReversiMatchManager reversiMatchManager;
     private MemoryMatchMatch currentMemoryMatchMatch;
     private MemoryMatchMatchManager memoryMatchMatchManager;
+    private AirHockeyMatch currentAirHockeyMatch;
+    private AirHockeyMatchManager airHockeyMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -142,7 +146,8 @@ public class ClientHandler implements Runnable
                           ConnectFourMatchManager connectFourMatchManager, AvatarStore avatarStore,
                           CheckersMatchManager checkersMatchManager, SquareWarsMatchManager squareWarsMatchManager,
                           TriviaMatchManager triviaMatchManager, DotsAndBoxesMatchManager dotsAndBoxesMatchManager,
-                          ReversiMatchManager reversiMatchManager, MemoryMatchMatchManager memoryMatchMatchManager)
+                          ReversiMatchManager reversiMatchManager, MemoryMatchMatchManager memoryMatchMatchManager,
+                          AirHockeyMatchManager airHockeyMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -182,6 +187,7 @@ public class ClientHandler implements Runnable
         this.dotsAndBoxesMatchManager = dotsAndBoxesMatchManager;
         this.reversiMatchManager = reversiMatchManager;
         this.memoryMatchMatchManager = memoryMatchMatchManager;
+        this.airHockeyMatchManager = airHockeyMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -194,6 +200,7 @@ public class ClientHandler implements Runnable
     public void setCurrentDotsAndBoxesMatch(DotsAndBoxesMatch match) { this.currentDotsAndBoxesMatch = match; }
     public void setCurrentReversiMatch(ReversiMatch match) { this.currentReversiMatch = match; }
     public void setCurrentMemoryMatchMatch(MemoryMatchMatch match) { this.currentMemoryMatchMatch = match; }
+    public void setCurrentAirHockeyMatch(AirHockeyMatch match) { this.currentAirHockeyMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -270,6 +277,7 @@ public class ClientHandler implements Runnable
             dotsAndBoxesMatchManager.cancelWaiting(this);
             reversiMatchManager.cancelWaiting(this);
             memoryMatchMatchManager.cancelWaiting(this);
+            airHockeyMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -290,6 +298,7 @@ public class ClientHandler implements Runnable
             if (currentDotsAndBoxesMatch != null) currentDotsAndBoxesMatch.handleDisconnect(this);
             if (currentReversiMatch != null) currentReversiMatch.handleDisconnect(this);
             if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
+            if (currentAirHockeyMatch != null) currentAirHockeyMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -407,6 +416,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.MEMORY_FIND_MATCH_REQUEST) return handleMemoryFindMatch();
         if (request.getType() == MessageType.MEMORY_LEAVE_QUEUE_REQUEST) return handleMemoryLeaveQueue();
         if (request.getType() == MessageType.MEMORY_FLIP_REQUEST) return handleMemoryFlip(request);
+        if (request.getType() == MessageType.AIRHOCKEY_FIND_MATCH_REQUEST) return handleAirHockeyFindMatch();
+        if (request.getType() == MessageType.AIRHOCKEY_LEAVE_QUEUE_REQUEST) return handleAirHockeyLeaveQueue();
+        if (request.getType() == MessageType.AIRHOCKEY_MOVE_REQUEST) return handleAirHockeyMove(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2370,6 +2382,45 @@ public class ClientHandler implements Runnable
         if (currentMemoryMatchMatch != null)
         {
             currentMemoryMatchMatch.flipCard(this, request.getCellIndex());
+        }
+        return null;
+    }
+
+    // ==================== Air Hockey ====================
+
+    private Message handleAirHockeyFindMatch()
+    {
+        if (loggedInUsername != null) airHockeyMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleAirHockeyLeaveQueue()
+    {
+        airHockeyMatchManager.cancelWaiting(this);
+        if (currentAirHockeyMatch != null)
+        {
+            currentAirHockeyMatch.handleDisconnect(this);
+            currentAirHockeyMatch = null;
+        }
+        return null;
+    }
+
+    /** Reuses getChatText() for the "x,y" paddle target position (a generic free-text field, same reuse pattern as Reversi/Checkers reusing other generically-shaped fields) rather than adding two new numeric fields just for this one game. */
+    private Message handleAirHockeyMove(Message request)
+    {
+        if (currentAirHockeyMatch != null && request.getChatText() != null)
+        {
+            try
+            {
+                String[] parts = request.getChatText().split(",", -1);
+                double x = Double.parseDouble(parts[0]);
+                double y = Double.parseDouble(parts[1]);
+                currentAirHockeyMatch.movePaddle(this, x, y);
+            }
+            catch (Exception ignored)
+            {
+                // Malformed position report - just drop it, the next one will correct it.
+            }
         }
         return null;
     }

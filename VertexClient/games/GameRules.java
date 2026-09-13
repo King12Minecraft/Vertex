@@ -114,6 +114,9 @@ public class GameRules
         RULES.put("memory-match", "16 face-down cards, 8 matching pairs. On your turn, flip two "
             + "cards - find a match and you keep them and go again; miss, and they flip back "
             + "face-down and it's your opponent's turn. Most pairs once every card is matched wins.");
+
+        RULES.put("air-hockey", "Move your paddle to hit the puck into your opponent's goal - "
+            + "you defend the goal on your side of the table. First to 7 goals wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */
