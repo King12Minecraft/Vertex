@@ -102,6 +102,14 @@ public class GameRules
             + "are none nearby. Right-click to flag a cell you think hides a mine. Reveal every "
             + "non-mine cell to win - reveal a mine and it's game over.");
 
+        RULES.put("sudoku", "Fill the 9x9 grid so every row, column, and 3x3 box contains the "
+            + "digits 1-9 with no repeats. Click a cell then type a number to fill it in - the "
+            + "bold given digits can't be changed.");
+
+        RULES.put("simon-says", "Watch the colors flash in sequence, then click them back in the "
+            + "same order. Get it right and the sequence grows by one more color; get it wrong and "
+            + "the game ends. Your score is how many rounds you reached.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");

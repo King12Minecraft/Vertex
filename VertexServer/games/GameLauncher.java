@@ -127,6 +127,16 @@ public class GameLauncher
                 MinesweeperWindow window = new MinesweeperWindow();
                 window.setVisible(true);
             }
+            else if ("sudoku".equals(game.getGameId()))
+            {
+                SudokuWindow window = new SudokuWindow();
+                window.setVisible(true);
+            }
+            else if ("simon-says".equals(game.getGameId()))
+            {
+                SimonWindow window = new SimonWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

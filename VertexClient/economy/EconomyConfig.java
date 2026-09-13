@@ -54,6 +54,7 @@ public class EconomyConfig
         if ("tetris".equals(gameId))         return Math.min(35, score / 300);
         if ("crossing-road".equals(gameId))  return Math.min(25, score / 3);
         if ("aim-trainer".equals(gameId))    return Math.min(20, score);
+        if ("simon-says".equals(gameId))     return Math.min(25, score * 2);
         return 0;
     }
 
