@@ -153,6 +153,11 @@ public class GameRules
             + "YOURS, they merge into a doubled tile and you score that new value - this can chain "
             + "into further merges. A same-value tile owned by your opponent never merges, it just "
             + "blocks you. Once the grid is full, highest total score wins.");
+
+        RULES.put("typing-duel", "Both players get the exact same sentence at the exact same "
+            + "moment - type it out correctly as fast as you can. Live progress bars show how far "
+            + "along you and your opponent are. First to finish a round correctly wins it; first to "
+            + "win 3 rounds wins the match.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

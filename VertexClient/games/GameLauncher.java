@@ -187,6 +187,11 @@ public class GameLauncher
                 FusionGridWindow window = new FusionGridWindow();
                 window.setVisible(true);
             }
+            else if ("typing-duel".equals(game.getGameId()))
+            {
+                TypingDuelWindow window = new TypingDuelWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

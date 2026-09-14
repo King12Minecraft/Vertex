@@ -272,6 +272,16 @@ public enum MessageType
     FUSIONGRID_UPDATE,
     FUSIONGRID_RESULT,
 
+    // --- Typing Duel (1v1, ELO-rated, real-time simultaneous - see TypingDuelMatch) ---
+    TYPINGDUEL_FIND_MATCH_REQUEST,
+    TYPINGDUEL_LEAVE_QUEUE_REQUEST,
+    TYPINGDUEL_MATCH_FOUND,
+    TYPINGDUEL_ROUND_START,
+    TYPINGDUEL_PROGRESS_REQUEST,
+    TYPINGDUEL_UPDATE,
+    TYPINGDUEL_ROUND_RESULT,
+    TYPINGDUEL_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

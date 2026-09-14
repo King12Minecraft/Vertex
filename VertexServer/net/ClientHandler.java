@@ -50,6 +50,8 @@ import games.TetrisDuelMatchManager;
 import games.TetrisDuelMatch;
 import games.FusionGridMatchManager;
 import games.FusionGridMatch;
+import games.TypingDuelMatchManager;
+import games.TypingDuelMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -119,6 +121,8 @@ public class ClientHandler implements Runnable
     private TetrisDuelMatchManager tetrisDuelMatchManager;
     private FusionGridMatch currentFusionGridMatch;
     private FusionGridMatchManager fusionGridMatchManager;
+    private TypingDuelMatch currentTypingDuelMatch;
+    private TypingDuelMatchManager typingDuelMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -169,7 +173,8 @@ public class ClientHandler implements Runnable
                           ReversiMatchManager reversiMatchManager, MemoryMatchMatchManager memoryMatchMatchManager,
                           AirHockeyMatchManager airHockeyMatchManager, WordDuelMatchManager wordDuelMatchManager,
                           DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
-                          TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager)
+                          TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
+                          TypingDuelMatchManager typingDuelMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -215,6 +220,7 @@ public class ClientHandler implements Runnable
         this.snakeArenaMatchManager = snakeArenaMatchManager;
         this.tetrisDuelMatchManager = tetrisDuelMatchManager;
         this.fusionGridMatchManager = fusionGridMatchManager;
+        this.typingDuelMatchManager = typingDuelMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -233,6 +239,7 @@ public class ClientHandler implements Runnable
     public void setCurrentSnakeArenaMatch(SnakeArenaMatch match) { this.currentSnakeArenaMatch = match; }
     public void setCurrentTetrisDuelMatch(TetrisDuelMatch match) { this.currentTetrisDuelMatch = match; }
     public void setCurrentFusionGridMatch(FusionGridMatch match) { this.currentFusionGridMatch = match; }
+    public void setCurrentTypingDuelMatch(TypingDuelMatch match) { this.currentTypingDuelMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -315,6 +322,7 @@ public class ClientHandler implements Runnable
             snakeArenaMatchManager.cancelWaiting(this);
             tetrisDuelMatchManager.cancelWaiting(this);
             fusionGridMatchManager.cancelWaiting(this);
+            typingDuelMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -341,6 +349,7 @@ public class ClientHandler implements Runnable
             if (currentSnakeArenaMatch != null) currentSnakeArenaMatch.handleDisconnect(this);
             if (currentTetrisDuelMatch != null) currentTetrisDuelMatch.handleDisconnect(this);
             if (currentFusionGridMatch != null) currentFusionGridMatch.handleDisconnect(this);
+            if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -477,6 +486,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.FUSIONGRID_FIND_MATCH_REQUEST) return handleFusionGridFindMatch();
         if (request.getType() == MessageType.FUSIONGRID_LEAVE_QUEUE_REQUEST) return handleFusionGridLeaveQueue();
         if (request.getType() == MessageType.FUSIONGRID_PLACE_REQUEST) return handleFusionGridPlace(request);
+        if (request.getType() == MessageType.TYPINGDUEL_FIND_MATCH_REQUEST) return handleTypingDuelFindMatch();
+        if (request.getType() == MessageType.TYPINGDUEL_LEAVE_QUEUE_REQUEST) return handleTypingDuelLeaveQueue();
+        if (request.getType() == MessageType.TYPINGDUEL_PROGRESS_REQUEST) return handleTypingDuelProgress(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2641,6 +2653,35 @@ public class ClientHandler implements Runnable
         if (currentFusionGridMatch != null)
         {
             currentFusionGridMatch.placeTile(this, request.getCellIndex());
+        }
+        return null;
+    }
+
+    // ==================== Typing Duel ====================
+
+    private Message handleTypingDuelFindMatch()
+    {
+        if (loggedInUsername != null) typingDuelMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleTypingDuelLeaveQueue()
+    {
+        typingDuelMatchManager.cancelWaiting(this);
+        if (currentTypingDuelMatch != null)
+        {
+            currentTypingDuelMatch.handleDisconnect(this);
+            currentTypingDuelMatch = null;
+        }
+        return null;
+    }
+
+    /** Reuses getChatText() for the player's currently-typed text. */
+    private Message handleTypingDuelProgress(Message request)
+    {
+        if (currentTypingDuelMatch != null)
+        {
+            currentTypingDuelMatch.reportProgress(this, request.getChatText());
         }
         return null;
     }

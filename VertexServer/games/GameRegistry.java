@@ -44,6 +44,7 @@ public class GameRegistry
         games.add(new GameInfo("snake-arena", "Snake Arena", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("tetris-duel", "Competitive Tetris", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("fusion-grid", "Fusion Grid", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("typing-duel", "Typing Duel", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
     }
 
