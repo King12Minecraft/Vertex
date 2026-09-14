@@ -46,6 +46,8 @@ import games.DiceDuelMatchManager;
 import games.DiceDuelMatch;
 import games.SnakeArenaMatchManager;
 import games.SnakeArenaMatch;
+import games.TetrisDuelMatchManager;
+import games.TetrisDuelMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -111,6 +113,8 @@ public class ClientHandler implements Runnable
     private DiceDuelMatchManager diceDuelMatchManager;
     private SnakeArenaMatch currentSnakeArenaMatch;
     private SnakeArenaMatchManager snakeArenaMatchManager;
+    private TetrisDuelMatch currentTetrisDuelMatch;
+    private TetrisDuelMatchManager tetrisDuelMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -160,7 +164,8 @@ public class ClientHandler implements Runnable
                           TriviaMatchManager triviaMatchManager, DotsAndBoxesMatchManager dotsAndBoxesMatchManager,
                           ReversiMatchManager reversiMatchManager, MemoryMatchMatchManager memoryMatchMatchManager,
                           AirHockeyMatchManager airHockeyMatchManager, WordDuelMatchManager wordDuelMatchManager,
-                          DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager)
+                          DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
+                          TetrisDuelMatchManager tetrisDuelMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -204,6 +209,7 @@ public class ClientHandler implements Runnable
         this.wordDuelMatchManager = wordDuelMatchManager;
         this.diceDuelMatchManager = diceDuelMatchManager;
         this.snakeArenaMatchManager = snakeArenaMatchManager;
+        this.tetrisDuelMatchManager = tetrisDuelMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -220,6 +226,7 @@ public class ClientHandler implements Runnable
     public void setCurrentWordDuelMatch(WordDuelMatch match) { this.currentWordDuelMatch = match; }
     public void setCurrentDiceDuelMatch(DiceDuelMatch match) { this.currentDiceDuelMatch = match; }
     public void setCurrentSnakeArenaMatch(SnakeArenaMatch match) { this.currentSnakeArenaMatch = match; }
+    public void setCurrentTetrisDuelMatch(TetrisDuelMatch match) { this.currentTetrisDuelMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -300,6 +307,7 @@ public class ClientHandler implements Runnable
             wordDuelMatchManager.cancelWaiting(this);
             diceDuelMatchManager.cancelWaiting(this);
             snakeArenaMatchManager.cancelWaiting(this);
+            tetrisDuelMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -324,6 +332,7 @@ public class ClientHandler implements Runnable
             if (currentWordDuelMatch != null) currentWordDuelMatch.handleDisconnect(this);
             if (currentDiceDuelMatch != null) currentDiceDuelMatch.handleDisconnect(this);
             if (currentSnakeArenaMatch != null) currentSnakeArenaMatch.handleDisconnect(this);
+            if (currentTetrisDuelMatch != null) currentTetrisDuelMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -454,6 +463,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.SNAKEARENA_FIND_MATCH_REQUEST) return handleSnakeArenaFindMatch();
         if (request.getType() == MessageType.SNAKEARENA_LEAVE_QUEUE_REQUEST) return handleSnakeArenaLeaveQueue();
         if (request.getType() == MessageType.SNAKEARENA_TURN_REQUEST) return handleSnakeArenaTurn(request);
+        if (request.getType() == MessageType.TETRISDUEL_FIND_MATCH_REQUEST) return handleTetrisDuelFindMatch();
+        if (request.getType() == MessageType.TETRISDUEL_LEAVE_QUEUE_REQUEST) return handleTetrisDuelLeaveQueue();
+        if (request.getType() == MessageType.TETRISDUEL_ACTION_REQUEST) return handleTetrisDuelAction(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2561,6 +2573,35 @@ public class ClientHandler implements Runnable
         if (currentSnakeArenaMatch != null)
         {
             currentSnakeArenaMatch.turn(this, request.getCellIndex());
+        }
+        return null;
+    }
+
+    // ==================== Competitive Tetris ====================
+
+    private Message handleTetrisDuelFindMatch()
+    {
+        if (loggedInUsername != null) tetrisDuelMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleTetrisDuelLeaveQueue()
+    {
+        tetrisDuelMatchManager.cancelWaiting(this);
+        if (currentTetrisDuelMatch != null)
+        {
+            currentTetrisDuelMatch.handleDisconnect(this);
+            currentTetrisDuelMatch = null;
+        }
+        return null;
+    }
+
+    /** Reuses getChatText() for the action name (LEFT/RIGHT/ROTATE/SOFT_DROP/HARD_DROP). */
+    private Message handleTetrisDuelAction(Message request)
+    {
+        if (currentTetrisDuelMatch != null)
+        {
+            currentTetrisDuelMatch.applyAction(this, request.getChatText());
         }
         return null;
     }

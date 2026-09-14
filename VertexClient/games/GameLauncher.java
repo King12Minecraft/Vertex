@@ -177,6 +177,11 @@ public class GameLauncher
                 SnakeArenaWindow window = new SnakeArenaWindow();
                 window.setVisible(true);
             }
+            else if ("tetris-duel".equals(game.getGameId()))
+            {
+                TetrisDuelWindow window = new TetrisDuelWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

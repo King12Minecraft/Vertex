@@ -143,6 +143,10 @@ public class GameRules
         RULES.put("snake-arena", "Two snakes, one shared arena, live. Use the arrow keys to steer - "
             + "eat food to grow. Crash into a wall, yourself, or the other snake and you're out; "
             + "the other player wins. A head-on collision with each other is a draw.");
+
+        RULES.put("tetris-duel", "Standard Tetris rules on your own board, but clearing 2 or more "
+            + "lines at once sends garbage rows to your opponent's board. Last board still standing "
+            + "wins - top out (stack reaches the top) and you lose.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

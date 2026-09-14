@@ -242,4 +242,32 @@ public class TetrisGame
     public int getScore() { return score; }
     public int getLinesCleared() { return linesCleared; }
     public boolean isGameOver() { return gameOver; }
+
+    /** Added for Competitive Tetris (TetrisDuelMatch) - shifts every row up by `count` (discarding whatever was in the top rows) and inserts `count` new near-full "garbage" rows at the bottom, each with exactly one random gap column - the standard multiplayer-Tetris garbage-line convention. Garbage cells use value 8, distinct from the 1-7 a real piece leaves behind, since Competitive Tetris renders its own board rather than reusing TetrisPanel. Can top the board out if the stack is already high, same as any real multiplayer Tetris - that's the intended risk of letting your opponent clear lines against you. */
+    public void addGarbageLines(int count)
+    {
+        if (count <= 0 || gameOver) return;
+        Random gapRandom = new Random();
+
+        for (int i = 0; i < count; i++)
+        {
+            for (int row = 0; row < ROWS - 1; row++)
+            {
+                grid[row] = grid[row + 1];
+            }
+            int gapCol = gapRandom.nextInt(COLS);
+            int[] garbageRow = new int[COLS];
+            for (int col = 0; col < COLS; col++)
+            {
+                garbageRow[col] = (col == gapCol) ? 0 : 8;
+            }
+            grid[ROWS - 1] = garbageRow;
+        }
+
+        if (collides(currentX, currentY, currentRotation))
+        {
+            gameOver = true;
+        }
+    }
+
 }

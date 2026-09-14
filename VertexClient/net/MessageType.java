@@ -256,6 +256,14 @@ public enum MessageType
     SNAKEARENA_UPDATE,
     SNAKEARENA_RESULT,
 
+    // --- Competitive Tetris (1v1, ELO-rated, real-time - see TetrisDuelMatch) ---
+    TETRISDUEL_FIND_MATCH_REQUEST,
+    TETRISDUEL_LEAVE_QUEUE_REQUEST,
+    TETRISDUEL_MATCH_FOUND,
+    TETRISDUEL_ACTION_REQUEST,
+    TETRISDUEL_UPDATE,
+    TETRISDUEL_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

@@ -14,6 +14,7 @@ import games.AirHockeyMatchManager;
 import games.WordDuelMatchManager;
 import games.DiceDuelMatchManager;
 import games.SnakeArenaMatchManager;
+import games.TetrisDuelMatchManager;
 import games.SquareWarsMatchManager;
 import games.CheckersMatchManager;
 import games.ConnectFourMatchManager;
@@ -99,6 +100,7 @@ public class GameServer
     private final WordDuelMatchManager wordDuelMatchManager = new WordDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final DiceDuelMatchManager diceDuelMatchManager = new DiceDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final SnakeArenaMatchManager snakeArenaMatchManager = new SnakeArenaMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
+    private final TetrisDuelMatchManager tetrisDuelMatchManager = new TetrisDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final AvatarStore avatarStore = new AvatarStore();
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
@@ -177,7 +179,8 @@ public class GameServer
                     feedbackManager, gameSuggestionStore, zombieSurvivalMatchManager, spaceBattleMatchManager, adminLog,
                     connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager,
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
-                    airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager);
+                    airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager,
+                    tetrisDuelMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }
