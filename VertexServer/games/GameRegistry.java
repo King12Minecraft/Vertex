@@ -41,6 +41,7 @@ public class GameRegistry
         games.add(new GameInfo("air-hockey", "Air Hockey", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("word-duel", "Word Duel", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("dice-duel", "Dice Duel", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("snake-arena", "Snake Arena", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
     }
 

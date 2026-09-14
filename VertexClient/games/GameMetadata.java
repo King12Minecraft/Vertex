@@ -55,6 +55,7 @@ public class GameMetadata
         tag("air-hockey", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
         tag("word-duel", MEDIUM, "2D", "Multiplayer", "Online", "Word Game", "ELO-Rated");
         tag("dice-duel", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
+        tag("snake-arena", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)

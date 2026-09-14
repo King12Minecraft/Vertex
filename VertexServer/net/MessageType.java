@@ -248,6 +248,14 @@ public enum MessageType
     DICEDUEL_UPDATE,
     DICEDUEL_RESULT,
 
+    // --- Snake Arena (1v1, ELO-rated, real-time shared arena - see SnakeArenaMatch) ---
+    SNAKEARENA_FIND_MATCH_REQUEST,
+    SNAKEARENA_LEAVE_QUEUE_REQUEST,
+    SNAKEARENA_MATCH_FOUND,
+    SNAKEARENA_TURN_REQUEST,
+    SNAKEARENA_UPDATE,
+    SNAKEARENA_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

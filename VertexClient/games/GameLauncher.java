@@ -172,6 +172,11 @@ public class GameLauncher
                 DiceDuelWindow window = new DiceDuelWindow();
                 window.setVisible(true);
             }
+            else if ("snake-arena".equals(game.getGameId()))
+            {
+                SnakeArenaWindow window = new SnakeArenaWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

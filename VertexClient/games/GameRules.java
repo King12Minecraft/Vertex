@@ -139,6 +139,10 @@ public class GameRules
             + "then lock your final roll into one of 7 scoring categories (Ones through Sixes, or "
             + "Three of a Kind) - each category can only be used once. Once both players have "
             + "filled all 7 categories, highest total score wins.");
+
+        RULES.put("snake-arena", "Two snakes, one shared arena, live. Use the arrow keys to steer - "
+            + "eat food to grow. Crash into a wall, yourself, or the other snake and you're out; "
+            + "the other player wins. A head-on collision with each other is a draw.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */
