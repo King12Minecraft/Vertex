@@ -182,6 +182,11 @@ public class GameLauncher
                 TetrisDuelWindow window = new TetrisDuelWindow();
                 window.setVisible(true);
             }
+            else if ("fusion-grid".equals(game.getGameId()))
+            {
+                FusionGridWindow window = new FusionGridWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

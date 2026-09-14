@@ -264,6 +264,14 @@ public enum MessageType
     TETRISDUEL_UPDATE,
     TETRISDUEL_RESULT,
 
+    // --- Fusion Grid (1v1, ELO-rated, turn-based - see FusionGridMatch) ---
+    FUSIONGRID_FIND_MATCH_REQUEST,
+    FUSIONGRID_LEAVE_QUEUE_REQUEST,
+    FUSIONGRID_MATCH_FOUND,
+    FUSIONGRID_PLACE_REQUEST,
+    FUSIONGRID_UPDATE,
+    FUSIONGRID_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

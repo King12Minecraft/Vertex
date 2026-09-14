@@ -30,6 +30,7 @@ public class EconomyConfig
         if ("dice-duel".equals(gameId))        return 15;
         if ("snake-arena".equals(gameId))      return 15;
         if ("tetris-duel".equals(gameId))      return 20;
+        if ("fusion-grid".equals(gameId))      return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         return 0;
     }

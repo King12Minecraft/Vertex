@@ -147,6 +147,12 @@ public class GameRules
         RULES.put("tetris-duel", "Standard Tetris rules on your own board, but clearing 2 or more "
             + "lines at once sends garbage rows to your opponent's board. Last board still standing "
             + "wins - top out (stack reaches the top) and you lose.");
+
+        RULES.put("fusion-grid", "6x6 grid. Each turn you're given a random tile (2, 4, or 8) - "
+            + "place it on any empty cell. If it lands next to a tile of the SAME value that's also "
+            + "YOURS, they merge into a doubled tile and you score that new value - this can chain "
+            + "into further merges. A same-value tile owned by your opponent never merges, it just "
+            + "blocks you. Once the grid is full, highest total score wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

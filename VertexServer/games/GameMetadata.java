@@ -57,6 +57,7 @@ public class GameMetadata
         tag("dice-duel", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("snake-arena", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
         tag("tetris-duel", HARD, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
+        tag("fusion-grid", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated", "Original");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)
