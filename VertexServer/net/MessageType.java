@@ -282,6 +282,14 @@ public enum MessageType
     TYPINGDUEL_ROUND_RESULT,
     TYPINGDUEL_RESULT,
 
+    // --- Signal Grid (1v1, ELO-rated, turn-based, original concept - see SignalGridMatch) ---
+    SIGNALGRID_FIND_MATCH_REQUEST,
+    SIGNALGRID_LEAVE_QUEUE_REQUEST,
+    SIGNALGRID_MATCH_FOUND,
+    SIGNALGRID_FIRE_REQUEST,
+    SIGNALGRID_UPDATE,
+    SIGNALGRID_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

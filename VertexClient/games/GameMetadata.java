@@ -59,6 +59,7 @@ public class GameMetadata
         tag("tetris-duel", HARD, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
         tag("fusion-grid", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated", "Original");
         tag("typing-duel", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
+        tag("signal-grid", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated", "Original");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)

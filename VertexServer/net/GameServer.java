@@ -17,6 +17,7 @@ import games.SnakeArenaMatchManager;
 import games.TetrisDuelMatchManager;
 import games.FusionGridMatchManager;
 import games.TypingDuelMatchManager;
+import games.SignalGridMatchManager;
 import games.SquareWarsMatchManager;
 import games.CheckersMatchManager;
 import games.ConnectFourMatchManager;
@@ -105,6 +106,7 @@ public class GameServer
     private final TetrisDuelMatchManager tetrisDuelMatchManager = new TetrisDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final FusionGridMatchManager fusionGridMatchManager = new FusionGridMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final TypingDuelMatchManager typingDuelMatchManager = new TypingDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
+    private final SignalGridMatchManager signalGridMatchManager = new SignalGridMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final AvatarStore avatarStore = new AvatarStore();
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
@@ -184,7 +186,7 @@ public class GameServer
                     connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager,
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
                     airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager,
-                    tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager);
+                    tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager, signalGridMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

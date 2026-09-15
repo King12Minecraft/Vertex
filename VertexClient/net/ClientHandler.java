@@ -52,6 +52,8 @@ import games.FusionGridMatchManager;
 import games.FusionGridMatch;
 import games.TypingDuelMatchManager;
 import games.TypingDuelMatch;
+import games.SignalGridMatchManager;
+import games.SignalGridMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -123,6 +125,8 @@ public class ClientHandler implements Runnable
     private FusionGridMatchManager fusionGridMatchManager;
     private TypingDuelMatch currentTypingDuelMatch;
     private TypingDuelMatchManager typingDuelMatchManager;
+    private SignalGridMatch currentSignalGridMatch;
+    private SignalGridMatchManager signalGridMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -174,7 +178,7 @@ public class ClientHandler implements Runnable
                           AirHockeyMatchManager airHockeyMatchManager, WordDuelMatchManager wordDuelMatchManager,
                           DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
                           TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
-                          TypingDuelMatchManager typingDuelMatchManager)
+                          TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -221,6 +225,7 @@ public class ClientHandler implements Runnable
         this.tetrisDuelMatchManager = tetrisDuelMatchManager;
         this.fusionGridMatchManager = fusionGridMatchManager;
         this.typingDuelMatchManager = typingDuelMatchManager;
+        this.signalGridMatchManager = signalGridMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -240,6 +245,7 @@ public class ClientHandler implements Runnable
     public void setCurrentTetrisDuelMatch(TetrisDuelMatch match) { this.currentTetrisDuelMatch = match; }
     public void setCurrentFusionGridMatch(FusionGridMatch match) { this.currentFusionGridMatch = match; }
     public void setCurrentTypingDuelMatch(TypingDuelMatch match) { this.currentTypingDuelMatch = match; }
+    public void setCurrentSignalGridMatch(SignalGridMatch match) { this.currentSignalGridMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -323,6 +329,7 @@ public class ClientHandler implements Runnable
             tetrisDuelMatchManager.cancelWaiting(this);
             fusionGridMatchManager.cancelWaiting(this);
             typingDuelMatchManager.cancelWaiting(this);
+            signalGridMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -350,6 +357,7 @@ public class ClientHandler implements Runnable
             if (currentTetrisDuelMatch != null) currentTetrisDuelMatch.handleDisconnect(this);
             if (currentFusionGridMatch != null) currentFusionGridMatch.handleDisconnect(this);
             if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
+            if (currentSignalGridMatch != null) currentSignalGridMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -489,6 +497,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.TYPINGDUEL_FIND_MATCH_REQUEST) return handleTypingDuelFindMatch();
         if (request.getType() == MessageType.TYPINGDUEL_LEAVE_QUEUE_REQUEST) return handleTypingDuelLeaveQueue();
         if (request.getType() == MessageType.TYPINGDUEL_PROGRESS_REQUEST) return handleTypingDuelProgress(request);
+        if (request.getType() == MessageType.SIGNALGRID_FIND_MATCH_REQUEST) return handleSignalGridFindMatch();
+        if (request.getType() == MessageType.SIGNALGRID_LEAVE_QUEUE_REQUEST) return handleSignalGridLeaveQueue();
+        if (request.getType() == MessageType.SIGNALGRID_FIRE_REQUEST) return handleSignalGridFire(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2682,6 +2693,39 @@ public class ClientHandler implements Runnable
         if (currentTypingDuelMatch != null)
         {
             currentTypingDuelMatch.reportProgress(this, request.getChatText());
+        }
+        return null;
+    }
+
+    // ==================== Signal Grid ====================
+
+    private Message handleSignalGridFindMatch()
+    {
+        if (loggedInUsername != null) signalGridMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleSignalGridLeaveQueue()
+    {
+        signalGridMatchManager.cancelWaiting(this);
+        if (currentSignalGridMatch != null)
+        {
+            currentSignalGridMatch.handleDisconnect(this);
+            currentSignalGridMatch = null;
+        }
+        return null;
+    }
+
+    /** Reuses getSymbol() for the fire direction ("UP"/"DOWN"/"LEFT"/"RIGHT") alongside getCellIndex() for where the node is placed - both chosen in the same move. */
+    private Message handleSignalGridFire(Message request)
+    {
+        if (currentSignalGridMatch != null && request.getSymbol() != null)
+        {
+            int direction = "UP".equals(request.getSymbol()) ? SignalGridMatch.UP
+                : "DOWN".equals(request.getSymbol()) ? SignalGridMatch.DOWN
+                : "LEFT".equals(request.getSymbol()) ? SignalGridMatch.LEFT
+                : SignalGridMatch.RIGHT;
+            currentSignalGridMatch.placeAndFire(this, request.getCellIndex(), direction);
         }
         return null;
     }

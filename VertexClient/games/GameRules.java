@@ -158,6 +158,12 @@ public class GameRules
             + "moment - type it out correctly as fast as you can. Live progress bars show how far "
             + "along you and your opponent are. First to finish a round correctly wins it; first to "
             + "win 3 rounds wins the match.");
+
+        RULES.put("signal-grid", "8x8 grid. On your turn, place one node of your color in an empty "
+            + "cell, then fire it in one direction (up/down/left/right). The signal travels until it "
+            + "hits the edge or another node - if that node is your opponent's, it flips to your "
+            + "color; if it's yours, nothing happens. Game ends when the grid is full - most nodes "
+            + "of your color wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

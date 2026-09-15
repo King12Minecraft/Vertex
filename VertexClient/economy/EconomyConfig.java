@@ -32,6 +32,7 @@ public class EconomyConfig
         if ("tetris-duel".equals(gameId))      return 20;
         if ("fusion-grid".equals(gameId))      return 15;
         if ("typing-duel".equals(gameId))      return 15;
+        if ("signal-grid".equals(gameId))      return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         return 0;
     }

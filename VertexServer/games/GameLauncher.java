@@ -192,6 +192,11 @@ public class GameLauncher
                 TypingDuelWindow window = new TypingDuelWindow();
                 window.setVisible(true);
             }
+            else if ("signal-grid".equals(game.getGameId()))
+            {
+                SignalGridWindow window = new SignalGridWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();
