@@ -164,6 +164,11 @@ public class GameRules
             + "hits the edge or another node - if that node is your opponent's, it flips to your "
             + "color; if it's yours, nothing happens. Game ends when the grid is full - most nodes "
             + "of your color wins.");
+
+        RULES.put("card-rush", "No turns - play as fast as you can! Play a card from your hand onto "
+            + "either shared center pile if it's exactly one rank higher or lower than that pile's "
+            + "top card. Your hand refills from your own stock after every play. If nobody can move, "
+            + "the piles automatically refresh. First to play every card in your hand and stock wins.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */

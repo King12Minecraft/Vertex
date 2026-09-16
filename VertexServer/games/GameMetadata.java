@@ -60,6 +60,7 @@ public class GameMetadata
         tag("fusion-grid", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated", "Original");
         tag("typing-duel", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
         tag("signal-grid", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated", "Original");
+        tag("card-rush", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated", "Card Game");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)

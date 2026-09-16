@@ -290,6 +290,14 @@ public enum MessageType
     SIGNALGRID_UPDATE,
     SIGNALGRID_RESULT,
 
+    // --- Card Rush (1v1, ELO-rated, real-time - see CardRushMatch) ---
+    CARDRUSH_FIND_MATCH_REQUEST,
+    CARDRUSH_LEAVE_QUEUE_REQUEST,
+    CARDRUSH_MATCH_FOUND,
+    CARDRUSH_PLAY_REQUEST,
+    CARDRUSH_UPDATE,
+    CARDRUSH_RESULT,
+
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
     PLAYER_PROFILE_RESPONSE,

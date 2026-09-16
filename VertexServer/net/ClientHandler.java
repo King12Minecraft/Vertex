@@ -54,6 +54,8 @@ import games.TypingDuelMatchManager;
 import games.TypingDuelMatch;
 import games.SignalGridMatchManager;
 import games.SignalGridMatch;
+import games.CardRushMatchManager;
+import games.CardRushMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -127,6 +129,8 @@ public class ClientHandler implements Runnable
     private TypingDuelMatchManager typingDuelMatchManager;
     private SignalGridMatch currentSignalGridMatch;
     private SignalGridMatchManager signalGridMatchManager;
+    private CardRushMatch currentCardRushMatch;
+    private CardRushMatchManager cardRushMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -178,7 +182,8 @@ public class ClientHandler implements Runnable
                           AirHockeyMatchManager airHockeyMatchManager, WordDuelMatchManager wordDuelMatchManager,
                           DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
                           TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
-                          TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager)
+                          TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager,
+                          CardRushMatchManager cardRushMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -226,6 +231,7 @@ public class ClientHandler implements Runnable
         this.fusionGridMatchManager = fusionGridMatchManager;
         this.typingDuelMatchManager = typingDuelMatchManager;
         this.signalGridMatchManager = signalGridMatchManager;
+        this.cardRushMatchManager = cardRushMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -246,6 +252,7 @@ public class ClientHandler implements Runnable
     public void setCurrentFusionGridMatch(FusionGridMatch match) { this.currentFusionGridMatch = match; }
     public void setCurrentTypingDuelMatch(TypingDuelMatch match) { this.currentTypingDuelMatch = match; }
     public void setCurrentSignalGridMatch(SignalGridMatch match) { this.currentSignalGridMatch = match; }
+    public void setCurrentCardRushMatch(CardRushMatch match) { this.currentCardRushMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -330,6 +337,7 @@ public class ClientHandler implements Runnable
             fusionGridMatchManager.cancelWaiting(this);
             typingDuelMatchManager.cancelWaiting(this);
             signalGridMatchManager.cancelWaiting(this);
+            cardRushMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -358,6 +366,7 @@ public class ClientHandler implements Runnable
             if (currentFusionGridMatch != null) currentFusionGridMatch.handleDisconnect(this);
             if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
             if (currentSignalGridMatch != null) currentSignalGridMatch.handleDisconnect(this);
+            if (currentCardRushMatch != null) currentCardRushMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -500,6 +509,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.SIGNALGRID_FIND_MATCH_REQUEST) return handleSignalGridFindMatch();
         if (request.getType() == MessageType.SIGNALGRID_LEAVE_QUEUE_REQUEST) return handleSignalGridLeaveQueue();
         if (request.getType() == MessageType.SIGNALGRID_FIRE_REQUEST) return handleSignalGridFire(request);
+        if (request.getType() == MessageType.CARDRUSH_FIND_MATCH_REQUEST) return handleCardRushFindMatch();
+        if (request.getType() == MessageType.CARDRUSH_LEAVE_QUEUE_REQUEST) return handleCardRushLeaveQueue();
+        if (request.getType() == MessageType.CARDRUSH_PLAY_REQUEST) return handleCardRushPlay(request);
         if (request.getType() == MessageType.LEADERBOARD_REQUEST) return handleLeaderboardRequest(request);
         if (request.getType() == MessageType.ACHIEVEMENTS_REQUEST) return handleAchievementsRequest();
         if (request.getType() == MessageType.TOURNAMENT_CREATE_REQUEST) return handleTournamentCreate(request);
@@ -2726,6 +2738,35 @@ public class ClientHandler implements Runnable
                 : "LEFT".equals(request.getSymbol()) ? SignalGridMatch.LEFT
                 : SignalGridMatch.RIGHT;
             currentSignalGridMatch.placeAndFire(this, request.getCellIndex(), direction);
+        }
+        return null;
+    }
+
+    // ==================== Card Rush ====================
+
+    private Message handleCardRushFindMatch()
+    {
+        if (loggedInUsername != null) cardRushMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleCardRushLeaveQueue()
+    {
+        cardRushMatchManager.cancelWaiting(this);
+        if (currentCardRushMatch != null)
+        {
+            currentCardRushMatch.handleDisconnect(this);
+            currentCardRushMatch = null;
+        }
+        return null;
+    }
+
+    /** Reuses getCellIndex() for the card ID being played and getMuteDurationMinutes() for which center pile (1 or 2) - both generic int fields, unrelated to their usual purpose in this context, same reuse pattern used throughout. */
+    private Message handleCardRushPlay(Message request)
+    {
+        if (currentCardRushMatch != null)
+        {
+            currentCardRushMatch.playCard(this, request.getCellIndex(), request.getMuteDurationMinutes());
         }
         return null;
     }

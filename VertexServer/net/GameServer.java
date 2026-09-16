@@ -18,6 +18,7 @@ import games.TetrisDuelMatchManager;
 import games.FusionGridMatchManager;
 import games.TypingDuelMatchManager;
 import games.SignalGridMatchManager;
+import games.CardRushMatchManager;
 import games.SquareWarsMatchManager;
 import games.CheckersMatchManager;
 import games.ConnectFourMatchManager;
@@ -107,6 +108,7 @@ public class GameServer
     private final FusionGridMatchManager fusionGridMatchManager = new FusionGridMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final TypingDuelMatchManager typingDuelMatchManager = new TypingDuelMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final SignalGridMatchManager signalGridMatchManager = new SignalGridMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
+    private final CardRushMatchManager cardRushMatchManager = new CardRushMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final AvatarStore avatarStore = new AvatarStore();
     private final TournamentManager tournamentManager = new TournamentManager(battleshipMatchManager, rpsMatchManager, leaderboardManager, chatManager, replayManager);
     private final TeamTournamentManager teamTournamentManager = new TeamTournamentManager(fightArenaMatchManager, leaderboardManager, partyManager, chatManager);
@@ -186,7 +188,8 @@ public class GameServer
                     connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager,
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
                     airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager,
-                    tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager, signalGridMatchManager);
+                    tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager, signalGridMatchManager,
+                    cardRushMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

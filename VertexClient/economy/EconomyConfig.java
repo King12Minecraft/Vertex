@@ -33,6 +33,7 @@ public class EconomyConfig
         if ("fusion-grid".equals(gameId))      return 15;
         if ("typing-duel".equals(gameId))      return 15;
         if ("signal-grid".equals(gameId))      return 15;
+        if ("card-rush".equals(gameId))        return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         return 0;
     }

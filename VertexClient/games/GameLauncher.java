@@ -197,6 +197,11 @@ public class GameLauncher
                 SignalGridWindow window = new SignalGridWindow();
                 window.setVisible(true);
             }
+            else if ("card-rush".equals(game.getGameId()))
+            {
+                CardRushWindow window = new CardRushWindow();
+                window.setVisible(true);
+            }
             else if ("connect-four".equals(game.getGameId()))
             {
                 ConnectFourWindow window = new ConnectFourWindow();

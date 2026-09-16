@@ -46,6 +46,7 @@ public class GameRegistry
         games.add(new GameInfo("fusion-grid", "Fusion Grid", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("typing-duel", "Typing Duel", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("signal-grid", "Signal Grid", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("card-rush", "Card Rush", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
     }
 
