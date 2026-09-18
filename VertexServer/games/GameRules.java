@@ -168,6 +168,13 @@ public class GameRules
             + "end the turn. Score all 13 categories - get 63+ points across the upper section (Ones "
             + "through Sixes) for a 35-point bonus - for the best final total.");
 
+        RULES.put("mancala", "The classic sowing game against a simple AI. Click one of your 6 "
+            + "pits (bottom row) to sow its seeds one at a time counter-clockwise, dropping one in "
+            + "your store along the way but skipping the AI's store entirely. Land your last seed "
+            + "exactly in your own store to go again; land it in an empty pit on your own side and "
+            + "you capture it plus the seeds directly opposite. The game ends when one side's pits "
+            + "are all empty - whoever has more seeds in their store then wins.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");

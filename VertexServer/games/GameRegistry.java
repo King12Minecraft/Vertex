@@ -46,6 +46,7 @@ public class GameRegistry
         games.add(new GameInfo("peg-solitaire", "Peg Solitaire", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("klondike", "Klondike Solitaire", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("yahtzee", "Yahtzee", "Single Player", "Practice Mode", false, false, "1.0"));
+        games.add(new GameInfo("mancala", "Mancala", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("dots-and-boxes", "Dots and Boxes", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("reversi", "Reversi", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("memory-match", "Memory Match", "Multiplayer", "Online", true, false, "1.0"));

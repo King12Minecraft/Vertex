@@ -197,6 +197,11 @@ public class GameLauncher
                 YahtzeeWindow window = new YahtzeeWindow();
                 window.setVisible(true);
             }
+            else if ("mancala".equals(game.getGameId()))
+            {
+                MancalaWindow window = new MancalaWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();
