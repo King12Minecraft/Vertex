@@ -114,6 +114,11 @@ public class GameRules
             + "of time - click one before it ducks back down to score. Runs for 30 seconds and "
             + "gets faster as it goes.");
 
+        RULES.put("match-three", "Swap two adjacent gems to line up 3 or more of the same color in "
+            + "a row or column - they clear, everything above drops down, and new gems fill in from "
+            + "the top. Chains that clear more gems in one cascade score extra. You get 20 swaps; "
+            + "your final score is what you cleared.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");

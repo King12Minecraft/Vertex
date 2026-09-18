@@ -142,6 +142,11 @@ public class GameLauncher
                 WhackAMoleWindow window = new WhackAMoleWindow();
                 window.setVisible(true);
             }
+            else if ("match-three".equals(game.getGameId()))
+            {
+                MatchThreeWindow window = new MatchThreeWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

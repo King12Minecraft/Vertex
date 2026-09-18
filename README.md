@@ -1,6 +1,6 @@
 # Vertex
 
-A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 35+ playable games, ELO ratings, a party system, tournaments, and the ability for anyone to host their own server.
+A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 36+ playable games, ELO ratings, a party system, tournaments, and the ability for anyone to host their own server.
 
 **See [`FEATURES.md`](FEATURES.md) for the complete, current feature list.** The summaries below are kept short on purpose.
 
@@ -59,7 +59,9 @@ Default port is **7777**, but this is fully configurable via the same switcher.
 
 **Single-player (no server needed to play, though wins/scores still get tracked if you're logged in):** Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, and RPS against a simple AI. Snake, Tetris, and Dino Dash all support pausing mid-game (press **P**).
 
-**Also playable, ELO-rated 1v1 (see `FEATURES.md` for full details on each):** Minesweeper, Dots and Boxes, Reversi/Othello, Memory Match, Air Hockey, Word Duel, Whack-a-Mole, Dice Duel, Snake Arena, Competitive Tetris, Sudoku, Simon Says, Square Wars, Fusion Grid, Typing Duel, Signal Grid, and Card Rush.
+**Also playable, ELO-rated 1v1 (see `FEATURES.md` for full details on each):** Dots and Boxes, Reversi/Othello, Memory Match, Air Hockey, Word Duel, Dice Duel, Snake Arena, Competitive Tetris, Square Wars, Fusion Grid, Typing Duel, Signal Grid, and Card Rush.
+
+**More single-player (no server needed):** Minesweeper, Sudoku, Simon Says, Whack-a-Mole, and Gem Match (an original match-3 - swap gems, clear lines, chain cascades for bonus score).
 
 ## Everything else
 

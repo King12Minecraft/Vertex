@@ -63,6 +63,7 @@ public class EconomyConfig
         if ("aim-trainer".equals(gameId))    return Math.min(20, score);
         if ("simon-says".equals(gameId))     return Math.min(25, score * 2);
         if ("whack-a-mole".equals(gameId))   return Math.min(30, score * 2);
+        if ("match-three".equals(gameId))    return Math.min(30, score / 15);
         return 0;
     }
 
