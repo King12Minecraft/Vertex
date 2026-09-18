@@ -152,6 +152,11 @@ public class GameLauncher
                 MazeChaseWindow window = new MazeChaseWindow();
                 window.setVisible(true);
             }
+            else if ("brick-breaker".equals(game.getGameId()))
+            {
+                BrickBreakerWindow window = new BrickBreakerWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

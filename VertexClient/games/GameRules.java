@@ -124,6 +124,10 @@ public class GameRules
             + "become huntable for a few seconds - eat one for a big bonus. You start with 3 lives; "
             + "losing one resets everyone's position but keeps the dots you've already cleared.");
 
+        RULES.put("brick-breaker", "Move the paddle to keep the ball in play and smash the wall of "
+            + "bricks above - higher rows are worth more points. Miss the ball and you lose a life; "
+            + "you start with 3. Clear every brick to win.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
