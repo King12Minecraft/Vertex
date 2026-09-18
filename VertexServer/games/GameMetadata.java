@@ -55,6 +55,7 @@ public class GameMetadata
         tag("flappy-bird", MEDIUM, "2D", "Single Player", "Arcade");
         tag("galaxy-defender", MEDIUM, "2D", "Single Player", "Arcade");
         tag("word-guess", MEDIUM, "2D", "Single Player", "Puzzle");
+        tag("bubble-shooter", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("dots-and-boxes", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("reversi", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("memory-match", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");

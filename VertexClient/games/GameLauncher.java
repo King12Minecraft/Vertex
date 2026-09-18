@@ -172,6 +172,11 @@ public class GameLauncher
                 WordGuessWindow window = new WordGuessWindow();
                 window.setVisible(true);
             }
+            else if ("bubble-shooter".equals(game.getGameId()))
+            {
+                BubbleShooterWindow window = new BubbleShooterWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

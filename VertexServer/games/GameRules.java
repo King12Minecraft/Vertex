@@ -142,6 +142,11 @@ public class GameRules
             + "it's in the word but the wrong spot, gray means it's not in the word at all. The "
             + "on-screen keyboard remembers what you've learned about every letter.");
 
+        RULES.put("bubble-shooter", "Aim with the mouse (or Left/Right), click or Space to fire. "
+            + "Match 3 or more of the same color to pop them, and anything left floating with no "
+            + "connection back to the ceiling falls too. Clear the whole board to win - if a shot "
+            + "settles too close to the shooter, the run ends.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
