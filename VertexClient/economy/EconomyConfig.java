@@ -70,6 +70,7 @@ public class EconomyConfig
         if ("galaxy-defender".equals(gameId)) return Math.min(35, score / 8);
         if ("word-guess".equals(gameId))     return Math.min(30, score / 4);
         if ("bubble-shooter".equals(gameId)) return Math.min(35, score / 25);
+        if ("lights-out".equals(gameId))     return Math.min(30, score / 15);
         return 0;
     }
 

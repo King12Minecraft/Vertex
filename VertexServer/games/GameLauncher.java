@@ -177,6 +177,11 @@ public class GameLauncher
                 BubbleShooterWindow window = new BubbleShooterWindow();
                 window.setVisible(true);
             }
+            else if ("lights-out".equals(game.getGameId()))
+            {
+                LightsOutWindow window = new LightsOutWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

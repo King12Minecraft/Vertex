@@ -147,6 +147,9 @@ public class GameRules
             + "connection back to the ceiling falls too. Clear the whole board to win - if a shot "
             + "settles too close to the shooter, the run ends.");
 
+        RULES.put("lights-out", "Click any light to toggle it and its up/down/left/right neighbors. "
+            + "Turn every light off to solve the puzzle - fewer moves means a better score.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
