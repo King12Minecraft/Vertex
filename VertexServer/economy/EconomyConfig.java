@@ -71,6 +71,7 @@ public class EconomyConfig
         if ("word-guess".equals(gameId))     return Math.min(30, score / 4);
         if ("bubble-shooter".equals(gameId)) return Math.min(35, score / 25);
         if ("lights-out".equals(gameId))     return Math.min(30, score / 15);
+        if ("peg-solitaire".equals(gameId))  return Math.min(35, score / 15);
         return 0;
     }
 

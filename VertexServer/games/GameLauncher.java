@@ -182,6 +182,11 @@ public class GameLauncher
                 LightsOutWindow window = new LightsOutWindow();
                 window.setVisible(true);
             }
+            else if ("peg-solitaire".equals(game.getGameId()))
+            {
+                PegSolitaireWindow window = new PegSolitaireWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

@@ -150,6 +150,12 @@ public class GameRules
         RULES.put("lights-out", "Click any light to toggle it and its up/down/left/right neighbors. "
             + "Turn every light off to solve the puzzle - fewer moves means a better score.");
 
+        RULES.put("peg-solitaire", "The classic cross-shaped board, every hole filled but the "
+            + "center. Click a peg, then click a hole two spaces away in the same row or column to "
+            + "jump it there, removing the peg you jumped over. Keep jumping until no jump is left - "
+            + "getting down to a single peg wins, and finishing with that last peg in the center is "
+            + "the classic perfect solve.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
