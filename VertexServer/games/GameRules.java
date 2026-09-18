@@ -156,6 +156,12 @@ public class GameRules
             + "getting down to a single peg wins, and finishing with that last peg in the center is "
             + "the classic perfect solve.");
 
+        RULES.put("klondike", "The traditional Klondike solitaire. Click the stock to draw a card. "
+            + "Click a card to pick it up - a tableau card brings everything face-up below it along "
+            + "with it - then click where to move it: a foundation (same suit, building up Ace to "
+            + "King) or another tableau column (one rank lower, opposite color, or a King onto an "
+            + "empty column). Get every card onto the foundations to win.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");

@@ -187,6 +187,11 @@ public class GameLauncher
                 PegSolitaireWindow window = new PegSolitaireWindow();
                 window.setVisible(true);
             }
+            else if ("klondike".equals(game.getGameId()))
+            {
+                KlondikeWindow window = new KlondikeWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();
