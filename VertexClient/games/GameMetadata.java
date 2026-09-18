@@ -59,6 +59,7 @@ public class GameMetadata
         tag("lights-out", EASY, "2D", "Single Player", "Puzzle");
         tag("peg-solitaire", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("klondike", MEDIUM, "2D", "Single Player", "Card Game");
+        tag("yahtzee", EASY, "2D", "Single Player", "Dice Game");
         tag("dots-and-boxes", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("reversi", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("memory-match", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");

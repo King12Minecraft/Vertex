@@ -192,6 +192,11 @@ public class GameLauncher
                 KlondikeWindow window = new KlondikeWindow();
                 window.setVisible(true);
             }
+            else if ("yahtzee".equals(game.getGameId()))
+            {
+                YahtzeeWindow window = new YahtzeeWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

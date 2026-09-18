@@ -162,6 +162,12 @@ public class GameRules
             + "King) or another tableau column (one rank lower, opposite color, or a King onto an "
             + "empty column). Get every card onto the foundations to win.");
 
+        RULES.put("yahtzee", "Roll five dice, up to 3 times a turn - click a die between rolls "
+            + "to hold it and keep it out of the next reroll. When you're happy with the roll, click "
+            + "one of the 13 scorecard categories to score into it (each can only be used once) and "
+            + "end the turn. Score all 13 categories - get 63+ points across the upper section (Ones "
+            + "through Sixes) for a 35-point bonus - for the best final total.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
