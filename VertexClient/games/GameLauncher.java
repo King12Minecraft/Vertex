@@ -162,6 +162,11 @@ public class GameLauncher
                 FlappyBirdWindow window = new FlappyBirdWindow();
                 window.setVisible(true);
             }
+            else if ("galaxy-defender".equals(game.getGameId()))
+            {
+                GalaxyDefenderWindow window = new GalaxyDefenderWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

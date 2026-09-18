@@ -1,6 +1,6 @@
 # Vertex
 
-A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 39+ playable games, ELO ratings, a party system, tournaments, and the ability for anyone to host their own server.
+A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 40+ playable games, ELO ratings, a party system, tournaments, and the ability for anyone to host their own server.
 
 **See [`FEATURES.md`](FEATURES.md) for the complete, current feature list.** The summaries below are kept short on purpose.
 
@@ -61,7 +61,7 @@ Default port is **7777**, but this is fully configurable via the same switcher.
 
 **Also playable, ELO-rated 1v1 (see `FEATURES.md` for full details on each):** Dots and Boxes, Reversi/Othello, Memory Match, Air Hockey, Word Duel, Dice Duel, Snake Arena, Competitive Tetris, Square Wars, Fusion Grid, Typing Duel, Signal Grid, and Card Rush.
 
-**More single-player (no server needed):** Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Gem Match (an original match-3 - swap gems, clear lines, chain cascades for bonus score), Maze Chase (an original maze-and-chasers game - clear every dot, dodge the chasers, grab a power pellet to turn the tables for a few seconds), Brick Breaker (bounce the ball off the paddle to smash the wall of bricks), and Flappy Bird (tap to flap upward, gravity pulls you back down, thread the gaps between scrolling pipes).
+**More single-player (no server needed):** Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Gem Match (an original match-3 - swap gems, clear lines, chain cascades for bonus score), Maze Chase (an original maze-and-chasers game - clear every dot, dodge the chasers, grab a power pellet to turn the tables for a few seconds), Brick Breaker (bounce the ball off the paddle to smash the wall of bricks), Flappy Bird (tap to flap upward, gravity pulls you back down, thread the gaps between scrolling pipes), and Galaxy Defender (an original fixed-shooter - clear each marching wave of enemies before they reach your line, wave after wave).
 
 ## Everything else
 

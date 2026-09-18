@@ -132,6 +132,11 @@ public class GameRules
             + "the rest of the time. Thread the gaps between the scrolling pipes - clipping a pipe "
             + "or hitting the floor or ceiling ends the run. Your score is how many gaps you clear.");
 
+        RULES.put("galaxy-defender", "Arrow keys or A/D move your ship, Space fires. Clear each wave "
+            + "of enemies before they reach your line - they march side to side, stepping down and "
+            + "speeding up every time they hit an edge, and fire back at you. You have 3 lives; losing "
+            + "them all, or letting any enemy reach your ship's row, ends the run.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
