@@ -166,10 +166,10 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         // light gray/white background of its own wherever the currently
         // shown page doesn't paint every pixel of its own bounds. Most
         // pages are fine since they fill themselves via a RoundedPanel
-        // background, but a plain JPanel page like SatelliteServersPanel
-        // (setOpaque(false), no background of its own) would otherwise
-        // show this raw white straight through - looking like the whole
-        // page failed to render instead of just being empty/loading.
+        // background, but a plain JPanel page with no background of its
+        // own would otherwise show this raw white straight through -
+        // looking like the whole page failed to render instead of just
+        // being empty/loading.
         contentPanel.setOpaque(false);
         contentPanel.add(new HomePanel(), Pages.HOME);
         gamesPanel = new GamesPanel();
@@ -190,11 +190,6 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         {
             contentPanel.add(new ModeratorPanel(), Pages.MODERATION);
         }
-        if (PermissionManager.isAdmin(current))
-        {
-            contentPanel.add(new SatelliteServersPanel(), Pages.SATELLITE_SERVERS);
-        }
-
         transitionPane = new JLayeredPane();
         transitionPane.setLayout(null);
         transitionPane.add(contentPanel, JLayeredPane.DEFAULT_LAYER);
@@ -403,7 +398,6 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         if (pageKey.equals(Pages.PROFILE))    return "Profile";
         if (pageKey.equals(Pages.SETTINGS))   return "Settings";
         if (pageKey.equals(Pages.MODERATION)) return "Moderation";
-        if (pageKey.equals(Pages.SATELLITE_SERVERS)) return "Servers";
         return "Games";
     }
 

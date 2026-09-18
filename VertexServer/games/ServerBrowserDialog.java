@@ -295,9 +295,8 @@ public class ServerBrowserDialog
 
                 // Seamless path: same account, same password, just re-authenticate against
                 // the new server directly rather than showing a fresh login screen. This only
-                // works if the new server actually knows this account (itself, or a satellite
-                // that can delegate to the same main) - if not, fall back to a normal logout
-                // and let the person log in (or create an account) on the new server manually.
+                // works if the new server actually knows this account - if not, fall back to
+                // a normal logout and let the person log in (or create an account) manually.
                 Message reAuthResult = null;
                 if (username != null && password != null)
                 {

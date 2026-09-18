@@ -154,9 +154,6 @@ public class ClientHandler implements Runnable
     private TournamentManager tournamentManager;
     private ReplayManager replayManager;
     private TeamTournamentManager teamTournamentManager;
-    private MainServerConnection mainServerConnection;
-    private SatelliteRegistry satelliteRegistry;
-    private PresenceRegistry presenceRegistry;
     private final FeedbackManager feedbackManager;
     private final GameSuggestionStore gameSuggestionStore;
     private final AvatarStore avatarStore;
@@ -171,8 +168,7 @@ public class ClientHandler implements Runnable
                           RockPaperScissorsMatchManager rpsMatchManager, LeaderboardManager leaderboardManager,
                           PartyManager partyManager, AchievementManager achievementManager, TournamentManager tournamentManager,
                           ReplayManager replayManager, TeamTournamentManager teamTournamentManager,
-                          MainServerConnection mainServerConnection, SatelliteRegistry satelliteRegistry,
-                          PresenceRegistry presenceRegistry, FeedbackManager feedbackManager,
+                          FeedbackManager feedbackManager,
                           GameSuggestionStore gameSuggestionStore, ZombieSurvivalMatchManager zombieSurvivalMatchManager,
                           SpaceBattleMatchManager spaceBattleMatchManager, AdminLog adminLog,
                           ConnectFourMatchManager connectFourMatchManager, AvatarStore avatarStore,
@@ -207,9 +203,6 @@ public class ClientHandler implements Runnable
         this.tournamentManager = tournamentManager;
         this.replayManager = replayManager;
         this.teamTournamentManager = teamTournamentManager;
-        this.mainServerConnection = mainServerConnection;
-        this.satelliteRegistry = satelliteRegistry;
-        this.presenceRegistry = presenceRegistry;
         this.feedbackManager = feedbackManager;
         this.gameSuggestionStore = gameSuggestionStore;
         this.zombieSurvivalMatchManager = zombieSurvivalMatchManager;
@@ -377,7 +370,6 @@ public class ClientHandler implements Runnable
                 {
                     friendManager.broadcastPresenceChange(account, false);
                 }
-                reportPresenceToMain(false);
             }
 
             try { socket.close(); } catch (IOException ignored) { }
@@ -387,12 +379,6 @@ public class ClientHandler implements Runnable
     private Message handle(Message request)
     {
         if (request.getType() == MessageType.LOGIN_REQUEST) return handleLogin(request);
-        if (request.getType() == MessageType.SYNC_AUTH_REQUEST) return handleSyncAuth(request);
-        if (request.getType() == MessageType.SYNC_PUSH_REQUEST) return handleSyncPush(request);
-        if (request.getType() == MessageType.SATELLITE_REGISTER_REQUEST) return handleSatelliteRegister(request);
-        if (request.getType() == MessageType.SATELLITE_LIST_REQUEST) return handleSatelliteList();
-        if (request.getType() == MessageType.PRESENCE_UPDATE) return handlePresenceUpdate(request);
-        if (request.getType() == MessageType.FRIEND_LOCATION_REQUEST) return handleFriendLocationRequest(request);
         if (request.getType() == MessageType.CREATE_ACCOUNT_REQUEST) return handleCreateAccount(request);
         if (request.getType() == MessageType.GAME_LIST_REQUEST) return handleGameList();
         if (request.getType() == MessageType.CHANGE_USERNAME_REQUEST) return handleChangeUsername(request);
@@ -761,7 +747,7 @@ public class ClientHandler implements Runnable
         return response;
     }
 
-    /** Read-only lookup of another account's public info - role, equipped cosmetics, unlocked achievements, and ratings across every rated game. Reuses getUsername() for the target (request) and getSyncRatings() for the ratings list (response) rather than adding dedicated fields, same "gameId:rating" shape that field already carries for satellite account sync. Coins are deliberately NOT included - that's private, this is a public profile view. */
+    /** Read-only lookup of another account's public info - role, equipped cosmetics, unlocked achievements, and ratings across every rated game. Reuses getUsername() for the target (request) and getSyncRatings() for the ratings list (response) rather than adding dedicated fields, same "gameId:rating" shape that field already carries elsewhere. Coins are deliberately NOT included - that's private, this is a public profile view. */
     private Message handlePlayerProfile(Message request)
     {
         Message response = new Message();
@@ -900,21 +886,6 @@ public class ClientHandler implements Runnable
         ServerAccountStore.LoginResult result =
             accountStore.attemptLogin(request.getUsername(), request.getPassword());
 
-        if (result != ServerAccountStore.LoginResult.SUCCESS && mainServerConnection != null)
-        {
-            // Not known locally (or local password mismatch) - if we're a satellite, this
-            // might just mean nobody's ever logged into THIS server with this account before,
-            // or that main has a newer password than what's cached here. Either way, ask main.
-            Message syncResult = mainServerConnection.authenticateAgainstMain(request.getUsername(), request.getPassword());
-            if (syncResult != null && syncResult.isSuccess())
-            {
-                Account localCopy = accountStore.createOrUpdateFromSync(syncResult.getSyncAccount());
-                leaderboardManager.applySyncedRatings(localCopy.getAccountId(), syncResult.getSyncRatings());
-                achievementManager.applySyncedUnlocks(localCopy.getAccountId(), syncResult.getUnlockedAchievementIds());
-                result = ServerAccountStore.LoginResult.SUCCESS;
-            }
-        }
-
         if (result == ServerAccountStore.LoginResult.SUCCESS)
         {
             response.setSuccess(true);
@@ -929,7 +900,6 @@ public class ClientHandler implements Runnable
             loggedInAccountId = account.getAccountId();
             chatManager.register(this, loggedInUsername);
             friendManager.broadcastPresenceChange(account, true);
-            reportPresenceToMain(true);
         }
         else
         {
@@ -937,23 +907,6 @@ public class ClientHandler implements Runnable
             response.setErrorText(describeLoginFailure(result));
         }
         return response;
-    }
-
-    /** A no-op if this server isn't a satellite (mainServerConnection null). Runs on a background thread since it's a network call and shouldn't hold up the login response the player is actually waiting on. */
-    private void reportPresenceToMain(final boolean online)
-    {
-        if (mainServerConnection == null || loggedInUsername == null)
-        {
-            return;
-        }
-        final String username = loggedInUsername;
-        final int myPort = NetworkConfig.getServerPort();
-        Thread reportThread = new Thread(new Runnable()
-        {
-            public void run() { mainServerConnection.reportPresence(username, myPort, online); }
-        });
-        reportThread.setDaemon(true);
-        reportThread.start();
     }
 
     private String describeLoginFailure(ServerAccountStore.LoginResult result)
@@ -961,116 +914,6 @@ public class ClientHandler implements Runnable
         if (result == ServerAccountStore.LoginResult.NO_SUCH_ACCOUNT) return "No account with that username.";
         if (result == ServerAccountStore.LoginResult.LOCKED_OUT) return "Too many failed attempts. This account is temporarily locked.";
         return "Incorrect password.";
-    }
-
-    /** A satellite server delegating a login attempt to this server, treating it as the main/canonical account store - deliberately reuses the exact same attemptLogin() verification handleLogin() uses, since the whole point is that a synced account behaves identically whether logged into directly or through a satellite. Doesn't register the requester in chatManager/friendManager the way a real player login does - this connection is another server, not a player, and closes right after this one exchange. */
-    private Message handleSyncAuth(Message request)
-    {
-        Message response = new Message();
-        response.setType(MessageType.SYNC_AUTH_RESPONSE);
-
-        ServerAccountStore.LoginResult result =
-            accountStore.attemptLogin(request.getUsername(), request.getPassword());
-
-        if (result != ServerAccountStore.LoginResult.SUCCESS)
-        {
-            response.setSuccess(false);
-            response.setErrorText(describeLoginFailure(result));
-            return response;
-        }
-
-        Account account = accountStore.findByUsername(request.getUsername());
-        response.setSuccess(true);
-        response.setSyncAccount(account);
-        response.setSyncRatings(leaderboardManager.getAllRatingsForAccount(account.getAccountId()));
-        response.setUnlockedAchievementIds(new java.util.ArrayList<String>(achievementManager.getUnlocked(account.getAccountId())));
-        return response;
-    }
-
-    /** A satellite server pushing whatever changed locally (coins, ratings, achievements) back up to this server as the canonical store. Applies the incoming Account snapshot directly (last-write-wins - see MainServerConnection's own notes on this tradeoff) rather than trying to reconcile field-by-field against whatever this server currently has on record. */
-    private Message handleSyncPush(Message request)
-    {
-        Message response = new Message();
-        response.setType(MessageType.SYNC_PUSH_RESPONSE);
-
-        Account incoming = request.getSyncAccount();
-        if (incoming == null)
-        {
-            response.setSuccess(false);
-            return response;
-        }
-
-        boolean applied = accountStore.applySyncedAccount(incoming);
-        if (applied)
-        {
-            leaderboardManager.applySyncedRatings(incoming.getAccountId(), request.getSyncRatings());
-            achievementManager.applySyncedUnlocks(incoming.getAccountId(), request.getUnlockedAchievementIds());
-        }
-        response.setSuccess(applied);
-        return response;
-    }
-
-    /** No response needed - registering is a courtesy heads-up ("I exist, here's my port"), not a request that expects data back. Still sends an empty acknowledgement Message so registerAsSatellite's readObject() call has something waiting for it rather than blocking indefinitely. */
-    private Message handleSatelliteRegister(Message request)
-    {
-        if (!NetworkConfig.SATELLITE_SERVERS_ENABLED)
-        {
-            // Feature is temporarily disabled - ack anyway so an older/other
-            // build's registerAsSatellite() doesn't hang waiting on a reply,
-            // but don't actually record it.
-            return new Message();
-        }
-        String host = socket.getInetAddress().getHostAddress();
-        satelliteRegistry.register(host, request.getSatellitePort());
-        return new Message();
-    }
-
-    private Message handleSatelliteList()
-    {
-        Message response = new Message();
-        response.setType(MessageType.SATELLITE_LIST_RESPONSE);
-        if (!isAdmin())
-        {
-            response.setSuccess(false);
-            response.setErrorText("Admins only.");
-            return response;
-        }
-        response.setSuccess(true);
-        response.setSatelliteList(satelliteRegistry.listAll());
-        return response;
-    }
-
-    /** Only meaningful on the main server - a satellite reporting one of ITS players just logged in or disconnected. Captures the reporting satellite's real IP from the socket itself (never trusts a self-reported host, same reasoning as SATELLITE_REGISTER_REQUEST), paired with the port it was told directly. */
-    private Message handlePresenceUpdate(Message request)
-    {
-        String host = socket.getInetAddress().getHostAddress();
-        String address = host + ":" + request.getSatellitePort();
-        if (request.isOnline())
-        {
-            presenceRegistry.setOnline(request.getUsername(), address);
-        }
-        else
-        {
-            presenceRegistry.setOffline(request.getUsername());
-        }
-        return new Message();
-    }
-
-    /** "Where is this friend online right now, if anywhere" - answered directly if THIS server is main (it has the full picture), or forwarded to main if this is a satellite (which doesn't track anyone else's presence, only its own players). */
-    private Message handleFriendLocationRequest(Message request)
-    {
-        Message response = new Message();
-        response.setType(MessageType.FRIEND_LOCATION_RESPONSE);
-
-        if (mainServerConnection == null)
-        {
-            response.setPresenceAddress(presenceRegistry.getAddress(request.getUsername()));
-        }
-        else
-        {
-            response.setPresenceAddress(mainServerConnection.queryFriendLocation(request.getUsername()));
-        }
-        return response;
     }
 
     private boolean isAdmin()

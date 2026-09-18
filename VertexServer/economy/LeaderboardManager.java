@@ -1,6 +1,5 @@
 package economy;
 import account.Account;
-import net.SyncService;
 import account.ServerAccountStore;
 
 import java.io.BufferedReader;
@@ -56,7 +55,6 @@ public class LeaderboardManager
 
     private final ServerAccountStore accountStore;
     private AchievementManager achievementManager;
-    private SyncService syncService;
 
     public LeaderboardManager(ServerAccountStore accountStore)
     {
@@ -68,12 +66,6 @@ public class LeaderboardManager
     public void setAchievementManager(AchievementManager achievementManager)
     {
         this.achievementManager = achievementManager;
-    }
-
-    /** Set once from GameServer - lets a rating change trigger a background push to the main server automatically, same reasoning as setAchievementManager: individual match classes shouldn't each need their own sync-awareness. */
-    public void setSyncService(SyncService syncService)
-    {
-        this.syncService = syncService;
     }
 
     // ==================== ELO (1v1 games) ====================
@@ -106,12 +98,6 @@ public class LeaderboardManager
         checkWinAchievement(gameId, accountIdB, outcomeForB);
 
         save();
-
-        if (syncService != null)
-        {
-            syncService.syncAccountAsync(accountIdA);
-            syncService.syncAccountAsync(accountIdB);
-        }
     }
 
     private void checkWinAchievement(String gameId, int accountId, double outcome)
@@ -151,7 +137,7 @@ public class LeaderboardManager
         return rating == null ? STARTING_RATING : rating;
     }
 
-    /** Every game this account has an on-record rating in, "gameId:rating" per entry - used for main-server sync (MainServerConnection), where a whole account's rated history needs to travel as one payload rather than querying game-by-game. Games the account has never played (still sitting at STARTING_RATING with no real record) are skipped rather than padding the sync payload with defaults. */
+    /** Every game this account has an on-record rating in, "gameId:rating" per entry - used for the public profile view, where a whole account's rated history needs to travel as one payload rather than querying game-by-game. Games the account has never played (still sitting at STARTING_RATING with no real record) are skipped rather than padding the payload with defaults. */
     public synchronized java.util.List<String> getAllRatingsForAccount(int accountId)
     {
         java.util.List<String> result = new java.util.ArrayList<String>();
@@ -164,31 +150,6 @@ public class LeaderboardManager
             }
         }
         return result;
-    }
-
-    /** Applies a set of "gameId:rating" entries (from getAllRatingsForAccount's format) directly - used when a satellite server receives synced ratings from the main server and needs to adopt them locally, bypassing the normal ELO-exchange calculation since these are already-final values, not a match outcome to compute from. */
-    public synchronized void applySyncedRatings(int accountId, java.util.List<String> syncedRatings)
-    {
-        if (syncedRatings == null)
-        {
-            return;
-        }
-        for (String entry : syncedRatings)
-        {
-            String[] parts = entry.split(":", -1);
-            if (parts.length == 2)
-            {
-                try
-                {
-                    setRating(parts[0], accountId, Integer.parseInt(parts[1]));
-                }
-                catch (NumberFormatException e)
-                {
-                    // Malformed entry from a mismatched protocol version - skip rather than crash the whole sync.
-                }
-            }
-        }
-        save();
     }
 
     private void setRating(String gameId, int accountId, int newRating)

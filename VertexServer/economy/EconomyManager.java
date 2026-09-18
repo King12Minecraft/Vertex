@@ -3,7 +3,6 @@ import net.MessageType;
 import net.Message;
 import net.ClientHandler;
 import account.Account;
-import net.SyncService;
 import account.ServerAccountStore;
 
 import java.time.LocalDate;
@@ -17,7 +16,6 @@ public class EconomyManager
     private final ChallengeManager challengeManager = new ChallengeManager();
     private final TransactionManager transactionManager;
     private AchievementManager achievementManager;
-    private SyncService syncService;
 
     public EconomyManager(ServerAccountStore accountStore, TransactionManager transactionManager)
     {
@@ -31,21 +29,11 @@ public class EconomyManager
         this.achievementManager = achievementManager;
     }
 
-    /** Set once from GameServer - lets every coin-changing method (award*, purchase, applyDailyLoginReward) trigger a background sync automatically via the shared checkCoinAchievement() hook below, same pattern as LeaderboardManager/AchievementManager's own setSyncService(). */
-    public void setSyncService(SyncService syncService)
-    {
-        this.syncService = syncService;
-    }
-
     private void checkCoinAchievement(Account account)
     {
         if (achievementManager != null)
         {
             achievementManager.checkCoinBalance(account.getAccountId(), account.getCoins());
-        }
-        if (syncService != null)
-        {
-            syncService.syncAccountAsync(account.getAccountId());
         }
     }
 
@@ -302,10 +290,6 @@ public class EconomyManager
         account.getOwnedItemIds().add(itemId);
         transactionManager.log(account.getAccountId(), -item.priceCoins, "Purchased " + item.name);
         accountStore.updateAccount(account);
-        if (syncService != null)
-        {
-            syncService.syncAccountAsync(account.getAccountId());
-        }
 
         outNewBalance[0] = account.getCoins();
         return PurchaseResult.SUCCESS;

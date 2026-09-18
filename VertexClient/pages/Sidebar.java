@@ -6,7 +6,6 @@ import net.Message;
 import theme.ThemeManager;
 import theme.UITheme;
 import games.GameLogo;
-import net.NetworkConfig;
 import account.PermissionManager;
 import account.Session;
 import account.Account;
@@ -90,11 +89,6 @@ public class Sidebar extends RoundedPanel
         {
             addNavButton("Moderation", Pages.MODERATION);
         }
-        if (PermissionManager.isAdmin(current) && NetworkConfig.SATELLITE_SERVERS_ENABLED)
-        {
-            addNavButton("Servers", Pages.SATELLITE_SERVERS);
-        }
-
         addNavButton("Settings", Pages.SETTINGS);
 
         add(Box.createVerticalGlue());

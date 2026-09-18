@@ -50,25 +50,6 @@ import java.net.Socket;
 
 public class GameServer
 {
-    /** Null means this server IS the main/canonical server - nothing to delegate to, sync methods simply aren't called. Set via setMainServer() before start(), matching how the port itself gets configured before starting. */
-    private MainServerConnection mainServerConnection;
-
-    public void setMainServer(String host, int port)
-    {
-        this.mainServerConnection = new MainServerConnection(host, port);
-        this.syncService.setMainServerConnection(this.mainServerConnection);
-    }
-
-    public boolean isSatellite()
-    {
-        return mainServerConnection != null;
-    }
-
-    public MainServerConnection getMainServerConnection()
-    {
-        return mainServerConnection;
-    }
-
     private final ServerAccountStore accountStore = new ServerAccountStore();
     private final GameRegistry gameRegistry = new GameRegistry();
     private final TransactionManager transactionManager = new TransactionManager();
@@ -77,9 +58,6 @@ public class GameServer
     private final ChatManager chatManager = new ChatManager();
     private final LeaderboardManager leaderboardManager = new LeaderboardManager(accountStore);
     private final AchievementManager achievementManager = new AchievementManager();
-    private final SyncService syncService = new SyncService(accountStore, leaderboardManager, achievementManager);
-    private final SatelliteRegistry satelliteRegistry = new SatelliteRegistry();
-    private final PresenceRegistry presenceRegistry = new PresenceRegistry();
     private final PartyManager partyManager = new PartyManager(chatManager);
     private final MatchManager matchManager = new MatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final GroupChatManager groupChatManager = new GroupChatManager(chatManager);
@@ -125,12 +103,6 @@ public class GameServer
         gameHistoryManager.setAchievementManager(achievementManager);
         economyManager.setAchievementManager(achievementManager);
         achievementManager.setNotificationTargets(accountStore, chatManager);
-
-        // Same reasoning for SyncService - a no-op everywhere until setMainServer() is
-        // called (or forever, if this server IS the main server, never a satellite).
-        leaderboardManager.setSyncService(syncService);
-        achievementManager.setSyncService(syncService);
-        economyManager.setSyncService(syncService);
     }
 
     private ServerSocket serverSocket;
@@ -155,17 +127,6 @@ public class GameServer
         acceptThread.setDaemon(true);
         acceptThread.start();
 
-        if (mainServerConnection != null && NetworkConfig.SATELLITE_SERVERS_ENABLED)
-        {
-            final int myPort = NetworkConfig.getServerPort();
-            Thread registerThread = new Thread(new Runnable()
-            {
-                public void run() { mainServerConnection.registerAsSatellite(myPort); }
-            });
-            registerThread.setDaemon(true);
-            registerThread.start();
-        }
-
         return true;
     }
 
@@ -183,7 +144,7 @@ public class GameServer
                     friendManager, moderationManager, racingMatchManager, amongUsMatchManager,
                     fightArenaMatchManager, chessMatchManager, battleshipMatchManager, rpsMatchManager,
                     leaderboardManager, partyManager, achievementManager, tournamentManager, replayManager,
-                    teamTournamentManager, mainServerConnection, satelliteRegistry, presenceRegistry,
+                    teamTournamentManager,
                     feedbackManager, gameSuggestionStore, zombieSurvivalMatchManager, spaceBattleMatchManager, adminLog,
                     connectFourMatchManager, avatarStore, checkersMatchManager, squareWarsMatchManager,
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,

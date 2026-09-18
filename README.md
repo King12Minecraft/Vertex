@@ -1,6 +1,6 @@
 # Vertex
 
-A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 19 playable games, ELO ratings, a party system, tournaments, and an optional multi-server sync setup where players can host their own servers while still sharing one account.
+A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 35+ playable games, ELO ratings, a party system, tournaments, and the ability for anyone to host their own server.
 
 **See [`FEATURES.md`](FEATURES.md) for the complete, current feature list.** The summaries below are kept short on purpose.
 
@@ -30,18 +30,13 @@ jpackage --input . --name Vertex --main-jar VertexClient.jar --main-class Vertex
 ```
 Swap `VertexClient.jar`/`Vertex` for `VertexServer.jar`/`ServerMain` to package the server the same way. `--type exe` makes a proper Windows installer (Start Menu entry, uninstaller, desktop shortcut); use `--type app-image` instead if you just want a folder with `Vertex.exe` in it and no installer.
 
-## Hosting, connecting, and the sync system
+## Hosting and connecting
 
-Vertex was originally one client talking to one server. It's since grown into something closer to a small distributed setup:
+- **Anyone can host.** Both `VertexClient` and `VertexServer` carry the full server engine, so starting a server doesn't require the separate server project — the ordinary client can do it too, from Settings → Start Hosting.
+- **One server, one account store.** Whichever server you connect to is the source of truth for its own accounts, matches, and progress — there's no cross-server syncing to reason about, and no "main" vs. "satellite" distinction. Simple to run, and simple to eventually host somewhere always-on (e.g. a single cloud VM) without any of that machinery to keep alive alongside it.
+- **Switching servers is still easy.** The in-app server switcher (Settings → Switch Server) lets you save addresses and jump between servers without editing any code, and re-authenticates you automatically if that server already knows your account.
 
-- **Anyone can host.** Both `VertexClient` and `VertexServer` carry the full server engine, so starting a server doesn't require the separate server project — the ordinary client can do it too.
-- **One server is "main."** The first server anyone ever designates as main gets locked with a password right then (first-come, first-served) — after that, starting a NEW main server on that same machine requires that same password. This stops someone from accidentally (or deliberately) spinning up a second "main" server that isn't the real one.
-- **Everyone else is a satellite.** A satellite server runs its own real games — matches, chat, everything — but isn't the source of truth for accounts. The first time someone logs into a satellite with an account that only exists on main, the satellite quietly checks with main, confirms the login, and caches a local copy so the game can actually track them.
-- **Progress syncs back automatically.** Win a match, unlock an achievement, buy something from the shop — the satellite pushes that change to main in the background, no action needed. If main happens to be briefly unreachable, the satellite just keeps playing locally.
-- **Satellites never inherit admin.** Being an admin on main does not make you an admin anywhere else. Every satellite-cached account is a regular player, always.
-- **Admins can see every known satellite.** From the sidebar (admin accounts only — a new "Servers" page), you can see every server that has ever registered with yours, and when it was last seen.
-
-Default port is **7777**, but this is fully configurable — hosting asks which port to use, and the in-app server switcher (Settings → Switch Server) lets you save and jump between servers without editing any code.
+Default port is **7777**, but this is fully configurable via the same switcher.
 
 ## The games
 
@@ -64,7 +59,7 @@ Default port is **7777**, but this is fully configurable — hosting asks which 
 
 **Single-player (no server needed to play, though wins/scores still get tracked if you're logged in):** Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, and RPS against a simple AI. Snake, Tetris, and Dino Dash all support pausing mid-game (press **P**).
 
-**Coming soon:** Square Wars — listed honestly as not yet built.
+**Also playable, ELO-rated 1v1 (see `FEATURES.md` for full details on each):** Minesweeper, Dots and Boxes, Reversi/Othello, Memory Match, Air Hockey, Word Duel, Whack-a-Mole, Dice Duel, Snake Arena, Competitive Tetris, Sudoku, Simon Says, Square Wars, Fusion Grid, Typing Duel, Signal Grid, and Card Rush.
 
 ## Everything else
 
@@ -73,7 +68,7 @@ Default port is **7777**, but this is fully configurable — hosting asks which 
 - **Notifications** — a bell icon with a live feed, achievement unlock toasts, notification sounds, and a one-click "Clear All."
 - **Customization** — 11 full themes including an animated Glitch mode; every game now renders with a fixed palette regardless of theme choice; the mode-select screen remembers which option you picked last time for each game.
 - **Performance** — a Settings toggle for lower-end hardware (reduced rendering quality, halved frame rate) plus a live FPS counter, on top of the existing `-LowEnd` launcher scripts.
-- **Admin & moderation tools** — a real Admin Panel (player role management, an audit log), moderators, staff-colored chat usernames, a feedback system, and a live view of every satellite server that's synced with yours.
+- **Admin & moderation tools** — a real Admin Panel (player role management, an audit log), moderators, staff-colored chat usernames, and a feedback system.
 - **Quality of life** — a global search bar, Escape closes every dialog, confirm-before-close on any active match, and auto-reconnect after a dropped connection.
 
 Full details on all of the above: [`FEATURES.md`](FEATURES.md).

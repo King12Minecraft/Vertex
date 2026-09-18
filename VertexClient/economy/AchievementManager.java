@@ -3,7 +3,6 @@ import net.MessageType;
 import net.Message;
 import net.ClientHandler;
 import account.Account;
-import net.SyncService;
 import social.ChatManager;
 import account.ServerAccountStore;
 
@@ -78,7 +77,6 @@ public class AchievementManager
     private final Map<Integer, Set<String>> unlockedByAccount = new HashMap<Integer, Set<String>>();
     private ServerAccountStore accountStore;
     private ChatManager chatManager;
-    private SyncService syncService;
 
     public AchievementManager()
     {
@@ -90,12 +88,6 @@ public class AchievementManager
     {
         this.accountStore = accountStore;
         this.chatManager = chatManager;
-    }
-
-    /** Set once from GameServer - lets a genuinely new unlock trigger a background push to the main server, same pattern as LeaderboardManager.setSyncService(). Not called from applySyncedUnlocks(), which is for adopting data that came FROM a sync, not for generating new sync-worthy events - that would push right back what was just received. */
-    public void setSyncService(SyncService syncService)
-    {
-        this.syncService = syncService;
     }
 
     public static List<Definition> getAllDefinitions()
@@ -194,28 +186,7 @@ public class AchievementManager
         {
             save();
             notifyIfOnline(accountId, achievementId);
-            if (syncService != null)
-            {
-                syncService.syncAccountAsync(accountId);
-            }
         }
-    }
-
-    /** Adopts a set of achievement ids from a main-server sync directly - deliberately doesn't call unlock() (and its notifyIfOnline), since these are already-known unlocks from elsewhere, not a genuinely new moment worth a live toast. */
-    public synchronized void applySyncedUnlocks(int accountId, java.util.List<String> ids)
-    {
-        if (ids == null)
-        {
-            return;
-        }
-        Set<String> unlocked = unlockedByAccount.get(accountId);
-        if (unlocked == null)
-        {
-            unlocked = new HashSet<String>();
-            unlockedByAccount.put(accountId, unlocked);
-        }
-        unlocked.addAll(ids);
-        save();
     }
 
     private void notifyIfOnline(int accountId, String achievementId)

@@ -1,9 +1,6 @@
 package games;
 import net.GameServer;
 import ui.ThemedButton;
-import ui.ThemedPasswordField;
-import net.MainServerLock;
-import ui.ThemedTextField;
 import theme.UITheme;
 import net.NetworkConfig;
 import theme.ThemeManager;
@@ -38,8 +35,7 @@ import java.awt.event.ActionListener;
  * the very first thing shown before you can even log in.
  *
  * Starts a real GameServer in-process (same engine ServerMain uses),
- * optionally pointed at a main server to sync with, then hands off to
- * ServerBrowserDialog.switchTo() to reconnect this client to its own
+ * then hands off to ServerBrowserDialog.switchTo() to reconnect this client to its own
  * freshly-started server and re-authenticate with the already-logged-in
  * account's cached password - no separate login step.
  */
@@ -69,55 +65,12 @@ public class HostServerDialog
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         root.add(title);
 
-        JLabel hint = new JLabel(NetworkConfig.SATELLITE_SERVERS_ENABLED
-            ? "<html><body style='width:280px'>Starts a real Vertex server on this computer for others to join. Leave the address below blank to host as the MAIN server, or point it at an existing main server's address to host a satellite that stays synced with it.</body></html>"
-            : "<html><body style='width:280px'>Starts a real Vertex server on this computer for others to join, as the MAIN server. Satellite hosting (syncing to an existing main server) is temporarily disabled.</body></html>");
+        JLabel hint = new JLabel("<html><body style='width:280px'>Starts a real Vertex server on this computer for others to join.</body></html>");
         hint.setFont(UITheme.FONT_SMALL);
         hint.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         hint.setAlignmentX(Component.LEFT_ALIGNMENT);
         hint.setBorder(new EmptyBorder(6, 0, 18, 0));
         root.add(hint);
-
-        JLabel addressLabel = new JLabel(NetworkConfig.SATELLITE_SERVERS_ENABLED
-            ? "Main server address (optional)"
-            : "Main server address (satellite hosting disabled)");
-        addressLabel.setFont(UITheme.FONT_SMALL);
-        addressLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
-        addressLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addressLabel.setBorder(new EmptyBorder(0, 0, 6, 0));
-        root.add(addressLabel);
-
-        final ThemedTextField addressField = new ThemedTextField("host:port, e.g. 192.168.1.10:7777");
-        addressField.setAlignmentX(Component.LEFT_ALIGNMENT);
-        addressField.setMaximumSize(new Dimension(2000, 38));
-        addressField.setEnabled(NetworkConfig.SATELLITE_SERVERS_ENABLED);
-        root.add(addressField);
-        root.add(javax.swing.Box.createVerticalStrut(16));
-
-        final boolean firstSetup = !MainServerLock.isEstablished();
-        JLabel passwordLabel = new JLabel(firstSetup
-            ? "Set a main server password (only asked once on this computer)"
-            : "Main server password");
-        passwordLabel.setFont(UITheme.FONT_SMALL);
-        passwordLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
-        passwordLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        passwordLabel.setBorder(new EmptyBorder(0, 0, 6, 0));
-        root.add(passwordLabel);
-
-        final ThemedPasswordField passwordField = new ThemedPasswordField();
-        passwordField.setAlignmentX(Component.LEFT_ALIGNMENT);
-        passwordField.setMaximumSize(new Dimension(2000, 42));
-        root.add(passwordField);
-        root.add(javax.swing.Box.createVerticalStrut(6));
-
-        JLabel passwordHint = new JLabel(firstSetup
-            ? "This only applies when hosting as MAIN (address left blank)."
-            : "Only needed when hosting as MAIN (address left blank).");
-        passwordHint.setFont(UITheme.FONT_SMALL.deriveFont(11f));
-        passwordHint.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
-        passwordHint.setAlignmentX(Component.LEFT_ALIGNMENT);
-        passwordHint.setBorder(new EmptyBorder(0, 0, 14, 0));
-        root.add(passwordHint);
 
         final JLabel errorLabel = new JLabel(" ");
         errorLabel.setFont(UITheme.FONT_SMALL);
@@ -135,41 +88,6 @@ public class HostServerDialog
             {
                 errorLabel.setText(" ");
 
-                String addressInput = addressField.getValue().trim();
-                final String[] mainAddress;
-                if (addressInput.isEmpty())
-                {
-                    mainAddress = null;
-                }
-                else
-                {
-                    mainAddress = parseAddress(addressInput);
-                    if (mainAddress == null)
-                    {
-                        errorLabel.setText("Use the format host:port for the main server, e.g. 192.168.1.10:7777.");
-                        return;
-                    }
-                }
-
-                String password = passwordField.getValue();
-                if (mainAddress == null)
-                {
-                    if (firstSetup)
-                    {
-                        if (password.length() < 6)
-                        {
-                            errorLabel.setText("Password must be at least 6 characters.");
-                            return;
-                        }
-                        MainServerLock.establish(password);
-                    }
-                    else if (!MainServerLock.verify(password))
-                    {
-                        errorLabel.setText("Incorrect main server password.");
-                        return;
-                    }
-                }
-
                 startButton.setEnabled(false);
                 startButton.setText("Starting...");
 
@@ -178,10 +96,6 @@ public class HostServerDialog
                     public void run()
                     {
                         GameServer server = new GameServer();
-                        if (mainAddress != null)
-                        {
-                            server.setMainServer(mainAddress[0], Integer.parseInt(mainAddress[1]));
-                        }
                         final boolean started = server.start();
                         final int port = NetworkConfig.getServerPort();
 
@@ -217,30 +131,6 @@ public class HostServerDialog
         dialog.pack();
         dialog.setLocationRelativeTo(anchor);
         dialog.setVisible(true);
-    }
-
-    private static String[] parseAddress(String input)
-    {
-        int colonIndex = input.lastIndexOf(':');
-        if (colonIndex <= 0 || colonIndex == input.length() - 1)
-        {
-            return null;
-        }
-        String host = input.substring(0, colonIndex);
-        String portText = input.substring(colonIndex + 1);
-        try
-        {
-            int port = Integer.parseInt(portText);
-            if (port < 1 || port > 65535)
-            {
-                return null;
-            }
-            return new String[] { host, String.valueOf(port) };
-        }
-        catch (NumberFormatException e)
-        {
-            return null;
-        }
     }
 
     /** Shows the address a friend on the same network would actually connect to, with a Copy button - "localhost" (what ServerBrowserDialog switches to right after this, for the host's own connection) only ever works for the host's own machine, so it's useless to hand to someone else. Uses InetAddress.getLocalHost() for a best-effort LAN IP; on an odd network setup this can still come back as a loopback address, so the label is worded as a starting point to check, not a guarantee. Auto-closes after a few seconds so it doesn't block the normal flow into the server browser. */

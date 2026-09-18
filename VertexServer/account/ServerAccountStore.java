@@ -152,53 +152,6 @@ public class ServerAccountStore
         return null;
     }
 
-    /** Adopts the satellite-controlled fields (coins, cosmetics, login streak) from a pushed sync account into this server's own matching record - matched by username, not accountId, since account IDs are assigned independently per-server and only line up by coincidence. Deliberately leaves accountId, role, username, and password hash/salt untouched - those are this server's own authoritative identity fields, not something a satellite should ever be able to overwrite. Returns false if no account with that username exists here yet - satellite servers currently only sync accounts that were created via a normal login/registration on the main server first (see MainServerConnection's own notes on this limitation). */
-    public synchronized boolean applySyncedAccount(Account incoming)
-    {
-        Account existing = findByUsername(incoming.getUsername());
-        if (existing == null)
-        {
-            return false;
-        }
-        existing.setCoins(incoming.getCoins());
-        existing.setPlayerColorName(incoming.getPlayerColorName());
-        existing.setEquippedBadgeId(incoming.getEquippedBadgeId());
-        existing.setEquippedFrameId(incoming.getEquippedFrameId());
-        existing.setLastLoginDate(incoming.getLastLoginDate());
-        existing.setLoginStreak(incoming.getLoginStreak());
-        existing.getOwnedItemIds().clear();
-        existing.getOwnedItemIds().addAll(incoming.getOwnedItemIds());
-        save();
-        return true;
-    }
-
-    /** Used by a satellite server the first time it sees an account that just authenticated successfully against the main server - creates (or updates, if already cached from a prior visit) a local copy so future gameplay on this satellite has a real local Account to work against. Deliberately assigns a LOCAL accountId (this satellite's own next counter value, never main's), since account IDs aren't meaningful across servers - and deliberately always assigns Role.PLAYER regardless of what role the account holds on main, so an admin on the main server is never automatically an admin on someone else's satellite too. The password hash/salt ARE copied from main, though - so if this satellite later loses its connection to main, the cached account can still log in locally using the same credentials. */
-    public synchronized Account createOrUpdateFromSync(Account synced)
-    {
-        Account existing = findByUsername(synced.getUsername());
-        if (existing != null)
-        {
-            applySyncedAccount(synced);
-            existing.setPassword(synced.getPasswordHash(), synced.getPasswordSalt());
-            save();
-            return existing;
-        }
-
-        Account newAccount = new Account(nextAccountId, synced.getUsername(),
-            synced.getPasswordHash(), synced.getPasswordSalt(), Role.PLAYER);
-        nextAccountId++;
-        newAccount.setCoins(synced.getCoins());
-        newAccount.setPlayerColorName(synced.getPlayerColorName());
-        newAccount.setEquippedBadgeId(synced.getEquippedBadgeId());
-        newAccount.setEquippedFrameId(synced.getEquippedFrameId());
-        newAccount.setLastLoginDate(synced.getLastLoginDate());
-        newAccount.setLoginStreak(synced.getLoginStreak());
-        newAccount.getOwnedItemIds().addAll(synced.getOwnedItemIds());
-        accounts.add(newAccount);
-        save();
-        return newAccount;
-    }
-
     public synchronized Account findById(int accountId)
     {
         for (int i = 0; i < accounts.size(); i++)

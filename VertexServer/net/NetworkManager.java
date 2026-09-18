@@ -261,8 +261,7 @@ public class NetworkManager
      * were the answer to a completely different request. That's a silent
      * failure mode - the caller just gets a default, empty-looking Message
      * back (success=false, no error text) - which is why things like the
-     * satellite server list ("Could not load the satellite list") or other
-     * screens could fail to load for no visible reason, especially with
+     * a leaderboard or achievements list could fail to load for no visible reason, especially with
      * several panels fetching data around the same time. Defaulting to
      * push instead means a type missing from this list fails open (still
      * delivered, just via onPush) rather than corrupting some other
@@ -322,10 +321,6 @@ public class NetworkManager
         MessageType.REPORT_LIST_RESPONSE,
         MessageType.LEADERBOARD_RESPONSE,
         MessageType.ACHIEVEMENTS_RESPONSE,
-        MessageType.SYNC_AUTH_RESPONSE,
-        MessageType.SYNC_PUSH_RESPONSE,
-        MessageType.SATELLITE_LIST_RESPONSE,
-        MessageType.FRIEND_LOCATION_RESPONSE,
         MessageType.SPECTATABLE_MATCHES_RESPONSE,
         MessageType.REPLAY_LIST_RESPONSE,
         MessageType.REPLAY_RESPONSE,

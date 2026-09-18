@@ -83,13 +83,11 @@ Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, 
 
 ---
 
-## Multi-server sync
+## Hosting
 
 - **Anyone can host** — both `VertexClient` and `VertexServer` carry the full server engine.
-- **One server is "main"** — first-come-first-served, password-locked once claimed.
-- **Satellites** — run real games independently, but aren't the source of truth for accounts; delegate login to main on first sight, cache locally after.
-- **Progress syncs back automatically** — coins, ELO, achievements push to main in the background; satellite keeps working if main is briefly unreachable.
-- **Satellites never inherit admin.**
+- **One server, one account store** — no cross-server syncing to reason about. Whichever server you connect to is the full source of truth for its own accounts, matches, and progress.
+- **Multi-server sync** *(historical note — the "main server" + synced "satellite servers" system this section used to describe was removed; kept here for the record of what existed. Each server now just stands on its own, which also simplifies hosting one always-on, e.g. on a cloud VM.)*
 
 ---
 
