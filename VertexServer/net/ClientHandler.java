@@ -959,8 +959,7 @@ public class ClientHandler implements Runnable
             return response;
         }
 
-        boolean isLoopback = socket.getInetAddress().isLoopbackAddress();
-        boolean grantAdmin = isLoopback && !accountStore.hasAdminAccount();
+        boolean grantAdmin = !accountStore.hasAdminAccount();
         Role role = grantAdmin ? Role.ADMIN : Role.PLAYER;
 
         Account account = accountStore.createAccount(username, password, role);

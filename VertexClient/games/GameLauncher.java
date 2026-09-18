@@ -157,6 +157,11 @@ public class GameLauncher
                 BrickBreakerWindow window = new BrickBreakerWindow();
                 window.setVisible(true);
             }
+            else if ("flappy-bird".equals(game.getGameId()))
+            {
+                FlappyBirdWindow window = new FlappyBirdWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

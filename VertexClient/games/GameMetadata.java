@@ -52,6 +52,7 @@ public class GameMetadata
         tag("match-three", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("maze-chase", MEDIUM, "2D", "Single Player", "Arcade");
         tag("brick-breaker", EASY, "2D", "Single Player", "Arcade");
+        tag("flappy-bird", MEDIUM, "2D", "Single Player", "Arcade");
         tag("dots-and-boxes", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("reversi", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
         tag("memory-match", EASY, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated");
