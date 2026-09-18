@@ -147,6 +147,11 @@ public class GameLauncher
                 MatchThreeWindow window = new MatchThreeWindow();
                 window.setVisible(true);
             }
+            else if ("maze-chase".equals(game.getGameId()))
+            {
+                MazeChaseWindow window = new MazeChaseWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();

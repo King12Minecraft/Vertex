@@ -36,6 +36,7 @@ public class GameRegistry
         games.add(new GameInfo("simon-says", "Simon Says", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("whack-a-mole", "Whack-a-Mole", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("match-three", "Gem Match", "Single Player", "Practice Mode", false, false, "1.0"));
+        games.add(new GameInfo("maze-chase", "Maze Chase", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("dots-and-boxes", "Dots and Boxes", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("reversi", "Reversi", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("memory-match", "Memory Match", "Multiplayer", "Online", true, false, "1.0"));

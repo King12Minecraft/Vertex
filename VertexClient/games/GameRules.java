@@ -119,6 +119,11 @@ public class GameRules
             + "the top. Chains that clear more gems in one cascade score extra. You get 20 swaps; "
             + "your final score is what you cleared.");
 
+        RULES.put("maze-chase", "Move through the maze collecting every dot while dodging the "
+            + "three chasers. Grab a big glowing pellet in a corner and the chasers turn blue and "
+            + "become huntable for a few seconds - eat one for a big bonus. You start with 3 lives; "
+            + "losing one resets everyone's position but keeps the dots you've already cleared.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");
