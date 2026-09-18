@@ -68,6 +68,7 @@ public class EconomyConfig
         if ("brick-breaker".equals(gameId))  return Math.min(30, score / 35);
         if ("flappy-bird".equals(gameId))    return Math.min(30, score * 2);
         if ("galaxy-defender".equals(gameId)) return Math.min(35, score / 8);
+        if ("word-guess".equals(gameId))     return Math.min(30, score / 4);
         return 0;
     }
 

@@ -137,6 +137,11 @@ public class GameRules
             + "speeding up every time they hit an edge, and fire back at you. You have 3 lives; losing "
             + "them all, or letting any enemy reach your ship's row, ends the run.");
 
+        RULES.put("word-guess", "Guess the hidden 5-letter word in 6 tries. Type letters and press "
+            + "Enter to submit a guess - green means that letter's in the right spot, yellow means "
+            + "it's in the word but the wrong spot, gray means it's not in the word at all. The "
+            + "on-screen keyboard remembers what you've learned about every letter.");
+
         RULES.put("dots-and-boxes", "Take turns drawing one line between two adjacent dots. "
             + "Complete the 4th side of a box and you claim it - and get to go again immediately. "
             + "Most boxes owned once every line is drawn wins.");

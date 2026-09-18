@@ -167,6 +167,11 @@ public class GameLauncher
                 GalaxyDefenderWindow window = new GalaxyDefenderWindow();
                 window.setVisible(true);
             }
+            else if ("word-guess".equals(game.getGameId()))
+            {
+                WordGuessWindow window = new WordGuessWindow();
+                window.setVisible(true);
+            }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
                 DotsAndBoxesWindow window = new DotsAndBoxesWindow();
