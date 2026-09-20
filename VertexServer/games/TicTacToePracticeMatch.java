@@ -1,5 +1,7 @@
 package games;
 
+import ai.AiKernel;
+
 import java.util.Arrays;
 
 /**
@@ -10,9 +12,29 @@ import java.util.Arrays;
  * server's TicTacToeMatch (round/series scoring, win-line reporting)
  * so TicTacToeWindow can reuse the same rendering and result-display
  * logic for both online and practice play. The human always plays X.
+ *
+ * The AI's move is now chosen via AiKernel rather than calling
+ * TicTacToeAI.pickMove() directly - the underlying decision logic is
+ * unchanged (TicTacToePracticeBotStrategy just wraps the same call),
+ * but routing it through the shared ai package is what makes this
+ * game's AI a registered, reusable strategy other tooling can inspect
+ * or swap, instead of a one-off hardcoded call. This is Vertex's first
+ * game on the new shared AI layer.
  */
 public class TicTacToePracticeMatch
 {
+    private static final String AI_GAME_ID = "tictactoe-practice";
+
+    static
+    {
+        // Registered once per JVM when this class first loads. AiKernel.register()
+        // is safe to call more than once for the same id, so no "already registered"
+        // guard is needed here.
+        AiKernel.register(AI_GAME_ID,
+            new TicTacToePracticeBotStrategy('O', 'X'),
+            new TicTacToeRandomMoveStrategy());
+    }
+
     public static class RoundResult
     {
         public final String winnerSymbol;
@@ -76,7 +98,7 @@ public class TicTacToePracticeMatch
         {
             return null;
         }
-        int move = TicTacToeAI.pickMove(board, 'O', 'X');
+        int move = AiKernel.<char[], Integer>chooseMove(AI_GAME_ID, board);
         board[move] = 'O';
         return checkAfterMove('O');
     }
