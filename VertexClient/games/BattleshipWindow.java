@@ -1,4 +1,5 @@
 package games;
+import ai.AiKernel;
 import economy.GuestPlayTracker;
 import account.Session;
 import ui.GameHubDialog;
@@ -78,7 +79,18 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
     private int[] aiFleet;
     private int[] myShipHits;
     private int[] aiShipHits;
-    private BattleshipAI ai;
+    // AiKernel-routed vs-AI opponent: aiPrimary is BattleshipAI's real hunt/target logic wrapped
+    // as an ai.BotStrategy, aiFallback is a deliberately trivial random-shot strategy AiKernel
+    // falls back to if aiPrimary ever throws. Both are fresh per match (Battleship's bot needs its
+    // own shot-history memory, so it can't safely be one shared registered instance the way
+    // Tic-Tac-Toe's stateless strategy is - see BattleshipBotStrategy's Javadoc).
+    private BattleshipBotStrategy aiPrimary;
+    private BattleshipRandomShotStrategy aiFallback;
+    // Ground truth for which cells the AI has already fired at, independent of which strategy
+    // (primary or fallback) actually chose each one - passed into applySafely(...) every turn so
+    // neither strategy can ever double-fire at a cell the OTHER one picked. See
+    // BattleshipBotStrategy's Javadoc for why this matters.
+    private boolean[] aiAlreadyFired;
 
     public BattleshipWindow()
     {
@@ -356,7 +368,9 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         aiFleet = new int[SIZE * SIZE];
         myShipHits = new int[SHIP_LENGTHS.length];
         aiShipHits = new int[SHIP_LENGTHS.length];
-        ai = new BattleshipAI();
+        aiPrimary = new BattleshipBotStrategy();
+        aiFallback = new BattleshipRandomShotStrategy();
+        aiAlreadyFired = new boolean[SIZE * SIZE];
         opponentUsername = "the computer";
         myTurn = true;
 
@@ -481,7 +495,8 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
     {
         while (true)
         {
-            int cellIndex = ai.chooseNextShot();
+            int cellIndex = AiKernel.applySafely(aiPrimary, aiFallback, aiAlreadyFired);
+            aiAlreadyFired[cellIndex] = true;
             int shipIndex = myFleet[cellIndex];
             String result;
             if (shipIndex == -1)
@@ -493,7 +508,7 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
                 myShipHits[shipIndex]++;
                 result = myShipHits[shipIndex] >= SHIP_LENGTHS[shipIndex] ? "SUNK" : "HIT";
             }
-            ai.reportResult(cellIndex, result);
+            aiPrimary.reportResult(cellIndex, result);
             markCell(myGridCells[cellIndex], result);
 
             if (allSunk(myShipHits))

@@ -22,6 +22,19 @@ public class BattleshipAI
     private final boolean[] fired = new boolean[SIZE * SIZE];
     private final List<Integer> targetQueue = new ArrayList<Integer>();
 
+    /**
+     * Reconciles external ground truth into this AI's own "already fired"
+     * tracking - a no-op if it already knew about the cell. Exists purely
+     * so a caller that sometimes has to fall back to a DIFFERENT strategy
+     * (see BattleshipBotStrategy/AiKernel.applySafely) can keep this AI's
+     * internal state from drifting out of sync with what actually
+     * happened, without needing to touch chooseNextShot()'s own algorithm.
+     */
+    public void markFired(int cellIndex)
+    {
+        fired[cellIndex] = true;
+    }
+
     public int chooseNextShot()
     {
         while (!targetQueue.isEmpty())

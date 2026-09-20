@@ -33,6 +33,24 @@ import java.util.Map;
  * strategy failing AT RUNTIME while making a real decision, which is
  * exactly what the primary/fallback safety net exists to absorb
  * silently so a live match never gets stuck because of a bot bug.
+ *
+ * The register()/chooseMove(gameId, ...) registry pair above is a
+ * convenience for strategies that are genuinely stateless (or at
+ * least safe to share as one long-lived instance across every match
+ * of that game) - Tic-Tac-Toe Practice Mode's AI is a good example,
+ * since it only ever reasons about the board it's handed, with no
+ * memory of its own. Not every bot fits that shape: some games (e.g.
+ * Battleship's hunt/target opponent) need their own private memory
+ * FOR A SINGLE MATCH - which cells have already been fired at, which
+ * are queued to finish off a hit ship - and sharing one instance
+ * across matches would let two concurrent games corrupt each other's
+ * memory. For those, applySafely(primary, fallback, state) below is
+ * the lower-level primitive: the exact same try-primary-then-fallback
+ * guarantee, but registry-free, so the caller can hold its own fresh
+ * primary/fallback instances for the lifetime of one match (the same
+ * way BattleshipWindow already constructs a fresh AI per match) while
+ * still getting the kernel's safety net. chooseMove(gameId, state) is
+ * implemented in terms of this same primitive.
  */
 public final class AiKernel
 {
@@ -110,18 +128,50 @@ public final class AiKernel
 
         try
         {
-            return registration.primary.chooseMove(state);
+            return applySafely(registration.primary, registration.fallback, state);
+        }
+        catch (AiDecisionException bothFailed)
+        {
+            // Re-thrown with the gameId folded into the message (applySafely doesn't know
+            // which game it was called for), but carrying the SAME original cause - the
+            // primary strategy's own failure, which is the actionable bug to go fix.
+            throw new AiDecisionException(
+                "Both the primary and fallback AI strategies failed for game: " + gameId, bothFailed.getCause());
+        }
+    }
+
+    /**
+     * The core, registry-free safety-net primitive: tries the primary
+     * strategy first; if it throws any RuntimeException, falls back to
+     * the fallback strategy instead of letting the failure propagate.
+     * If the fallback ALSO throws, an AiDecisionException wrapping the
+     * ORIGINAL primary failure is thrown.
+     *
+     * Use this directly (instead of register()/chooseMove(gameId,...))
+     * for a bot that needs its own memory for a single match - hold
+     * your own fresh primary/fallback instances for that match's
+     * lifetime and call this each time a decision is needed, the same
+     * way BattleshipWindow holds one BattleshipBotStrategy per match.
+     */
+    public static <S, A> A applySafely(BotStrategy<S, A> primary, BotStrategy<S, A> fallback, S state)
+    {
+        if (primary == null || fallback == null)
+        {
+            throw new IllegalArgumentException("Both a primary and a fallback strategy are required");
+        }
+        try
+        {
+            return primary.chooseMove(state);
         }
         catch (RuntimeException primaryFailure)
         {
             try
             {
-                return registration.fallback.chooseMove(state);
+                return fallback.chooseMove(state);
             }
             catch (RuntimeException fallbackFailure)
             {
-                throw new AiDecisionException(
-                    "Both the primary and fallback AI strategies failed for game: " + gameId, primaryFailure);
+                throw new AiDecisionException("Both the primary and fallback AI strategies failed", primaryFailure);
             }
         }
     }
