@@ -1,4 +1,5 @@
 package games;
+import ai.knowledge.CachingCapitalLookup;
 import net.MessageType;
 import net.Message;
 import economy.LeaderboardManager;
@@ -32,14 +33,17 @@ public class TriviaMatchManager
     private final ChatManager chatManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
+    private final CachingCapitalLookup capitalLookup;
 
     public TriviaMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager,
-                               EconomyManager economyManager, LeaderboardManager leaderboardManager)
+                               EconomyManager economyManager, LeaderboardManager leaderboardManager,
+                               CachingCapitalLookup capitalLookup)
     {
         this.gameHistoryManager = gameHistoryManager;
         this.chatManager = chatManager;
         this.economyManager = economyManager;
         this.leaderboardManager = leaderboardManager;
+        this.capitalLookup = capitalLookup;
     }
 
     public synchronized void findMatch(ClientHandler player)
@@ -61,7 +65,7 @@ public class TriviaMatchManager
             }
 
             String matchId = "trivia-" + (nextMatchId++);
-            TriviaMatch match = new TriviaMatch(matchId, group, this, economyManager, leaderboardManager);
+            TriviaMatch match = new TriviaMatch(matchId, group, this, economyManager, leaderboardManager, capitalLookup);
             activeMatches.put(matchId, match);
             for (int i = 0; i < group.size(); i++)
             {

@@ -7,6 +7,9 @@ import games.TeamTournamentManager;
 import games.TournamentManager;
 import economy.AvatarStore;
 import games.TriviaMatchManager;
+import ai.knowledge.CachingCapitalLookup;
+import ai.knowledge.FactCache;
+import ai.knowledge.RestCountriesCapitalSource;
 import games.DotsAndBoxesMatchManager;
 import games.ReversiMatchManager;
 import games.MemoryMatchMatchManager;
@@ -74,7 +77,13 @@ public class GameServer
     private final ConnectFourMatchManager connectFourMatchManager = new ConnectFourMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final CheckersMatchManager checkersMatchManager = new CheckersMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final SquareWarsMatchManager squareWarsMatchManager = new SquareWarsMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager);
-    private final TriviaMatchManager triviaMatchManager = new TriviaMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager);
+    // Live capital-of-country lookups for Trivia Blitz (ai.knowledge roadmap item 5) - cache-first,
+    // backed by the free restcountries.com API on a miss. One instance shared across every match
+    // (via TriviaMatchManager) so the on-disk cache (gamehub_fact_cache.dat) is a single source of
+    // truth server-wide, not one copy per match.
+    private final CachingCapitalLookup capitalLookup =
+        new CachingCapitalLookup(new FactCache("gamehub_fact_cache.dat"), new RestCountriesCapitalSource());
+    private final TriviaMatchManager triviaMatchManager = new TriviaMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager, capitalLookup);
     private final DotsAndBoxesMatchManager dotsAndBoxesMatchManager = new DotsAndBoxesMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final ReversiMatchManager reversiMatchManager = new ReversiMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final MemoryMatchMatchManager memoryMatchMatchManager = new MemoryMatchMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);

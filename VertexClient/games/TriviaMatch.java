@@ -1,4 +1,5 @@
 package games;
+import ai.knowledge.CachingCapitalLookup;
 import economy.EconomyConfig;
 import net.MessageType;
 import net.Message;
@@ -7,6 +8,7 @@ import economy.EconomyManager;
 import net.ClientHandler;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -17,16 +19,23 @@ import java.util.TimerTask;
 /**
  * TriviaMatch
  * -----------
- * Round-based quiz, 2-6 players, an original question bank (basic
- * general-knowledge facts - math, geography, science - written for
- * this project, not copied from any trivia product). Everyone gets
- * the same question at the same time and answers independently
- * within the time limit; correct answers score points, with a speed
- * bonus for answering faster. Same "server broadcasts state, clients
- * submit discrete actions" shape every other real-time game on this
- * platform uses - a round auto-advances via a server-side Timer once
- * ROUND_DURATION_MS elapses, regardless of who's answered, so one
- * slow/disconnected player can't stall the whole match.
+ * Round-based quiz, 2-6 players, mixing an original static question
+ * bank (basic general-knowledge facts - math, geography, science -
+ * written for this project, not copied from any trivia product) with
+ * a small number of LIVE-resolved capital-of-country questions (see
+ * ai.knowledge.CachingCapitalLookup) - cache-first, falling back to a
+ * real free web lookup (restcountries.com) on a miss, so the question
+ * pool grows on its own over time instead of staying fixed at
+ * whatever was hand-written. A live lookup that fails just means this
+ * match uses one more bank question instead - it never stalls a
+ * match waiting on the network. Everyone gets the same question at
+ * the same time and answers independently within the time limit;
+ * correct answers score points, with a speed bonus for answering
+ * faster. Same "server broadcasts state, clients submit discrete
+ * actions" shape every other real-time game on this platform uses - a
+ * round auto-advances via a server-side Timer once ROUND_DURATION_MS
+ * elapses, regardless of who's answered, so one slow/disconnected
+ * player can't stall the whole match.
  */
 public class TriviaMatch
 {
@@ -76,11 +85,37 @@ public class TriviaMatch
         BANK.add(new Question("Which is the smallest continent by land area?", 2, "Europe", "South America", "Australia", "Antarctica"));
     }
 
+    /**
+     * Countries deliberately NOT in the static BANK above, whose
+     * capitals are resolved live (via CachingCapitalLookup - cache
+     * first, then a real web lookup on a miss, per Bipin's ai.knowledge
+     * roadmap item) rather than hand-written here. A country that
+     * fails to resolve (cache miss AND the live lookup fails twice)
+     * is simply skipped for that match - the static BANK always has
+     * enough questions to fill a round on its own, so a live-lookup
+     * failure never stalls a match.
+     */
+    private static final String[] LIVE_CAPITAL_COUNTRIES = {
+        "Kazakhstan", "Mongolia", "Uruguay", "Bhutan", "Eritrea",
+        "Suriname", "Laos", "Moldova"
+    };
+
+    /** Real capitals used as multiple-choice distractors for a live-resolved question - never the static BANK's own answers, kept thematically consistent (all real national capitals) rather than mixed with unrelated wrong answers. */
+    private static final String[] DISTRACTOR_CAPITALS = {
+        "Astana", "Ulaanbaatar", "Montevideo", "Thimphu", "Asmara", "Paramaribo",
+        "Vientiane", "Chisinau", "Reykjavik", "Ljubljana", "Bratislava", "Vilnius",
+        "Riga", "Tallinn", "Minsk", "Yerevan", "Baku", "Tbilisi", "Bishkek",
+        "Dushanbe", "Ashgabat", "Tashkent"
+    };
+
+    private static final int LIVE_QUESTIONS_PER_MATCH = 2;
+
     private final String matchId;
     private final List<ClientHandler> players;
     private final TriviaMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
+    private final CachingCapitalLookup capitalLookup;
 
     private final List<Question> matchQuestions = new ArrayList<Question>();
     private final Map<ClientHandler, Integer> scores = new HashMap<ClientHandler, Integer>();
@@ -93,25 +128,83 @@ public class TriviaMatch
     private Timer roundTimer;
 
     public TriviaMatch(String matchId, List<ClientHandler> players, TriviaMatchManager matchManager,
-                        EconomyManager economyManager, LeaderboardManager leaderboardManager)
+                        EconomyManager economyManager, LeaderboardManager leaderboardManager,
+                        CachingCapitalLookup capitalLookup)
     {
         this.matchId = matchId;
         this.players = players;
         this.matchManager = matchManager;
         this.economyManager = economyManager;
         this.leaderboardManager = leaderboardManager;
+        this.capitalLookup = capitalLookup;
+
+        // Live-resolved questions first (they're the ones that can fail/skip), THEN top up
+        // with however many static-bank questions are needed to fill the round - so a live
+        // lookup failure just means slightly more bank questions this match, never a short round.
+        matchQuestions.addAll(resolveLiveCapitalQuestions(LIVE_QUESTIONS_PER_MATCH));
 
         List<Question> shuffled = new ArrayList<Question>(BANK);
         Collections.shuffle(shuffled);
-        int count = Math.min(ROUND_COUNT, shuffled.size());
-        for (int i = 0; i < count; i++)
+        int bankNeeded = Math.min(ROUND_COUNT - matchQuestions.size(), shuffled.size());
+        for (int i = 0; i < bankNeeded; i++)
         {
             matchQuestions.add(shuffled.get(i));
         }
+        Collections.shuffle(matchQuestions); // don't always put live questions first/last
+
         for (int i = 0; i < players.size(); i++)
         {
             scores.put(players.get(i), 0);
         }
+    }
+
+    /** Tries up to maxCount countries from LIVE_CAPITAL_COUNTRIES (cache-first, one live retry on a miss - see CachingCapitalLookup), skipping any that fail to resolve. Never throws and never blocks longer than a few lookups' worth of network timeouts. */
+    private List<Question> resolveLiveCapitalQuestions(int maxCount)
+    {
+        List<Question> resolved = new ArrayList<Question>();
+        List<String> pool = new ArrayList<String>(Arrays.asList(LIVE_CAPITAL_COUNTRIES));
+        Collections.shuffle(pool);
+
+        for (String country : pool)
+        {
+            if (resolved.size() >= maxCount)
+            {
+                break;
+            }
+            String capital = capitalLookup.lookupCapital(country);
+            if (capital == null)
+            {
+                continue; // cache miss + live lookup failed (or retried and still failed) - skip this one
+            }
+            resolved.add(buildCapitalQuestion(country, capital));
+        }
+        return resolved;
+    }
+
+    /** Builds a genuine multiple-choice question from a live-resolved capital - the correct answer plus 3 distractors drawn from DISTRACTOR_CAPITALS (never the same as the correct answer), all shuffled into a random position. */
+    private Question buildCapitalQuestion(String country, String correctCapital)
+    {
+        List<String> distractorPool = new ArrayList<String>();
+        for (String candidate : DISTRACTOR_CAPITALS)
+        {
+            if (!candidate.equalsIgnoreCase(correctCapital))
+            {
+                distractorPool.add(candidate);
+            }
+        }
+        Collections.shuffle(distractorPool);
+
+        List<String> options = new ArrayList<String>();
+        options.add(correctCapital);
+        for (int i = 0; i < 3 && i < distractorPool.size(); i++)
+        {
+            options.add(distractorPool.get(i));
+        }
+        Collections.shuffle(options);
+
+        int correctIndex = options.indexOf(correctCapital);
+        return new Question("What is the capital of " + country + "?", correctIndex,
+            options.toArray(new String[0]));
     }
 
     public void start()
