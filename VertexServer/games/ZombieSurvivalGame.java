@@ -1,5 +1,7 @@
 package games;
 
+import ai.steering.Steering;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -262,22 +264,20 @@ public class ZombieSurvivalGame
         return new Zombie(x, y, 50, 1.6, 10, TYPE_NORMAL);
     }
 
+    /** Each zombie's movement is now the shared ai.steering.Steering.seek() utility (roadmap item 4) rather than the vector math computed inline - same behavior (straight line toward the player at the zombie's own speed), just no longer duplicated per-game. Distance-to-player is still measured BEFORE moving, exactly as before, so the contact-damage threshold check is unaffected by the migration. */
     private void moveZombiesAndResolveContact()
     {
         for (int i = 0; i < zombies.size(); i++)
         {
             Zombie z = zombies.get(i);
-            double dx = playerX - z.x;
-            double dy = playerY - z.y;
-            double len = Math.sqrt(dx * dx + dy * dy);
-            if (len > 0.001)
-            {
-                z.x += (dx / len) * z.speed;
-                z.y += (dy / len) * z.speed;
-            }
+            double distanceToPlayer = Math.hypot(playerX - z.x, playerY - z.y);
+
+            double[] velocity = Steering.seek(z.x, z.y, playerX, playerY, z.speed);
+            z.x += velocity[0];
+            z.y += velocity[1];
 
             double contactDistance = PLAYER_RADIUS + 12;
-            if (len < contactDistance && invulnTicks == 0)
+            if (distanceToPlayer < contactDistance && invulnTicks == 0)
             {
                 playerHp -= z.contactDamage;
                 invulnTicks = INVULN_TICKS_AFTER_HIT;

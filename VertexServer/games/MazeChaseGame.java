@@ -1,8 +1,9 @@
 package games;
 
+import ai.AiKernel;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * MazeChaseGame
@@ -28,6 +29,15 @@ public class MazeChaseGame
     public static final int STARTING_LIVES = 3;
     private static final int CHASER_COUNT = 3;
     private static final int FRIGHTENED_TICKS = 45;
+    private static final String AI_GAME_ID = "maze-chase-chaser";
+
+    static
+    {
+        // Registered once per JVM when this class first loads. AiKernel.register()
+        // is safe to call more than once for the same id, so no "already registered"
+        // guard is needed here.
+        AiKernel.register(AI_GAME_ID, new MazeChaseChaserBotStrategy(), new MazeChaseChaserRandomStrategy());
+    }
 
     private final boolean[][] wall = new boolean[HEIGHT][WIDTH];
     private final boolean[][] pellet = new boolean[HEIGHT][WIDTH];
@@ -56,7 +66,6 @@ public class MazeChaseGame
     }
 
     private final List<Chaser> chasers = new ArrayList<Chaser>();
-    private final Random random = new Random();
 
     private int score;
     private int lives = STARTING_LIVES;
@@ -142,13 +151,15 @@ public class MazeChaseGame
 
     public void setPendingDirection(Direction direction) { pendingDirection = direction; }
 
-    private boolean isOpen(int row, int col)
+    /** Package-private (not private) - also called by MazeChaseChaserState, which builds the read-only snapshot MazeChaseChaserBotStrategy decides from. */
+    boolean isOpen(int row, int col)
     {
         if (row < 0 || row >= HEIGHT || col < 0 || col >= WIDTH) return false;
         return !wall[row][col];
     }
 
-    private int[] step(int row, int col, Direction direction)
+    /** Package-private (not private) - also called by MazeChaseChaserState. */
+    int[] step(int row, int col, Direction direction)
     {
         if (direction == Direction.UP)    return new int[] { row - 1, col };
         if (direction == Direction.DOWN)  return new int[] { row + 1, col };
@@ -157,7 +168,8 @@ public class MazeChaseGame
         return new int[] { row, col };
     }
 
-    private Direction opposite(Direction d)
+    /** Package-private (not private) - also called by MazeChaseChaserState. */
+    Direction opposite(Direction d)
     {
         if (d == Direction.UP) return Direction.DOWN;
         if (d == Direction.DOWN) return Direction.UP;
@@ -226,69 +238,29 @@ public class MazeChaseGame
         }
     }
 
-    /** Each chaser picks, out of every direction that doesn't walk into a wall, the one that gets closest to the player (or furthest, while frightened) 75% of the time - and a uniformly random valid direction the rest of the time, so movement isn't perfectly predictable. Reversing straight back the way it came is avoided unless it's genuinely the only option, same as a real intersection-based chase AI. */
+    /**
+     * Each chaser's move is chosen via AiKernel (MazeChaseChaserBotStrategy)
+     * rather than the Manhattan-distance heuristic this used to compute
+     * inline - see that class's Javadoc for why the migration is also a
+     * real correctness fix (true BFS shortest path/distance instead of a
+     * one-step-lookahead approximation), not just a refactor. Still 75%
+     * "optimal" / 25% random, and still avoids reversing unless forced -
+     * both preserved inside the strategy, not here.
+     */
     private void moveChasers()
     {
         boolean fleeing = frightenedTicksLeft > 0;
         for (Chaser chaser : chasers)
         {
-            List<Direction> options = new ArrayList<Direction>();
-            for (Direction d : new Direction[] { Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT })
-            {
-                int[] next = step(chaser.row, chaser.col, d);
-                if (isOpen(next[0], next[1]) && d != opposite(chaser.direction))
-                {
-                    options.add(d);
-                }
-            }
-            if (options.isEmpty())
-            {
-                for (Direction d : new Direction[] { Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT })
-                {
-                    int[] next = step(chaser.row, chaser.col, d);
-                    if (isOpen(next[0], next[1]))
-                    {
-                        options.add(d);
-                    }
-                }
-            }
-            if (options.isEmpty()) continue;
-
-            Direction chosen;
-            if (random.nextInt(100) < 75)
-            {
-                chosen = bestDirection(chaser, options, fleeing);
-            }
-            else
-            {
-                chosen = options.get(random.nextInt(options.size()));
-            }
+            MazeChaseChaserState state = new MazeChaseChaserState(this, chaser, fleeing);
+            Direction chosen = AiKernel.<MazeChaseChaserState, Direction>chooseMove(AI_GAME_ID, state);
+            if (chosen == Direction.NONE) continue;
 
             int[] next = step(chaser.row, chaser.col, chosen);
             chaser.row = next[0];
             chaser.col = next[1];
             chaser.direction = chosen;
         }
-    }
-
-    private Direction bestDirection(Chaser chaser, List<Direction> options, boolean flee)
-    {
-        Direction best = options.get(0);
-        int bestDist = flee ? -1 : Integer.MAX_VALUE;
-        for (Direction d : options)
-        {
-            int[] next = step(chaser.row, chaser.col, d);
-            int dist = Math.abs(next[0] - playerRow) + Math.abs(next[1] - playerCol);
-            if (flee)
-            {
-                if (dist > bestDist) { bestDist = dist; best = d; }
-            }
-            else
-            {
-                if (dist < bestDist) { bestDist = dist; best = d; }
-            }
-        }
-        return best;
     }
 
     private void resolveCollisions()
