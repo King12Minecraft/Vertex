@@ -1,4 +1,5 @@
 package games;
+import ai.AiKernel;
 import economy.GuestPlayTracker;
 import account.Session;
 import ui.GameHubDialog;
@@ -30,16 +31,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.Random;
 
 /**
  * RockPaperScissorsWindow
  * ------------------------
  * Two ways to play: vs Player (1v1 online, best-of-5, simultaneous
  * blind moves - see RockPaperScissorsMatch) or vs AI (fully local,
- * random-pick opponent, unchanged from the original single-player
- * version). Purely event-driven either way - no game loop/timer
- * needed, a move resolves the instant both sides have picked.
+ * random-pick opponent, unchanged in behavior from the original
+ * single-player version, now routed through AiKernel instead of
+ * picking randomly inline - see RockPaperScissorsBotStrategy). Purely
+ * event-driven either way - no game loop/timer needed, a move
+ * resolves the instant both sides have picked.
  */
 public class RockPaperScissorsWindow extends JFrame implements NetworkManager.PushListener
 {
@@ -47,10 +49,20 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
     private static final String GAME = "GAME";
+    private static final String AI_GAME_ID = "rock-paper-scissors";
+
+    static
+    {
+        // Registered once per JVM when this class first loads. AiKernel.register()
+        // is safe to call more than once for the same id, so no "already registered"
+        // guard is needed here.
+        AiKernel.register(AI_GAME_ID,
+            new RockPaperScissorsBotStrategy(),
+            new RockPaperScissorsFixedMoveStrategy());
+    }
 
     private final java.awt.CardLayout cardLayout = new java.awt.CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
-    private final Random random = new Random();
 
     private JLabel searchingLabel;
     private JLabel statusLabel;
@@ -371,7 +383,7 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
 
     private void playVsAi(String playerMove)
     {
-        String aiMove = MOVES[random.nextInt(MOVES.length)];
+        String aiMove = AiKernel.<Void, String>chooseMove(AI_GAME_ID, null);
         int outcome = resolve(playerMove, aiMove);
 
         if (outcome > 0)
