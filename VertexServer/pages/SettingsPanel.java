@@ -13,6 +13,7 @@ import games.HostServerDialog;
 import net.NetworkConfig;
 import games.ServerBrowserDialog;
 import ui.ThemedButton;
+import ui.ThemedLabel;
 import net.NetworkManager;
 import net.ConnectionIndicator;
 import theme.ThemeDropdown;
@@ -101,9 +102,8 @@ public class SettingsPanel extends RoundedPanel
         wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
         wrap.setMaximumSize(new Dimension(2000, 600));
 
-        JLabel label = new JLabel(title);
+        JLabel label = new ThemedLabel(title, ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(new EmptyBorder(0, 0, 12, 0));
         wrap.add(label);
@@ -128,9 +128,8 @@ public class SettingsPanel extends RoundedPanel
         row.setOpaque(false);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel label = new JLabel("Launch Vertex on startup");
+        JLabel label = new ThemedLabel("Launch Vertex on startup", ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_BODY);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(label, BorderLayout.WEST);
 
         // Local device preference only - not persisted anywhere yet.
@@ -147,9 +146,8 @@ public class SettingsPanel extends RoundedPanel
         soundRow.setOpaque(false);
         soundRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel soundLabel = new JLabel("Notification Sounds");
+        JLabel soundLabel = new ThemedLabel("Notification Sounds", ThemeColor.TEXT_PRIMARY);
         soundLabel.setFont(UITheme.FONT_BODY);
-        soundLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         soundRow.add(soundLabel, BorderLayout.WEST);
 
         final ToggleSwitch soundToggle = new ToggleSwitch(NotificationSoundSetting.isEnabled());
@@ -163,10 +161,9 @@ public class SettingsPanel extends RoundedPanel
         soundRow.add(soundToggleWrap, BorderLayout.EAST);
         col.add(soundRow);
 
-        JLabel soundDescription = new JLabel("<html><body style='width:420px'>Plays a short system beep when a "
-            + "new chat message or group invite comes in.</body></html>");
+        JLabel soundDescription = new ThemedLabel("<html><body style='width:420px'>Plays a short system beep when a "
+            + "new chat message or group invite comes in.</body></html>", ThemeColor.TEXT_MUTED);
         soundDescription.setFont(UITheme.FONT_SMALL);
-        soundDescription.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         soundDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
         soundDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
         col.add(soundDescription);
@@ -184,9 +181,8 @@ public class SettingsPanel extends RoundedPanel
         row.setOpaque(false);
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel label = new JLabel("Performance Mode");
+        JLabel label = new ThemedLabel("Performance Mode", ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_BODY);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(label, BorderLayout.WEST);
 
         final ToggleSwitch toggle = new ToggleSwitch(PerformanceMode.isEnabled());
@@ -200,11 +196,11 @@ public class SettingsPanel extends RoundedPanel
         row.add(toggleWrap, BorderLayout.EAST);
         col.add(row);
 
-        JLabel description = new JLabel("<html><body style='width:420px'>Turns off antialiased/high-quality "
+        JLabel description = new ThemedLabel("<html><body style='width:420px'>Turns off antialiased/high-quality "
             + "rendering app-wide, drops in-game frame rate from 60 to 30fps, and skips a couple of decorative "
-            + "background effects. Takes effect the next time you open a game or restart Vertex.</body></html>");
+            + "background effects. Takes effect the next time you open a game or restart Vertex.</body></html>",
+            ThemeColor.TEXT_MUTED);
         description.setFont(UITheme.FONT_SMALL);
-        description.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         description.setAlignmentX(Component.LEFT_ALIGNMENT);
         description.setBorder(new EmptyBorder(6, 0, 0, 0));
         col.add(description);
@@ -215,9 +211,8 @@ public class SettingsPanel extends RoundedPanel
         fpsRow.setOpaque(false);
         fpsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel fpsLabel = new JLabel("Show FPS Counter");
+        JLabel fpsLabel = new ThemedLabel("Show FPS Counter", ThemeColor.TEXT_PRIMARY);
         fpsLabel.setFont(UITheme.FONT_BODY);
-        fpsLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         fpsRow.add(fpsLabel, BorderLayout.WEST);
 
         final ToggleSwitch fpsToggle = new ToggleSwitch(FpsCounterSetting.isEnabled());
@@ -231,11 +226,10 @@ public class SettingsPanel extends RoundedPanel
         fpsRow.add(fpsToggleWrap, BorderLayout.EAST);
         col.add(fpsRow);
 
-        JLabel fpsDescription = new JLabel("<html><body style='width:420px'>Shows a live frame-rate readout in "
+        JLabel fpsDescription = new ThemedLabel("<html><body style='width:420px'>Shows a live frame-rate readout in "
             + "the corner of every game - useful for checking whether Performance Mode (or your hardware) is "
-            + "actually giving you a smooth 60/30fps.</body></html>");
+            + "actually giving you a smooth 60/30fps.</body></html>", ThemeColor.TEXT_MUTED);
         fpsDescription.setFont(UITheme.FONT_SMALL);
-        fpsDescription.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         fpsDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
         fpsDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
         col.add(fpsDescription);
@@ -249,9 +243,8 @@ public class SettingsPanel extends RoundedPanel
         col.setOpaque(false);
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
 
-        JLabel label = new JLabel("Theme");
+        JLabel label = new ThemedLabel("Theme", ThemeColor.TEXT_SECONDARY);
         label.setFont(UITheme.FONT_BODY);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(new EmptyBorder(0, 0, 10, 0));
         col.add(label);
@@ -274,9 +267,8 @@ public class SettingsPanel extends RoundedPanel
         statusRow.setOpaque(false);
         statusRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel label = new JLabel("Server status");
+        JLabel label = new ThemedLabel("Server status", ThemeColor.TEXT_SECONDARY);
         label.setFont(UITheme.FONT_BODY);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         statusRow.add(label, BorderLayout.WEST);
 
         ConnectionIndicator indicator = new ConnectionIndicator(NetworkManager.getState());
@@ -319,11 +311,10 @@ public class SettingsPanel extends RoundedPanel
         });
         col.add(copyDiagnostics);
 
-        JLabel diagNote = new JLabel("<html><body style='width:420px'>Useful to paste into a bug report - "
+        JLabel diagNote = new ThemedLabel("<html><body style='width:420px'>Useful to paste into a bug report - "
             + "includes your Java version, OS, and which server you're connected to. No account info or "
-            + "message content.</body></html>");
+            + "message content.</body></html>", ThemeColor.TEXT_MUTED);
         diagNote.setFont(UITheme.FONT_SMALL);
-        diagNote.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         diagNote.setAlignmentX(Component.LEFT_ALIGNMENT);
         diagNote.setBorder(new EmptyBorder(6, 0, 0, 0));
         col.add(diagNote);
@@ -362,9 +353,8 @@ public class SettingsPanel extends RoundedPanel
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
         col.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel note = new JLabel("<html><body style='width:420px'>Run a Vertex server on this computer so others can join.</body></html>");
+        JLabel note = new ThemedLabel("<html><body style='width:420px'>Run a Vertex server on this computer so others can join.</body></html>", ThemeColor.TEXT_SECONDARY);
         note.setFont(UITheme.FONT_BODY);
-        note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
         note.setBorder(new EmptyBorder(0, 0, 14, 0));
         col.add(note);
@@ -390,9 +380,8 @@ public class SettingsPanel extends RoundedPanel
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
         col.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel note = new JLabel("Found a bug, or have an idea? It goes straight to the admins.");
+        JLabel note = new ThemedLabel("Found a bug, or have an idea? It goes straight to the admins.", ThemeColor.TEXT_SECONDARY);
         note.setFont(UITheme.FONT_BODY);
-        note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
         note.setBorder(new EmptyBorder(0, 0, 14, 0));
         col.add(note);
@@ -515,9 +504,9 @@ public class SettingsPanel extends RoundedPanel
         col.setOpaque(false);
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
 
-        JLabel note = new JLabel("Signed in as " + currentUsername() + " (Account ID " + currentAccountId() + ").");
+        JLabel note = new ThemedLabel("Signed in as " + currentUsername() + " (Account ID " + currentAccountId() + ").",
+            ThemeColor.TEXT_SECONDARY);
         note.setFont(UITheme.FONT_BODY);
-        note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         note.setAlignmentX(Component.LEFT_ALIGNMENT);
         note.setBorder(new EmptyBorder(0, 0, 14, 0));
         col.add(note);
