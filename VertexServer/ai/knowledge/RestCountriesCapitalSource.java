@@ -42,7 +42,7 @@ import java.util.regex.Pattern;
  * moves, only this one class needs to change (CapitalSource is the
  * seam that isolates it).
  */
-public class RestCountriesCapitalSource implements CapitalSource
+public class RestCountriesCapitalSource implements FactSource
 {
     private static final Pattern CAPITAL_FIELD = Pattern.compile("\"capital\"\\s*:\\s*\\[\\s*\"([^\"]+)\"");
     private static final Duration TIMEOUT = Duration.ofSeconds(4);
@@ -51,7 +51,7 @@ public class RestCountriesCapitalSource implements CapitalSource
         .connectTimeout(TIMEOUT)
         .build();
 
-    public String lookupCapital(String countryName)
+    public String lookup(String countryName)
     {
         try
         {

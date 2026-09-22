@@ -7,9 +7,12 @@ import games.TeamTournamentManager;
 import games.TournamentManager;
 import economy.AvatarStore;
 import games.TriviaMatchManager;
-import ai.knowledge.CachingCapitalLookup;
+import ai.knowledge.CachingFactLookup;
 import ai.knowledge.FactCache;
 import ai.knowledge.RestCountriesCapitalSource;
+import ai.knowledge.WikidataFactSource;
+import ai.knowledge.WikidataSparqlClient;
+import games.TriviaLiveLookups;
 import games.DotsAndBoxesMatchManager;
 import games.ReversiMatchManager;
 import games.MemoryMatchMatchManager;
@@ -77,13 +80,42 @@ public class GameServer
     private final ConnectFourMatchManager connectFourMatchManager = new ConnectFourMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final CheckersMatchManager checkersMatchManager = new CheckersMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final SquareWarsMatchManager squareWarsMatchManager = new SquareWarsMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager);
-    // Live capital-of-country lookups for Trivia Blitz (ai.knowledge roadmap item 5) - cache-first,
-    // backed by the free restcountries.com API on a miss. One instance shared across every match
-    // (via TriviaMatchManager) so the on-disk cache (gamehub_fact_cache.dat) is a single source of
-    // truth server-wide, not one copy per match.
-    private final CachingCapitalLookup capitalLookup =
-        new CachingCapitalLookup(new FactCache("gamehub_fact_cache.dat"), new RestCountriesCapitalSource());
-    private final TriviaMatchManager triviaMatchManager = new TriviaMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager, capitalLookup);
+    // Live trivia lookups for Trivia Blitz (ai.knowledge roadmap item 5) - cache-first, backed by
+    // free/keyless web sources on a miss (restcountries.com for capitals; Wikidata's public SPARQL
+    // endpoint for everything else - companies, historical events, inventions, cities). One shared
+    // on-disk cache per category (each its own gamehub_fact_cache_*.dat file, via FactCache), built
+    // once here and threaded through TriviaMatchManager into every match rather than one copy per
+    // match. See TriviaLiveLookups/TriviaMatch for how these are used.
+    private final WikidataSparqlClient wikidataClient = new WikidataSparqlClient();
+    private final TriviaLiveLookups triviaLiveLookups = new TriviaLiveLookups(
+        new CachingFactLookup(new FactCache("gamehub_fact_cache_capital.dat"),
+            new RestCountriesCapitalSource(), "capital"),
+        new CachingFactLookup(new FactCache("gamehub_fact_cache_company.dat"),
+            new WikidataFactSource(wikidataClient,
+                "SELECT ?year WHERE { ?item rdfs:label \"{subject}\"@en. ?item wdt:P571 ?date. "
+                    + "BIND(YEAR(?date) AS ?year) } LIMIT 1",
+                "year"),
+            "founded"),
+        new CachingFactLookup(new FactCache("gamehub_fact_cache_inventor.dat"),
+            new WikidataFactSource(wikidataClient,
+                "SELECT ?inventorLabel WHERE { ?item rdfs:label \"{subject}\"@en. ?item wdt:P61 ?inventor. "
+                    + "?inventor rdfs:label ?inventorLabel. FILTER(LANG(?inventorLabel) = \"en\") } LIMIT 1",
+                "inventorLabel"),
+            "inventor"),
+        new CachingFactLookup(new FactCache("gamehub_fact_cache_event.dat"),
+            new WikidataFactSource(wikidataClient,
+                "SELECT ?year WHERE { ?item rdfs:label \"{subject}\"@en. ?item wdt:P585 ?date. "
+                    + "BIND(YEAR(?date) AS ?year) } LIMIT 1",
+                "year"),
+            "event"),
+        new CachingFactLookup(new FactCache("gamehub_fact_cache_city.dat"),
+            new WikidataFactSource(wikidataClient,
+                "SELECT ?countryLabel WHERE { ?item rdfs:label \"{subject}\"@en. ?item wdt:P17 ?country. "
+                    + "?country rdfs:label ?countryLabel. FILTER(LANG(?countryLabel) = \"en\") } LIMIT 1",
+                "countryLabel"),
+            "city")
+    );
+    private final TriviaMatchManager triviaMatchManager = new TriviaMatchManager(gameHistoryManager, chatManager, economyManager, leaderboardManager, triviaLiveLookups);
     private final DotsAndBoxesMatchManager dotsAndBoxesMatchManager = new DotsAndBoxesMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final ReversiMatchManager reversiMatchManager = new ReversiMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
     private final MemoryMatchMatchManager memoryMatchMatchManager = new MemoryMatchMatchManager(economyManager, gameHistoryManager, chatManager, leaderboardManager);
