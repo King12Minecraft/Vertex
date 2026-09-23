@@ -18,6 +18,7 @@ import theme.ThemeColor;
 import games.GameInfo;
 import net.Message;
 import ui.ThemedButton;
+import ui.ThemedLabel;
 import ui.RoundedPanel;
 
 import javax.swing.BorderFactory;
@@ -328,9 +329,8 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
     private JLabel sectionLabel(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_SECONDARY);
         label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(new EmptyBorder(0, 0, 12, 0));
         return label;
@@ -513,11 +513,10 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
         if (games.isEmpty())
         {
-            JLabel empty = new JLabel(GameManager.getCachedGames().isEmpty()
+            JLabel empty = new ThemedLabel(GameManager.getCachedGames().isEmpty()
                 ? "No games loaded yet - checking the server..."
-                : "No games match this filter.");
+                : "No games match this filter.", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             allGamesGrid.add(empty);
         }
         else
@@ -615,9 +614,8 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
         info.setBorder(new EmptyBorder(14, 0, 0, 0));
 
-        JLabel name = new JLabel(game.getName());
+        JLabel name = new ThemedLabel(game.getName(), ThemeColor.TEXT_PRIMARY);
         name.setFont(UITheme.FONT_NAV_BOLD);
-        name.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         name.setAlignmentX(Component.LEFT_ALIGNMENT);
         name.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         name.addMouseListener(new MouseAdapter()
@@ -625,9 +623,8 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
             public void mouseClicked(MouseEvent e) { GameDetailDialog.show(name, game); }
         });
 
-        JLabel type = new JLabel(game.getType());
+        JLabel type = new ThemedLabel(game.getType(), ThemeColor.TEXT_MUTED);
         type.setFont(UITheme.FONT_SMALL);
-        type.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         type.setAlignmentX(Component.LEFT_ALIGNMENT);
         type.setBorder(new EmptyBorder(3, 0, 8, 0));
 
@@ -648,10 +645,9 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
             // wider than the card's content area, regardless of count
             // length. The earlier plain-JLabel version had no width
             // constraint of its own and could spill past the card.
-            JLabel queueLabel = new JLabel(
-                "<html><body style='width:180px'>" + queueText(game.getQueueCount()) + "</body></html>");
+            JLabel queueLabel = new ThemedLabel(
+                "<html><body style='width:180px'>" + queueText(game.getQueueCount()) + "</body></html>", ThemeColor.ACCENT);
             queueLabel.setFont(UITheme.FONT_SMALL.deriveFont(java.awt.Font.BOLD));
-            queueLabel.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
             queueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             queueLabel.setMaximumSize(new Dimension(200, 20));
             queueLabel.setBorder(new EmptyBorder(6, 0, 0, 0));

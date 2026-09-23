@@ -21,6 +21,7 @@ import ui.PageHeader;
 import ui.ThemedTextField;
 import ui.SidebarButton;
 import ui.RoundedPanel;
+import ui.ThemedLabel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -295,9 +296,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private JPanel createInputRow()
     {
-        typingLabel = new JLabel(" ");
+        typingLabel = new ThemedLabel(" ", ThemeColor.TEXT_MUTED);
         typingLabel.setFont(UITheme.FONT_SMALL);
-        typingLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         typingLabel.setBorder(new EmptyBorder(0, 4, 4, 0));
 
         RoundedPanel pill = new RoundedPanel(ThemeColor.BG_PANEL, 20);
@@ -648,9 +648,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         if (key == null)
         {
-            JLabel empty = new JLabel("No conversations yet - start a DM or a group to begin chatting.");
+            JLabel empty = new ThemedLabel("No conversations yet - start a DM or a group to begin chatting.", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             messageListPanel.add(empty);
             messageListPanel.revalidate();
             messageListPanel.repaint();
@@ -660,9 +659,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         List<ChatEntry> history = channelMessages.get(key);
         if (history == null || history.isEmpty())
         {
-            JLabel empty = new JLabel("No messages yet - say hello!");
+            JLabel empty = new ThemedLabel("No messages yet - say hello!", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             messageListPanel.add(empty);
         }
         else
@@ -750,9 +748,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         if (entry.text != null && !entry.text.isEmpty())
         {
-            JLabel textLabel = new JLabel("<html><body style='width:340px'>" + escapeHtml(entry.text) + "</body></html>");
+            JLabel textLabel = new ThemedLabel("<html><body style='width:340px'>" + escapeHtml(entry.text) + "</body></html>", ThemeColor.TEXT_PRIMARY);
             textLabel.setFont(UITheme.FONT_BODY);
-            textLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
             textLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             content.add(textLabel);
         }
@@ -799,9 +796,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             row.add(pill);
         }
 
-        final JLabel addReaction = new JLabel("+");
+        final JLabel addReaction = new ThemedLabel("+", ThemeColor.TEXT_MUTED);
         addReaction.setFont(UITheme.FONT_SMALL);
-        addReaction.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         addReaction.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         addReaction.setBorder(new EmptyBorder(2, 6, 2, 6));
         addReaction.addMouseListener(new MouseAdapter()
@@ -877,9 +873,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         }
         header.add(senderLabel);
 
-        JLabel timeLabel = new JLabel(formatTimestamp(entry.timestamp));
+        JLabel timeLabel = new ThemedLabel(formatTimestamp(entry.timestamp), ThemeColor.TEXT_MUTED);
         timeLabel.setFont(UITheme.FONT_SMALL.deriveFont(11f));
-        timeLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         header.add(timeLabel);
 
         return header;
@@ -935,9 +930,8 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         chip.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         String sizeText = formatFileSize(fileData.length);
-        JLabel label = new JLabel("\uD83D\uDCCE " + fileName + "  (" + sizeText + ")");
+        JLabel label = new ThemedLabel("\uD83D\uDCCE " + fileName + "  (" + sizeText + ")", ThemeColor.ACCENT);
         label.setFont(UITheme.FONT_SMALL);
-        label.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
         chip.add(label);
 
         chip.addMouseListener(new MouseAdapter()

@@ -3,9 +3,9 @@ import ui.GameHubDialog;
 import net.MessageType;
 import net.NetworkManager;
 import ui.ThemedScrollBarUI;
-import theme.ThemeManager;
 import theme.UITheme;
 import ui.ThemedButton;
+import ui.ThemedLabel;
 import ui.PageHeader;
 import theme.ThemeColor;
 import net.Message;
@@ -76,9 +76,8 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
         content.add(createRow);
         content.add(Box.createVerticalStrut(20));
 
-        JLabel sectionLabel = new JLabel("OPEN & IN-PROGRESS TOURNAMENTS");
+        JLabel sectionLabel = new ThemedLabel("OPEN & IN-PROGRESS TOURNAMENTS", ThemeColor.TEXT_PRIMARY);
         sectionLabel.setFont(UITheme.FONT_NAV_BOLD);
-        sectionLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         sectionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         sectionLabel.setBorder(new EmptyBorder(0, 0, 14, 0));
         content.add(sectionLabel);
@@ -91,9 +90,8 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
 
         content.add(Box.createVerticalStrut(28));
 
-        JLabel teamCreateHint = new JLabel("Requires your whole party to be the exact right size for the mode.");
+        JLabel teamCreateHint = new ThemedLabel("Requires your whole party to be the exact right size for the mode.", ThemeColor.TEXT_MUTED);
         teamCreateHint.setFont(UITheme.FONT_SMALL);
-        teamCreateHint.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         teamCreateHint.setAlignmentX(Component.LEFT_ALIGNMENT);
         teamCreateHint.setBorder(new EmptyBorder(0, 0, 8, 0));
         content.add(teamCreateHint);
@@ -119,9 +117,8 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
         content.add(teamCreateRow);
         content.add(Box.createVerticalStrut(20));
 
-        JLabel teamSectionLabel = new JLabel("OPEN & IN-PROGRESS TEAM TOURNAMENTS");
+        JLabel teamSectionLabel = new ThemedLabel("OPEN & IN-PROGRESS TEAM TOURNAMENTS", ThemeColor.TEXT_PRIMARY);
         teamSectionLabel.setFont(UITheme.FONT_NAV_BOLD);
-        teamSectionLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         teamSectionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         teamSectionLabel.setBorder(new EmptyBorder(0, 0, 14, 0));
         content.add(teamSectionLabel);
@@ -234,9 +231,8 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
 
         if (entries == null || entries.isEmpty())
         {
-            JLabel empty = new JLabel("No tournaments open right now - start one above.");
+            JLabel empty = new ThemedLabel("No tournaments open right now - start one above.", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_SMALL);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             list.add(empty);
         }
         else
@@ -278,13 +274,11 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
         textCol.setOpaque(false);
         textCol.setLayout(new BoxLayout(textCol, BoxLayout.Y_AXIS));
 
-        JLabel nameLabel = new JLabel(gameName + " Tournament");
+        JLabel nameLabel = new ThemedLabel(gameName + " Tournament", ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_NAV_BOLD);
-        nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
 
-        JLabel statusLabel = new JLabel(statusText);
+        JLabel statusLabel = new ThemedLabel(statusText, ThemeColor.TEXT_MUTED);
         statusLabel.setFont(UITheme.FONT_SMALL);
-        statusLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         statusLabel.setBorder(new EmptyBorder(3, 0, 0, 0));
 
         textCol.add(nameLabel);
@@ -317,9 +311,8 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
 
         if (entries == null || entries.isEmpty())
         {
-            JLabel empty = new JLabel("No team tournaments open right now - start one above.");
+            JLabel empty = new ThemedLabel("No team tournaments open right now - start one above.", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_SMALL);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             teamList.add(empty);
         }
         else
@@ -359,13 +352,11 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
         textCol.setOpaque(false);
         textCol.setLayout(new BoxLayout(textCol, BoxLayout.Y_AXIS));
 
-        JLabel nameLabel = new JLabel(mode + " Fight Arena Tournament");
+        JLabel nameLabel = new ThemedLabel(mode + " Fight Arena Tournament", ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_NAV_BOLD);
-        nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
 
-        JLabel statusLabel = new JLabel(statusText);
+        JLabel statusLabel = new ThemedLabel(statusText, ThemeColor.TEXT_MUTED);
         statusLabel.setFont(UITheme.FONT_SMALL);
-        statusLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         statusLabel.setBorder(new EmptyBorder(3, 0, 0, 0));
 
         textCol.add(nameLabel);

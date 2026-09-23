@@ -6,11 +6,11 @@ import games.GameInfo;
 import ui.ThemedScrollBarUI;
 import games.ReplayBrowserDialog;
 import games.SpectateDialog;
-import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
 import net.Message;
 import ui.ThemedButton;
+import ui.ThemedLabel;
 import ui.RoundedPanel;
 
 import javax.swing.Box;
@@ -65,9 +65,8 @@ public class LeaderboardPanel extends RoundedPanel
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(24, 24, 24, 24));
 
-        JLabel title = new JLabel("Leaderboards");
+        JLabel title = new ThemedLabel("Leaderboards", ThemeColor.TEXT_PRIMARY);
         title.setFont(UITheme.FONT_HEADING);
-        title.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         title.setBorder(new EmptyBorder(0, 0, 16, 0));
         add(title, BorderLayout.NORTH);
 
@@ -81,9 +80,8 @@ public class LeaderboardPanel extends RoundedPanel
         body.add(chipRow);
         body.add(Box.createVerticalStrut(16));
 
-        myRankLabel = new JLabel(" ");
+        myRankLabel = new ThemedLabel(" ", ThemeColor.ACCENT);
         myRankLabel.setFont(UITheme.FONT_NAV_BOLD);
-        myRankLabel.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
         myRankLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         myRankLabel.setBorder(new EmptyBorder(0, 0, 12, 0));
         body.add(myRankLabel);
@@ -210,9 +208,8 @@ public class LeaderboardPanel extends RoundedPanel
         entriesList.removeAll();
         if (entries == null || entries.isEmpty())
         {
-            JLabel empty = new JLabel("No one has played this yet - be the first!");
+            JLabel empty = new ThemedLabel("No one has played this yet - be the first!", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_SMALL);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             entriesList.add(empty);
         }
         else
@@ -240,9 +237,8 @@ public class LeaderboardPanel extends RoundedPanel
         row.setMaximumSize(new Dimension(2000, 44));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel left = new JLabel("#" + rank + "   " + username);
+        JLabel left = new ThemedLabel("#" + rank + "   " + username, ThemeColor.TEXT_PRIMARY);
         left.setFont(UITheme.FONT_BODY);
-        left.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(left, BorderLayout.WEST);
 
         String rightText;
@@ -255,9 +251,8 @@ public class LeaderboardPanel extends RoundedPanel
             rightText = rated ? value + " rating" : value + " pts";
         }
 
-        JLabel right = new JLabel(rightText);
+        JLabel right = new ThemedLabel(rightText, ThemeColor.TEXT_MUTED);
         right.setFont(UITheme.FONT_SMALL);
-        right.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         row.add(right, BorderLayout.EAST);
 
         return row;

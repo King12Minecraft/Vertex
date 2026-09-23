@@ -1,7 +1,7 @@
 package pages;
 import ui.GameHubDialog;
+import ui.ThemedLabel;
 import net.NetworkManager;
-import theme.ThemeManager;
 import theme.UITheme;
 import ui.ThemedScrollBarUI;
 import ui.PageHeader;
@@ -85,9 +85,8 @@ public class ModeratorPanel extends RoundedPanel
 
     private JLabel sectionLabel(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         label.setBorder(new EmptyBorder(0, 0, 14, 0));
         return label;
     }
@@ -122,11 +121,11 @@ public class ModeratorPanel extends RoundedPanel
         columns.setAlignmentX(Component.LEFT_ALIGNMENT);
         columns.setMaximumSize(new Dimension(2000, 320));
 
-        onlineCountLabel = new JLabel("ONLINE NOW");
+        onlineCountLabel = new ThemedLabel("ONLINE NOW", ThemeColor.TEXT_PRIMARY);
         onlineList = new JPanel();
         columns.add(playerListCard(onlineCountLabel, onlineList));
 
-        allCountLabel = new JLabel("ALL PLAYERS");
+        allCountLabel = new ThemedLabel("ALL PLAYERS", ThemeColor.TEXT_PRIMARY);
         allList = new JPanel();
         columns.add(playerListCard(allCountLabel, allList));
 
@@ -143,7 +142,6 @@ public class ModeratorPanel extends RoundedPanel
         card.enableTopAccent();
 
         countLabel.setFont(UITheme.FONT_NAV_BOLD);
-        countLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         countLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
         card.add(countLabel, BorderLayout.NORTH);
 
@@ -225,9 +223,8 @@ public class ModeratorPanel extends RoundedPanel
         row.setMaximumSize(new Dimension(2000, 44));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel nameLabel = new JLabel(username);
+        JLabel nameLabel = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_SMALL);
-        nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(nameLabel, BorderLayout.WEST);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
@@ -279,9 +276,8 @@ public class ModeratorPanel extends RoundedPanel
         row.setMaximumSize(new Dimension(2000, 44));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel nameLabel = new JLabel(username);
+        JLabel nameLabel = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_SMALL);
-        nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(nameLabel, BorderLayout.WEST);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
@@ -453,9 +449,8 @@ public class ModeratorPanel extends RoundedPanel
         row.setMaximumSize(new Dimension(2000, 60));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel textLabel = new JLabel("<html><body style='width:500px'>" + displayText + "</body></html>");
+        JLabel textLabel = new ThemedLabel("<html><body style='width:500px'>" + displayText + "</body></html>", ThemeColor.TEXT_PRIMARY);
         textLabel.setFont(UITheme.FONT_SMALL);
-        textLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(textLabel, BorderLayout.WEST);
 
         ThemedButton resolve = new ThemedButton("Resolve", false);
@@ -497,9 +492,8 @@ public class ModeratorPanel extends RoundedPanel
 
     private JLabel mutedLabel(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_MUTED);
         label.setFont(UITheme.FONT_SMALL);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         return label;
     }
 }

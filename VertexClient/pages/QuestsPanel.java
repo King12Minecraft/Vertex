@@ -1,5 +1,4 @@
 package pages;
-import theme.ThemeManager;
 import theme.UITheme;
 import net.MessageType;
 import net.NetworkManager;
@@ -8,6 +7,7 @@ import ui.PageHeader;
 import theme.ThemeColor;
 import net.Message;
 import economy.ChallengeProgressInfo;
+import ui.ThemedLabel;
 import ui.RoundedPanel;
 
 import javax.swing.BorderFactory;
@@ -91,9 +91,8 @@ public class QuestsPanel extends RoundedPanel implements NetworkManager.PushList
         questList.removeAll();
         if (quests == null || quests.isEmpty())
         {
-            JLabel empty = new JLabel("No quests available.");
+            JLabel empty = new ThemedLabel("No quests available.", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             questList.add(empty);
         }
         else

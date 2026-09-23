@@ -1,6 +1,7 @@
 package pages;
 import ui.GameHubDialog;
 import ui.ThemedButton;
+import ui.ThemedLabel;
 import ui.StatusPill;
 import net.NetworkManager;
 import net.MessageType;
@@ -149,9 +150,8 @@ public class AdminPanel extends RoundedPanel
     private void refreshPlayers()
     {
         playersGrid.removeAll();
-        JLabel loading = new JLabel("Loading accounts...");
+        JLabel loading = new ThemedLabel("Loading accounts...", ThemeColor.TEXT_MUTED);
         loading.setFont(UITheme.FONT_BODY);
-        loading.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         loading.setAlignmentX(Component.LEFT_ALIGNMENT);
         playersGrid.add(loading);
         playersGrid.revalidate();
@@ -180,10 +180,9 @@ public class AdminPanel extends RoundedPanel
 
         if (response == null || !response.isSuccess() || response.getAccountSummaries() == null)
         {
-            JLabel error = new JLabel(response != null && response.getErrorText() != null
-                ? response.getErrorText() : "Could not reach the server.");
+            JLabel error = new ThemedLabel(response != null && response.getErrorText() != null
+                ? response.getErrorText() : "Could not reach the server.", ThemeColor.TEXT_MUTED);
             error.setFont(UITheme.FONT_BODY);
-            error.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             error.setAlignmentX(Component.LEFT_ALIGNMENT);
             playersGrid.add(error);
         }
@@ -225,9 +224,8 @@ public class AdminPanel extends RoundedPanel
         StatusPill pill = new StatusPill(role, roleColor(role));
         left.add(pill);
 
-        JLabel coinsLabel = new JLabel(coins + " coins");
+        JLabel coinsLabel = new ThemedLabel(coins + " coins", ThemeColor.TEXT_MUTED);
         coinsLabel.setFont(UITheme.FONT_SMALL);
-        coinsLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         left.add(coinsLabel);
 
         row.add(left, BorderLayout.WEST);
@@ -237,9 +235,8 @@ public class AdminPanel extends RoundedPanel
 
         if ("ADMIN".equals(role))
         {
-            JLabel note = new JLabel("Admin role can't be changed here.");
+            JLabel note = new ThemedLabel("Admin role can't be changed here.", ThemeColor.TEXT_MUTED);
             note.setFont(UITheme.FONT_SMALL);
-            note.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             right.add(note);
         }
         else
@@ -413,9 +410,8 @@ public class AdminPanel extends RoundedPanel
     private void refreshLog()
     {
         logList.removeAll();
-        JLabel loading = new JLabel("Loading log...");
+        JLabel loading = new ThemedLabel("Loading log...", ThemeColor.TEXT_MUTED);
         loading.setFont(UITheme.FONT_BODY);
-        loading.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         loading.setAlignmentX(Component.LEFT_ALIGNMENT);
         logList.add(loading);
         logList.revalidate();
@@ -445,10 +441,9 @@ public class AdminPanel extends RoundedPanel
         if (response == null || !response.isSuccess() || response.getAdminLogEntries() == null
             || response.getAdminLogEntries().isEmpty())
         {
-            JLabel empty = new JLabel(response != null && !response.isSuccess() && response.getErrorText() != null
-                ? response.getErrorText() : "No admin actions logged yet.");
+            JLabel empty = new ThemedLabel(response != null && !response.isSuccess() && response.getErrorText() != null
+                ? response.getErrorText() : "No admin actions logged yet.", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             empty.setAlignmentX(Component.LEFT_ALIGNMENT);
             logList.add(empty);
         }
@@ -457,9 +452,8 @@ public class AdminPanel extends RoundedPanel
             List<String> entries = response.getAdminLogEntries();
             for (int i = 0; i < entries.size(); i++)
             {
-                JLabel line = new JLabel(entries.get(i));
+                JLabel line = new ThemedLabel(entries.get(i), ThemeColor.TEXT_SECONDARY);
                 line.setFont(UITheme.FONT_SMALL);
-                line.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
                 line.setAlignmentX(Component.LEFT_ALIGNMENT);
                 line.setBorder(new EmptyBorder(0, 0, 8, 0));
                 logList.add(line);
@@ -499,9 +493,8 @@ public class AdminPanel extends RoundedPanel
     private void refreshBans()
     {
         bansGrid.removeAll();
-        JLabel loading = new JLabel("Loading bans...");
+        JLabel loading = new ThemedLabel("Loading bans...", ThemeColor.TEXT_MUTED);
         loading.setFont(UITheme.FONT_BODY);
-        loading.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         loading.setAlignmentX(Component.LEFT_ALIGNMENT);
         bansGrid.add(loading);
         bansGrid.revalidate();
@@ -531,10 +524,9 @@ public class AdminPanel extends RoundedPanel
         if (response == null || !response.isSuccess() || response.getBanRecords() == null
             || response.getBanRecords().isEmpty())
         {
-            JLabel empty = new JLabel(response != null && !response.isSuccess() && response.getErrorText() != null
-                ? response.getErrorText() : "No one is banned right now.");
+            JLabel empty = new ThemedLabel(response != null && !response.isSuccess() && response.getErrorText() != null
+                ? response.getErrorText() : "No one is banned right now.", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             empty.setAlignmentX(Component.LEFT_ALIGNMENT);
             bansGrid.add(empty);
         }
@@ -566,9 +558,8 @@ public class AdminPanel extends RoundedPanel
         left.setOpaque(false);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
 
-        JLabel name = new JLabel(username);
+        JLabel name = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         name.setFont(UITheme.FONT_NAV_BOLD);
-        name.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         name.setAlignmentX(Component.LEFT_ALIGNMENT);
         left.add(name);
 
@@ -582,9 +573,8 @@ public class AdminPanel extends RoundedPanel
         String detail = (reason == null || reason.trim().isEmpty() ? "No reason given" : reason)
             + " - banned by " + (bannedBy == null || bannedBy.isEmpty() ? "unknown" : bannedBy)
             + (when.isEmpty() ? "" : " on " + when);
-        JLabel detailLabel = new JLabel(detail);
+        JLabel detailLabel = new ThemedLabel(detail, ThemeColor.TEXT_MUTED);
         detailLabel.setFont(UITheme.FONT_SMALL);
-        detailLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         detailLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         left.add(detailLabel);
 
@@ -639,9 +629,8 @@ public class AdminPanel extends RoundedPanel
 
     private JLabel sectionTitle(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(new EmptyBorder(0, 0, 16, 0));
         return label;
@@ -693,14 +682,12 @@ public class AdminPanel extends RoundedPanel
             public void mouseExited(java.awt.event.MouseEvent e)  { card.glow().animateOut(); }
         });
 
-        JLabel titleLabel = new JLabel(title);
+        JLabel titleLabel = new ThemedLabel(title, ThemeColor.TEXT_PRIMARY);
         titleLabel.setFont(UITheme.FONT_NAV_BOLD);
-        titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel descLabel = new JLabel("<html><body style='width:170px'>" + description + "</body></html>");
+        JLabel descLabel = new ThemedLabel("<html><body style='width:170px'>" + description + "</body></html>", ThemeColor.TEXT_MUTED);
         descLabel.setFont(UITheme.FONT_SMALL);
-        descLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         descLabel.setBorder(new EmptyBorder(6, 0, 14, 0));
 

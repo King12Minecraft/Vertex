@@ -13,6 +13,7 @@ import theme.ThemeColor;
 import games.GameInfo;
 import ui.MarqueeBanner;
 import ui.RoundedPanel;
+import ui.ThemedLabel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -152,9 +153,8 @@ public class HomePanel extends RoundedPanel
 
     private JLabel sectionLabel(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_SECONDARY);
         label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(new EmptyBorder(0, 0, 12, 0));
         return label;
@@ -258,14 +258,12 @@ public class HomePanel extends RoundedPanel
         info.setOpaque(false);
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
 
-        JLabel name = new JLabel(game.getName());
+        JLabel name = new ThemedLabel(game.getName(), ThemeColor.TEXT_PRIMARY);
         name.setFont(UITheme.FONT_NAV_BOLD);
-        name.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         name.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel type = new JLabel(game.getType());
+        JLabel type = new ThemedLabel(game.getType(), ThemeColor.TEXT_MUTED);
         type.setFont(UITheme.FONT_SMALL);
-        type.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         type.setAlignmentX(Component.LEFT_ALIGNMENT);
         type.setBorder(new EmptyBorder(2, 0, 10, 0));
 
@@ -339,9 +337,8 @@ public class HomePanel extends RoundedPanel
 
         if (results.isEmpty())
         {
-            JLabel empty = new JLabel("No leaderboard activity yet - be the first to play!");
+            JLabel empty = new ThemedLabel("No leaderboard activity yet - be the first to play!", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             topPlayersRow.add(empty);
         }
         else
@@ -371,20 +368,17 @@ public class HomePanel extends RoundedPanel
         card.setPreferredSize(new Dimension(200, 92));
         card.enableTopAccent();
 
-        JLabel game = new JLabel(gameName);
+        JLabel game = new ThemedLabel(gameName, ThemeColor.TEXT_MUTED);
         game.setFont(UITheme.FONT_SMALL);
-        game.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         game.setAlignmentX(Component.LEFT_ALIGNMENT);
         game.setBorder(new EmptyBorder(0, 0, 8, 0));
 
-        JLabel who = new JLabel("#1  " + username);
+        JLabel who = new ThemedLabel("#1  " + username, ThemeColor.TEXT_PRIMARY);
         who.setFont(UITheme.FONT_NAV_BOLD);
-        who.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         who.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel val = new JLabel(value);
+        JLabel val = new ThemedLabel(value, ThemeColor.ACCENT);
         val.setFont(UITheme.FONT_BODY);
-        val.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
         val.setAlignmentX(Component.LEFT_ALIGNMENT);
         val.setBorder(new EmptyBorder(4, 0, 0, 0));
 

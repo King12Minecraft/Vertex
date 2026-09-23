@@ -8,6 +8,7 @@ import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
+import ui.ThemedLabel;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -55,9 +56,8 @@ public class AchievementsPanel extends RoundedPanel
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(24, 24, 24, 24));
 
-        JLabel title = new JLabel("Achievements");
+        JLabel title = new ThemedLabel("Achievements", ThemeColor.TEXT_PRIMARY);
         title.setFont(UITheme.FONT_HEADING);
-        title.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         title.setBorder(new EmptyBorder(0, 0, 16, 0));
         add(title, BorderLayout.NORTH);
 
@@ -135,9 +135,8 @@ public class AchievementsPanel extends RoundedPanel
             if (unlockedIds.contains(all.get(i).id)) unlockedCount++;
         }
 
-        JLabel progress = new JLabel(unlockedCount + " of " + all.size() + " unlocked");
+        JLabel progress = new ThemedLabel(unlockedCount + " of " + all.size() + " unlocked", ThemeColor.ACCENT);
         progress.setFont(UITheme.FONT_NAV_BOLD);
-        progress.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
         progress.setAlignmentX(Component.LEFT_ALIGNMENT);
         progress.setBorder(new EmptyBorder(0, 0, 16, 0));
         list.add(progress);
@@ -175,9 +174,8 @@ public class AchievementsPanel extends RoundedPanel
         nameLabel.setFont(UITheme.FONT_NAV_BOLD);
         nameLabel.setForeground(ThemeManager.getColor(unlocked ? ThemeColor.TEXT_PRIMARY : ThemeColor.TEXT_MUTED));
 
-        JLabel descLabel = new JLabel(def.description);
+        JLabel descLabel = new ThemedLabel(def.description, ThemeColor.TEXT_MUTED);
         descLabel.setFont(UITheme.FONT_SMALL);
-        descLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         descLabel.setBorder(new EmptyBorder(3, 0, 0, 0));
 
         textCol.add(nameLabel);
@@ -220,9 +218,8 @@ public class AchievementsPanel extends RoundedPanel
         track.setOpaque(false);
         row.add(track, BorderLayout.CENTER);
 
-        JLabel fraction = new JLabel(current + "/" + target);
+        JLabel fraction = new ThemedLabel(current + "/" + target, ThemeColor.TEXT_MUTED);
         fraction.setFont(UITheme.FONT_SMALL.deriveFont(10f));
-        fraction.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         row.add(fraction, BorderLayout.EAST);
 
         return row;

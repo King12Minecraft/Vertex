@@ -12,6 +12,7 @@ import ui.PageHeader;
 import theme.ThemeColor;
 import net.Message;
 import ui.ThemedButton;
+import ui.ThemedLabel;
 import economy.ShopItemInfo;
 import ui.RoundedPanel;
 
@@ -113,9 +114,8 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
         badge.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
         badge.setBorder(new EmptyBorder(9, 16, 9, 16));
 
-        balanceLabel = new JLabel(currentCoinsText());
+        balanceLabel = new ThemedLabel(currentCoinsText(), ThemeColor.ACCENT);
         balanceLabel.setFont(UITheme.FONT_NAV_BOLD);
-        balanceLabel.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
         badge.add(balanceLabel);
 
         row.add(badge);
@@ -129,9 +129,8 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private JLabel sectionLabel(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(new EmptyBorder(0, 0, 14, 0));
         return label;
@@ -217,9 +216,9 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
         JPanel swatch;
         if ("BADGE".equals(item.getType()))
         {
-            JLabel glyph = new JLabel(item.getColorHex(), SwingConstants.CENTER);
+            JLabel glyph = new ThemedLabel(item.getColorHex(), ThemeColor.ACCENT);
+            glyph.setHorizontalAlignment(SwingConstants.CENTER);
             glyph.setFont(UITheme.FONT_HEADING.deriveFont(28f));
-            glyph.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
             swatch = new JPanel(new BorderLayout());
             swatch.setOpaque(false);
             swatch.add(glyph, BorderLayout.CENTER);
@@ -267,14 +266,12 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
         info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
         info.setBorder(new EmptyBorder(14, 0, 0, 0));
 
-        JLabel name = new JLabel(item.getName());
+        JLabel name = new ThemedLabel(item.getName(), ThemeColor.TEXT_PRIMARY);
         name.setFont(UITheme.FONT_NAV_BOLD);
-        name.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         name.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel price = new JLabel(item.getPriceCoins() + " coins");
+        JLabel price = new ThemedLabel(item.getPriceCoins() + " coins", ThemeColor.TEXT_MUTED);
         price.setFont(UITheme.FONT_SMALL);
-        price.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         price.setAlignmentX(Component.LEFT_ALIGNMENT);
         price.setBorder(new EmptyBorder(4, 0, 12, 0));
 

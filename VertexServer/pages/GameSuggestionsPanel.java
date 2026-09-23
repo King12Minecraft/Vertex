@@ -12,6 +12,7 @@ import theme.ThemeColor;
 import net.Message;
 import ui.ThemedTextField;
 import ui.RoundedPanel;
+import ui.ThemedLabel;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -62,10 +63,9 @@ public class GameSuggestionsPanel extends RoundedPanel
 
         wrap.add(new PageHeader("SUGGEST A GAME"));
 
-        JLabel subtitle = new JLabel("Got an idea for a game you'd like to see added? Post it below - "
-            + "everyone can see the list so it's easy to check what's already been suggested.");
+        JLabel subtitle = new ThemedLabel("Got an idea for a game you'd like to see added? Post it below - "
+            + "everyone can see the list so it's easy to check what's already been suggested.", ThemeColor.TEXT_SECONDARY);
         subtitle.setFont(UITheme.FONT_SUBHEAD);
-        subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setBorder(new EmptyBorder(4, 0, 16, 0));
         wrap.add(subtitle);
 
@@ -185,11 +185,10 @@ public class GameSuggestionsPanel extends RoundedPanel
         if (response == null || !response.isSuccess() || response.getGameSuggestionEntries() == null
             || response.getGameSuggestionEntries().isEmpty())
         {
-            JLabel empty = new JLabel(response == null
+            JLabel empty = new ThemedLabel(response == null
                 ? "Could not reach the server."
-                : "No suggestions yet - be the first to post one!");
+                : "No suggestions yet - be the first to post one!", ThemeColor.TEXT_MUTED);
             empty.setFont(UITheme.FONT_BODY);
-            empty.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             empty.setAlignmentX(Component.LEFT_ALIGNMENT);
             listPanel.add(empty);
         }
@@ -215,9 +214,8 @@ public class GameSuggestionsPanel extends RoundedPanel
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.setMaximumSize(new Dimension(2000, 56));
 
-        JLabel label = new JLabel("<html><body style='width:600px'>" + escapeHtml(formattedEntry) + "</body></html>");
+        JLabel label = new ThemedLabel("<html><body style='width:600px'>" + escapeHtml(formattedEntry) + "</body></html>", ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_BODY);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(label, BorderLayout.CENTER);
 
         return row;

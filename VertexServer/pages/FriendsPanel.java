@@ -14,6 +14,7 @@ import ui.PageHeader;
 import theme.ThemeColor;
 import net.Message;
 import ui.ThemedTextField;
+import ui.ThemedLabel;
 import ui.RoundedPanel;
 
 import javax.swing.BorderFactory;
@@ -206,9 +207,8 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
 
     private JLabel sectionLabel(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         label.setBorder(new EmptyBorder(0, 0, 12, 0));
         return label;
@@ -270,9 +270,8 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         row.setMaximumSize(new Dimension(2000, 54));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel nameLabel = new JLabel(username);
+        JLabel nameLabel = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_BODY);
-        nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(nameLabel, BorderLayout.WEST);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
@@ -392,9 +391,8 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         StatusDot dot = new StatusDot(ThemeManager.getColor(isOnline ? ThemeColor.SUCCESS : ThemeColor.TEXT_MUTED), 9);
         left.add(dot);
 
-        JLabel nameLabel = new JLabel(username);
+        JLabel nameLabel = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_BODY);
-        nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         nameLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         nameLabel.addMouseListener(new MouseAdapter()
         {
@@ -402,9 +400,8 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         });
         left.add(nameLabel);
 
-        JLabel statusLabel = new JLabel(isOnline ? "Online" : "Offline");
+        JLabel statusLabel = new ThemedLabel(isOnline ? "Online" : "Offline", ThemeColor.TEXT_MUTED);
         statusLabel.setFont(UITheme.FONT_SMALL);
-        statusLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         left.add(statusLabel);
 
         row.add(left, BorderLayout.WEST);
@@ -441,9 +438,8 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
 
     private JLabel mutedLabel(String text)
     {
-        JLabel label = new JLabel(text);
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_MUTED);
         label.setFont(UITheme.FONT_SMALL);
-        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         return label;
     }
 
