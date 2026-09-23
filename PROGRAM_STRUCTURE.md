@@ -144,9 +144,13 @@ Bot-AI-bearing games bridge into the `ai` package: `TicTacToePracticeMatch` +
 `RockPaperScissorsWindow` + `RockPaperScissorsBotStrategy`/
 `RockPaperScissorsFixedMoveStrategy`; `MazeChaseGame` +
 `MazeChaseChaserBotStrategy`/`MazeChaseChaserRandomStrategy`/`MazeChaseChaserState` —
-all register primary+fallback strategies with `ai.AiKernel`.
+all register primary+fallback strategies with `ai.AiKernel`. `ConnectFourWindow` and
+`ReversiWindow` do too, but via the shared `ai/search` engine instead of bespoke
+per-game bot classes: each brings only a `GameModel` adapter
+(`ConnectFourGameModel`/`ReversiGameModel`) and registers `ai.search.GenericBotStrategy`
++ `ai.search.RandomMoveStrategy` as its primary/fallback pair.
 
-## ai — three independent toolkits, unified by one philosophy
+## ai — four independent toolkits, unified by one philosophy
 
 Nearly every class in this package states the same rule in its javadoc: **advisory
 only, never touches real game state directly** — a bot proposes a move, the game's own
@@ -162,6 +166,25 @@ Match/Game logic validates and applies it like any other input.
   `RuntimeException` so a buggy "smart" strategy can never stall a live match; if both
   fail, throws `AiDecisionException`. Used by Tic-Tac-Toe Practice, Battleship, Rock
   Paper Scissors, Maze Chase.
+- **`ai/search`** — the shared search engine every game plugs into for a real
+  algorithmic AI opponent, without writing its own search or bot-plumbing code.
+  `GameModel<S, M>` is the *only* thing a game implements: `legalMoves`, `applyMove`,
+  `isTerminal`, `nextPlayer`, `evaluate`, `winner` — pure rules, no AI logic. A forced
+  pass (e.g. Reversi) is just a synthetic move in `legalMoves`, so passing is a
+  per-game rule detail the engine never needs to know about. `Minimax.java` is the one
+  alpha-beta search algorithm, shared by every game rather than reimplemented per game.
+  `GenericBotStrategy`/`RandomMoveStrategy` are the one primary/fallback `BotStrategy`
+  pair every game registers with `AiKernel`, parameterized by that game's own
+  `GameModel` — no `<Name>BotStrategy` class per game. `PracticeMatch<S, M>` is the one
+  offline-match turn/state wrapper every practice mode uses (apply move → check
+  terminal → `nextPlayer`, plus `suggestMove()` for a Hint button that reuses the exact
+  same registered strategy as the bot opponent) — no `<Name>PracticeMatch` class per
+  game either. Adding AI to a new game costs one small `GameModel` adapter (e.g.
+  `ConnectFourGameModel.java`, `ReversiGameModel.java` — each under 200 lines) plus a
+  few lines wiring a "Practice" `GameModeCard` into that game's `Window`; everything
+  else is shared infrastructure, written once. Existing Tic-Tac-Toe/Battleship/Rock
+  Paper Scissors bots predate this and are left on their own bespoke code rather than
+  retrofitted, since they already work.
 - **`ai/grid`** — generic pathfinding, deliberately independent of any one game's own
   direction type (an adapter class translates). `GridDirection.java` (UP/DOWN/LEFT/
   RIGHT), `GridPathfinder.java` (4-directional BFS over a caller-supplied obstacle

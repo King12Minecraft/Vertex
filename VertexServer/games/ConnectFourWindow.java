@@ -1,6 +1,7 @@
 package games;
 import net.MessageType;
 import ui.ThemedButton;
+import ui.GameModeCard;
 import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
@@ -9,18 +10,24 @@ import net.NetworkManager;
 import theme.GlitchEffectOverlay;
 import theme.SignatureOverlay;
 import net.Message;
+import ai.AiKernel;
+import ai.search.GenericBotStrategy;
+import ai.search.RandomMoveStrategy;
+import ai.search.PracticeMatch;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
@@ -44,12 +51,26 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
     private static final String SEARCHING = "SEARCHING";
     private static final String BOARD = "BOARD";
 
+    /** "Practice" mode's AI - registered once per JVM, same pattern TicTacToePracticeMatch uses. Reused by every practice match rather than rebuilt each time, since GenericBotStrategy/RandomMoveStrategy are stateless. */
+    private static final String AI_GAME_ID = "connect-four-practice";
+    private static final ConnectFourGameModel AI_MODEL = new ConnectFourGameModel();
+    static
+    {
+        AiKernel.register(AI_GAME_ID,
+            new GenericBotStrategy<char[], Integer>(AI_MODEL, ConnectFourGameModel.YELLOW, 6),
+            new RandomMoveStrategy<char[], Integer>(AI_MODEL, ConnectFourGameModel.YELLOW));
+    }
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
 
     private JLabel searchingLabel;
     private BoardPanel boardPanel;
     private JLabel statusLabel;
+    private ThemedButton hintButton;
+
+    private boolean isPracticeMode = false;
+    private PracticeMatch<char[], Integer> practiceMatch;
 
     private String matchId;
     private String mySymbol;
@@ -83,7 +104,7 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 NetworkManager.removePushListener(ConnectFourWindow.this);
             }
         });
@@ -94,7 +115,7 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(380, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Connect Four");
         title.setFont(UITheme.FONT_HEADING);
@@ -102,29 +123,49 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
 
-        JLabel subtitle = new JLabel("Ranked 1v1 - get four in a row.");
+        JLabel subtitle = new JLabel("Choose how you want to play.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -178,6 +219,19 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         boardPanel = new BoardPanel();
         wrap.add(boardPanel, BorderLayout.CENTER);
 
+        hintButton = new ThemedButton("Hint", false);
+        hintButton.setPreferredSize(new Dimension(90, 34));
+        hintButton.setVisible(false);
+        hintButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { showHint(); }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottomRow.add(hintButton);
+        wrap.add(bottomRow, BorderLayout.SOUTH);
+
         return wrap;
     }
 
@@ -202,6 +256,12 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
 
     private void makeMove(int column)
     {
+        if (isPracticeMode)
+        {
+            makePracticeMove(column);
+            return;
+        }
+
         if (gameOver || !myTurn)
         {
             return;
@@ -211,6 +271,108 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         request.setMatchId(matchId);
         request.setCellIndex(column);
         NetworkManager.sendAsync(request);
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        mySymbol = "RED";
+        opponentUsername = "CPU";
+        practiceMatch = new PracticeMatch<char[], Integer>(AI_MODEL, ConnectFourGameModel.newBoard(), AI_GAME_ID,
+            ConnectFourGameModel.RED, ConnectFourGameModel.YELLOW, ConnectFourGameModel.RED);
+        cardLayout.show(cards, BOARD);
+        pack();
+        setLocationRelativeTo(null);
+        hintButton.setVisible(true);
+        gameOver = false;
+        refreshPracticeBoard();
+        statusLabel.setText("Your move (RED)");
+    }
+
+    private void makePracticeMove(int column)
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        boardPanel.hintColumn = null;
+        boolean applied = practiceMatch.humanMove(column);
+        if (!applied)
+        {
+            return;
+        }
+        refreshPracticeBoard();
+
+        if (practiceMatch.isOver())
+        {
+            handlePracticeGameOver();
+        }
+        else
+        {
+            triggerBotMove();
+        }
+    }
+
+    private void triggerBotMove()
+    {
+        statusLabel.setText("CPU is thinking...");
+        Timer botTimer = new Timer(500, null);
+        botTimer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                practiceMatch.botMove();
+                refreshPracticeBoard();
+                if (practiceMatch.isOver())
+                {
+                    handlePracticeGameOver();
+                }
+                else
+                {
+                    statusLabel.setText("Your move (RED)");
+                }
+            }
+        });
+        botTimer.setRepeats(false);
+        botTimer.start();
+    }
+
+    private void showHint()
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        boardPanel.hintColumn = practiceMatch.suggestMove();
+        boardPanel.repaint();
+    }
+
+    private void handlePracticeGameOver()
+    {
+        gameOver = true;
+        hintButton.setVisible(false);
+        Integer winner = practiceMatch.getWinnerIndex();
+        String text = winner == null ? "It's a draw."
+            : winner == ConnectFourGameModel.RED ? "You won!" : "You lost.";
+        statusLabel.setText(text);
+
+        String shareText = winner != null && winner == ConnectFourGameModel.RED
+            ? "I won a Connect Four practice match on Vertex!" : null;
+        SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { ConnectFourWindow.this.dispose(); }
+        });
+    }
+
+    private void refreshPracticeBoard()
+    {
+        // Practice mode doesn't compute a winning-line overlay (ConnectFourGameModel only
+        // reports who won, not which 4 cells) - the status text alone reports the outcome.
+        board = practiceMatch.getState();
+        boardPanel.repaint();
     }
 
     @Override
@@ -312,6 +474,7 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
     {
         private static final int CELL = 60;
         private int[] winningLine;
+        private Integer hintColumn;
 
         BoardPanel()
         {
@@ -361,7 +524,29 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
                     }
                 }
             }
+
+            if (hintColumn != null)
+            {
+                int screenRow = ConnectFourMatch.ROWS - 1 - lowestEmptyRowForHint(hintColumn);
+                g2.setColor(new Color(255, 255, 255, 200));
+                g2.setStroke(new java.awt.BasicStroke(3f));
+                g2.drawOval(hintColumn * CELL + 6, screenRow * CELL + 6, CELL - 12, CELL - 12);
+            }
+
             g2.dispose();
+        }
+
+        private int lowestEmptyRowForHint(int column)
+        {
+            for (int row = 0; row < ConnectFourMatch.ROWS; row++)
+            {
+                int index = row * ConnectFourMatch.COLS + column;
+                if (index >= board.length || board[index] == '.')
+                {
+                    return row;
+                }
+            }
+            return 0;
         }
 
         private boolean isWinningCell(int index)

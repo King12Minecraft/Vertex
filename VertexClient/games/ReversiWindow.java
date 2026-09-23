@@ -10,18 +10,25 @@ import theme.ThemeManager;
 import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
+import ui.GameModeCard;
+import ai.AiKernel;
+import ai.search.GenericBotStrategy;
+import ai.search.RandomMoveStrategy;
+import ai.search.PracticeMatch;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
@@ -47,12 +54,26 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
     private static final String SEARCHING = "SEARCHING";
     private static final String BOARD = "BOARD";
 
+    /** "Practice" mode's AI - registered once per JVM, same pattern ConnectFourWindow/TicTacToePracticeMatch use. */
+    private static final String AI_GAME_ID = "reversi-practice";
+    private static final ReversiGameModel AI_MODEL = new ReversiGameModel();
+    static
+    {
+        AiKernel.register(AI_GAME_ID,
+            new GenericBotStrategy<char[], Integer>(AI_MODEL, ReversiGameModel.WHITE, 4),
+            new RandomMoveStrategy<char[], Integer>(AI_MODEL, ReversiGameModel.WHITE));
+    }
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
 
     private JLabel searchingLabel;
     private BoardPanel boardPanel;
     private JLabel statusLabel;
+    private ThemedButton hintButton;
+
+    private boolean isPracticeMode = false;
+    private PracticeMatch<char[], Integer> practiceMatch;
 
     private String matchId;
     private String mySymbol;
@@ -85,7 +106,7 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 NetworkManager.removePushListener(ReversiWindow.this);
             }
         });
@@ -96,7 +117,7 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(400, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Reversi");
         title.setFont(UITheme.FONT_HEADING);
@@ -104,29 +125,49 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
 
-        JLabel subtitle = new JLabel("Ranked 1v1 - flank your opponent's pieces to flip them.");
+        JLabel subtitle = new JLabel("Choose how you want to play.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -180,6 +221,19 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
         boardPanel = new BoardPanel();
         wrap.add(boardPanel, BorderLayout.CENTER);
 
+        hintButton = new ThemedButton("Hint", false);
+        hintButton.setPreferredSize(new Dimension(90, 34));
+        hintButton.setVisible(false);
+        hintButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { showHint(); }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottomRow.add(hintButton);
+        wrap.add(bottomRow, BorderLayout.SOUTH);
+
         return wrap;
     }
 
@@ -204,12 +258,132 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
 
     private void tryMove(int index)
     {
+        if (isPracticeMode)
+        {
+            makePracticeMove(index);
+            return;
+        }
+
         if (gameOver || !myTurn) return;
         Message request = new Message();
         request.setType(MessageType.REVERSI_MOVE_REQUEST);
         request.setMatchId(matchId);
         request.setCellIndex(index);
         NetworkManager.sendAsync(request);
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        mySymbol = "BLACK";
+        opponentUsername = "CPU";
+        practiceMatch = new PracticeMatch<char[], Integer>(AI_MODEL, ReversiGameModel.newBoard(), AI_GAME_ID,
+            ReversiGameModel.BLACK, ReversiGameModel.WHITE, ReversiGameModel.BLACK);
+        cardLayout.show(cards, BOARD);
+        pack();
+        setLocationRelativeTo(null);
+        hintButton.setVisible(true);
+        gameOver = false;
+        refreshPracticeBoard();
+        settleTurn();
+    }
+
+    private void makePracticeMove(int index)
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        boardPanel.hintCell = null;
+        boolean applied = practiceMatch.humanMove(index);
+        if (!applied)
+        {
+            return;
+        }
+        refreshPracticeBoard();
+        settleTurn();
+    }
+
+    /** Applies real Reversi's forced-pass rule after every state change: if the game just ended, reports the result; if it's now the bot's turn, triggers it; if it's the human's turn but they have no real move (only ReversiGameModel.PASS available), auto-plays the pass and re-checks - the real rule is that passing isn't optional, so there's nothing for the player to click. */
+    private void settleTurn()
+    {
+        if (practiceMatch.isOver())
+        {
+            handlePracticeGameOver();
+            return;
+        }
+
+        if (practiceMatch.isHumanTurn())
+        {
+            java.util.List<Integer> humanMoves = practiceMatch.legalMovesForCurrentPlayer();
+            if (humanMoves.size() == 1 && humanMoves.get(0) == ReversiGameModel.PASS)
+            {
+                statusLabel.setText("No legal move - passing...");
+                practiceMatch.humanMove(ReversiGameModel.PASS);
+                refreshPracticeBoard();
+                settleTurn();
+                return;
+            }
+            statusLabel.setText("Your move (BLACK)");
+        }
+        else
+        {
+            triggerBotMove();
+        }
+    }
+
+    private void triggerBotMove()
+    {
+        statusLabel.setText("CPU is thinking...");
+        Timer botTimer = new Timer(500, null);
+        botTimer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                practiceMatch.botMove();
+                refreshPracticeBoard();
+                settleTurn();
+            }
+        });
+        botTimer.setRepeats(false);
+        botTimer.start();
+    }
+
+    private void showHint()
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        Integer suggestion = practiceMatch.suggestMove();
+        boardPanel.hintCell = suggestion == ReversiGameModel.PASS ? null : suggestion;
+        boardPanel.repaint();
+    }
+
+    private void handlePracticeGameOver()
+    {
+        gameOver = true;
+        hintButton.setVisible(false);
+        Integer winner = practiceMatch.getWinnerIndex();
+        String text = winner == null ? "It's a draw."
+            : winner == ReversiGameModel.BLACK ? "You won!" : "You lost.";
+        statusLabel.setText(text);
+
+        String shareText = winner != null && winner == ReversiGameModel.BLACK
+            ? "I won a Reversi practice match on Vertex!" : null;
+        SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { ReversiWindow.this.dispose(); }
+        });
+    }
+
+    private void refreshPracticeBoard()
+    {
+        board = practiceMatch.getState();
+        boardPanel.repaint();
     }
 
     @Override
@@ -310,6 +484,7 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
     private class BoardPanel extends JPanel
     {
         private static final int CELL = 52;
+        private Integer hintCell;
 
         BoardPanel()
         {
@@ -347,6 +522,13 @@ public class ReversiWindow extends JFrame implements NetworkManager.PushListener
                     if (piece != '.')
                     {
                         drawPiece(g2, col, row, piece);
+                    }
+                    else if (hintCell != null && hintCell == index)
+                    {
+                        g2.setColor(new Color(255, 255, 255, 160));
+                        g2.setStroke(new java.awt.BasicStroke(3f));
+                        int pad = 10;
+                        g2.drawOval(col * CELL + pad, row * CELL + pad, CELL - pad * 2, CELL - pad * 2);
                     }
                 }
             }
