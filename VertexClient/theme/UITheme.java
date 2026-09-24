@@ -24,8 +24,8 @@ public class UITheme
     public static final Font FONT_BODY     = new Font(FONT_FAMILY, Font.PLAIN, 13);
     public static final Font FONT_SMALL    = new Font(FONT_FAMILY, Font.PLAIN, 12);
 
-    public static final int RADIUS_PANEL  = 14;
-    public static final int RADIUS_BUTTON = 10;
+    public static final int RADIUS_PANEL  = 18;
+    public static final int RADIUS_BUTTON = 14;
     public static final int SIDEBAR_WIDTH = 220;
     public static final int TOPBAR_HEIGHT = 64;
 

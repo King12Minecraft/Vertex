@@ -4,6 +4,7 @@ import theme.UITheme;
 import theme.ThemeManager;
 
 import javax.swing.JButton;
+import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Graphics;
@@ -60,6 +61,13 @@ public class ToggleSwitch extends JButton
 
         int w = getWidth();
         int h = getHeight();
+
+        if (on)
+        {
+            Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
+            g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 60));
+            g2.fillRoundRect(-4, -4, w + 8, h + 8, h + 8, h + 8);
+        }
 
         g2.setColor(on ? ThemeManager.getColor(ThemeColor.ACCENT) : ThemeManager.getColor(ThemeColor.BORDER));
         g2.fillRoundRect(0, 0, w, h, h, h);

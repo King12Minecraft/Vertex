@@ -10,20 +10,20 @@ import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.LinearGradientPaint;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.GeneralPath;
 
 /**
  * ThemedButton
  * ------------
- * A theme-aware button. "Primary" buttons get the full reskin
- * treatment: gradient fill (theme's accentGradientStart/End), angular
- * chamfered corners, and an animated glow on hover. "Secondary"
- * buttons stay simple (flat, rounded, outlined) - the loud gradient
- * treatment is reserved for primary actions so it doesn't visually
- * compete with itself when several buttons share a screen.
+ * A theme-aware button. "Primary" buttons get the full Aurora Glass
+ * treatment: a softly rounded outline in the accent color over a
+ * faint accent-tinted fill, with an ambient glow that's always
+ * present at rest and brightens further on hover - not a solid
+ * gradient fill, so the glow (not a block of color) is what reads as
+ * "the button." "Secondary" buttons stay simple (flat, rounded,
+ * outlined in the neutral border color) so the accent treatment is
+ * reserved for primary actions.
  */
 public class ThemedButton extends JButton
 {
@@ -88,47 +88,36 @@ public class ThemedButton extends JButton
     {
         int w = getWidth();
         int h = getHeight();
-        int cut = Math.min(10, h / 3);
+        int radius = UITheme.RADIUS_BUTTON;
 
-        float glowIntensity = glow.getIntensity();
-        if (glowIntensity > 0f)
-        {
-            Color glowColor = ThemeManager.getColor(ThemeColor.ACCENT);
-            int alpha = (int) (90 * glowIntensity);
-            g2.setColor(new Color(glowColor.getRed(), glowColor.getGreen(), glowColor.getBlue(), alpha));
-            GeneralPath glowShape = chamferedRect(w + 8, h + 8, cut + 4);
-            g2.translate(-4, -4);
-            g2.fill(glowShape);
-            g2.translate(4, 4);
-        }
-
-        GeneralPath shape = chamferedRect(w, h, cut);
-
-        Color start;
-        Color end;
         if (!isEnabled())
         {
-            Color dim = ThemeManager.getColor(ThemeColor.ACCENT_DIM);
-            start = dim;
-            end = dim;
-        }
-        else
-        {
-            start = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-            end = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END);
-            if (pressed)
-            {
-                start = start.darker();
-                end = end.darker();
-            }
+            g2.setColor(ThemeManager.getColor(ThemeColor.BG_PANEL));
+            g2.fillRoundRect(0, 0, w, h, radius, radius);
+            g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+            g2.setStroke(new BasicStroke(1.4f));
+            g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
+            setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+            return;
         }
 
-        LinearGradientPaint paint = new LinearGradientPaint(
-            0, 0, Math.max(w, 1), Math.max(h, 1), new float[] {0f, 1f}, new Color[] {start, end});
-        g2.setPaint(paint);
-        g2.fill(shape);
+        Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
+        Color accentHoverColor = ThemeManager.getColor(ThemeColor.ACCENT_HOVER);
 
-        setForeground(ThemeManager.getColor(ThemeColor.BG_APP));
+        // Ambient glow: a soft halo that's always present at rest, brightening further on hover.
+        int glowAlpha = Math.min(255, 40 + (int) (75 * glow.getIntensity()));
+        g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), glowAlpha));
+        g2.fillRoundRect(-6, -6, w + 12, h + 12, radius + 8, radius + 8);
+
+        g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT_DIM));
+        g2.fillRoundRect(0, 0, w, h, radius, radius);
+
+        Color borderColor = pressed ? accent.darker() : (hover ? accentHoverColor : accent);
+        g2.setColor(borderColor);
+        g2.setStroke(new BasicStroke(1.6f));
+        g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
+
+        setForeground(borderColor);
     }
 
     private void paintSecondary(Graphics2D g2)
@@ -156,21 +145,5 @@ public class ThemedButton extends JButton
         g2.drawRoundRect(0, 0, w - 1, h - 1, UITheme.RADIUS_BUTTON, UITheme.RADIUS_BUTTON);
 
         setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
-    }
-
-    /** An octagon-like chamfered rectangle - cut corners instead of rounded ones. */
-    private GeneralPath chamferedRect(int w, int h, int cut)
-    {
-        GeneralPath path = new GeneralPath();
-        path.moveTo(cut, 0);
-        path.lineTo(w - cut, 0);
-        path.lineTo(w, cut);
-        path.lineTo(w, h - cut);
-        path.lineTo(w - cut, h);
-        path.lineTo(cut, h);
-        path.lineTo(0, h - cut);
-        path.lineTo(0, cut);
-        path.closePath();
-        return path;
     }
 }
