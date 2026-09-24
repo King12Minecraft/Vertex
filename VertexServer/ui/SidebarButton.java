@@ -6,12 +6,12 @@ import theme.ThemeColor;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.LinearGradientPaint;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -154,13 +154,15 @@ public class SidebarButton extends RoundedPanel
 
         if (selected)
         {
-            Color start = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-            Color end = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END);
-            int barHeight = Math.max(getHeight() - 12, 1);
-            LinearGradientPaint gradient = new LinearGradientPaint(
-                0, 6, 0, 6 + barHeight, new float[] {0f, 1f}, new Color[] {start, end});
-            g2.setPaint(gradient);
-            g2.fillRoundRect(0, 6, 4, barHeight, 4, 4);
+            // Aurora Glass: an inset glow ring around the whole pill, not a
+            // solid color bar down the edge - reads as "lit up," not "tagged."
+            Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
+            g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 50));
+            g2.fillRoundRect(-3, -3, getWidth() + 6, getHeight() + 6, UITheme.RADIUS_BUTTON + 6, UITheme.RADIUS_BUTTON + 6);
+
+            g2.setColor(accent);
+            g2.setStroke(new BasicStroke(1.3f));
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, UITheme.RADIUS_BUTTON, UITheme.RADIUS_BUTTON);
         }
 
         g2.dispose();

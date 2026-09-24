@@ -18,26 +18,31 @@ import java.awt.Graphics2D;
 import java.awt.LinearGradientPaint;
 import java.awt.RadialGradientPaint;
 import java.awt.Rectangle;
+import java.awt.Shape;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.awt.geom.GeneralPath;
+import java.awt.geom.RoundRectangle2D;
 
 /**
  * HeroBanner
  * ----------
- * The large featured-game banner at the top of the Games page.
- * Matches the reference directly: a moody full-bleed dark background,
- * a small cyan tracked-caps kicker ("FEATURED NOW") sitting above a
- * huge bold title, both anchored bottom-left, and one full-width solid
- * cyan CTA bar flush against the very bottom edge - not a small pill
- * button floating in the text block. The featured game's own icon
- * (GameCardArt.paintIconOnly) is rendered huge and faint off to the
- * right as atmosphere, in place of separate hero artwork.
+ * The large featured-game banner at the top of the Games page. Aurora
+ * Glass version: a moody full-bleed dark background with a soft
+ * ambient accent glow, a small cyan tracked-caps kicker ("FEATURED
+ * NOW") above a huge bold title, both anchored bottom-left, and a
+ * rounded outlined-glow "PLAY NOW" pill sitting under the title -
+ * replacing the earlier chamfered shape and full-width solid CTA bar,
+ * which read as flatter and more "Opera GX blocky" than the rest of
+ * the reskinned shell. The featured game's own icon
+ * (GameCardArt.paintIconOnly) is still rendered huge and faint off to
+ * the right as atmosphere, in place of separate hero artwork.
  */
 public class HeroBanner extends JPanel
 {
-    private static final int CTA_HEIGHT = 54;
+    private static final int PAD_X = 40;
+    private static final int PAD_BOTTOM = 40;
+    private static final int BUTTON_HEIGHT = 52;
 
     private final GameInfo game;
     private boolean playHover = false;
@@ -89,9 +94,9 @@ public class HeroBanner extends JPanel
 
         int w = getWidth();
         int h = getHeight();
-        int cut = 22;
+        int radius = UITheme.RADIUS_PANEL + 6;
 
-        GeneralPath shape = ChamferShape.build(0, 0, w, h, cut);
+        Shape shape = new RoundRectangle2D.Float(0, 0, w, h, radius, radius);
         g2.setClip(shape);
 
         Color start = ThemeManager.getColor(ThemeColor.BG_PANEL);
@@ -119,19 +124,20 @@ public class HeroBanner extends JPanel
         GameCardArt.paintIconOnly(iconG2, (int) (h * 0.8), (int) (h * 0.8), game.getGameId());
         iconG2.dispose();
 
-        int padX = 40;
-        int ctaTop = h - CTA_HEIGHT;
+        int buttonY = h - PAD_BOTTOM - BUTTON_HEIGHT;
+        int titleY = buttonY - 22;
+        int kickerY = titleY - 46;
 
         g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
         g2.setFont(UITheme.FONT_SMALL.deriveFont(Font.BOLD, 12f));
         String kicker = game.isOnline() ? "FEATURED NOW - MULTIPLAYER" : "FEATURED NOW - PRACTICE MODE";
-        g2.drawString(trackedCaps(kicker), padX, ctaTop - 68);
+        g2.drawString(trackedCaps(kicker), PAD_X, kickerY);
 
         g2.setColor(Color.WHITE);
         g2.setFont(UITheme.FONT_HEADING.deriveFont(Font.BOLD, 42f));
-        g2.drawString(game.getName().toUpperCase(), padX, ctaTop - 24);
+        g2.drawString(game.getName().toUpperCase(), PAD_X, titleY);
 
-        paintCtaBar(g2, w, ctaTop, CTA_HEIGHT);
+        paintCtaButton(g2, PAD_X, buttonY);
 
         g2.setClip(null);
         g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
@@ -156,21 +162,34 @@ public class HeroBanner extends JPanel
         return sb.toString();
     }
 
-    /** A full-width solid cyan bar flush at the very bottom edge - the reference's signature CTA treatment. */
-    private void paintCtaBar(Graphics2D g2, int w, int y, int barH)
+    /** A rounded outlined-glow pill under the title, sized to its own label - the Aurora Glass CTA treatment (see ThemedButton's primary style). */
+    private void paintCtaButton(Graphics2D g2, int x, int y)
     {
-        playButtonBounds = new Rectangle(0, y, w, barH);
-
-        Color base = ThemeManager.getColor(ThemeColor.ACCENT);
-        Color fill = playHover ? ThemeManager.getColor(ThemeColor.ACCENT_HOVER) : base;
-        g2.setColor(fill);
-        g2.fillRect(0, y, w, barH);
-
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
-        g2.setFont(UITheme.FONT_NAV_BOLD.deriveFont(Font.BOLD, 15f));
         String label = "\u25B6  PLAY NOW";
+        g2.setFont(UITheme.FONT_NAV_BOLD.deriveFont(Font.BOLD, 14f));
         FontMetrics fm = g2.getFontMetrics();
+        int buttonW = fm.stringWidth(label) + 56;
+        int radius = UITheme.RADIUS_BUTTON;
+
+        playButtonBounds = new Rectangle(x, y, buttonW, BUTTON_HEIGHT);
+
+        Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
+        Color accentHoverColor = ThemeManager.getColor(ThemeColor.ACCENT_HOVER);
+
+        int glowAlpha = playHover ? 110 : 60;
+        g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), glowAlpha));
+        g2.fillRoundRect(x - 6, y - 6, buttonW + 12, BUTTON_HEIGHT + 12, radius + 8, radius + 8);
+
+        g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT_DIM));
+        g2.fillRoundRect(x, y, buttonW, BUTTON_HEIGHT, radius, radius);
+
+        Color borderColor = playHover ? accentHoverColor : accent;
+        g2.setColor(borderColor);
+        g2.setStroke(new BasicStroke(1.6f));
+        g2.drawRoundRect(x, y, buttonW - 1, BUTTON_HEIGHT - 1, radius, radius);
+
+        g2.setColor(borderColor);
         int textW = fm.stringWidth(label);
-        g2.drawString(label, (w - textW) / 2, y + barH / 2 + fm.getAscent() / 2 - 4);
+        g2.drawString(label, x + (buttonW - textW) / 2, y + BUTTON_HEIGHT / 2 + fm.getAscent() / 2 - 4);
     }
 }
