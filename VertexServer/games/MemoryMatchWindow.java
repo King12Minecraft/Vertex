@@ -10,12 +10,14 @@ import theme.ThemeManager;
 import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
+import ui.GameModeCard;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -62,6 +64,9 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
     private JLabel statusLabel;
     private JLabel scoreLabel;
 
+    private boolean isPracticeMode = false;
+    private MemoryMatchPracticeMatch practiceMatch;
+
     private String matchId;
     private int mySymbol = -1;
     private String opponentUsername;
@@ -94,7 +99,7 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 NetworkManager.removePushListener(MemoryMatchWindow.this);
             }
         });
@@ -105,7 +110,7 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(400, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Memory Match");
         title.setFont(UITheme.FONT_HEADING);
@@ -113,29 +118,49 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
 
-        JLabel subtitle = new JLabel("Ranked 1v1 - find a pair and go again, miss and pass the turn.");
+        JLabel subtitle = new JLabel("Find a pair and go again, miss and pass the turn.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -225,11 +250,166 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
     private void flipCard(int index)
     {
         if (gameOver || !myTurn || board[index] != '.') return;
+
+        if (isPracticeMode)
+        {
+            makePracticeFlip(index);
+            return;
+        }
+
         Message request = new Message();
         request.setType(MessageType.MEMORY_FLIP_REQUEST);
         request.setMatchId(matchId);
         request.setCellIndex(index);
         NetworkManager.sendAsync(request);
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        mySymbol = 0;
+        opponentUsername = "CPU";
+        practiceMatch = new MemoryMatchPracticeMatch();
+        java.util.Arrays.fill(board, '.');
+        gameOver = false;
+        myTurn = true;
+
+        cardLayout.show(cards, BOARD);
+        pack();
+        setLocationRelativeTo(null);
+
+        scoreLabel.setText("You: 0   Opponent: 0");
+        statusLabel.setText("Your turn - flip two cards");
+        boardPanel.repaint();
+    }
+
+    /** The human's own flip - may be the first of their turn (nothing else to do yet, still their turn) or the second (resolves the pair via handlePracticeFlipResult). */
+    private void makePracticeFlip(int index)
+    {
+        MemoryMatchPracticeMatch.FlipResult result = practiceMatch.flip(index);
+        board[index] = practiceMatch.symbolAt(index);
+        boardPanel.repaint();
+
+        if (result == null)
+        {
+            return;
+        }
+        myTurn = false;
+        handlePracticeFlipResult(result);
+    }
+
+    /** Common handling for whichever second flip just happened (the human's or the bot's): a match keeps the same player going (chains straight into another bot turn if it was the bot's match), a miss holds both cards on screen briefly - mirroring MemoryMatchMatch's own MISMATCH_REVEAL_MS pause - before flipping them back and passing the turn. */
+    private void handlePracticeFlipResult(final MemoryMatchPracticeMatch.FlipResult result)
+    {
+        scoreLabel.setText("You: " + result.scoreHuman + "   Opponent: " + result.scoreBot);
+
+        if (result.isMatch)
+        {
+            if (result.over)
+            {
+                handlePracticeGameOver(result);
+            }
+            else if (practiceMatch.isHumanTurn())
+            {
+                myTurn = true;
+                statusLabel.setText("You found a pair - go again!");
+            }
+            else
+            {
+                statusLabel.setText("CPU found a pair - going again...");
+                triggerBotTurn();
+            }
+            return;
+        }
+
+        statusLabel.setText(practiceMatch.isHumanTurn() ? "No match - your turn again..." : "No match - CPU's turn...");
+        Timer hideTimer = new Timer(1200, null);
+        hideTimer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                board[result.firstIndex] = '.';
+                board[result.secondIndex] = '.';
+                boardPanel.repaint();
+
+                if (practiceMatch.isHumanTurn())
+                {
+                    myTurn = true;
+                    statusLabel.setText("Your turn - flip two cards");
+                }
+                else
+                {
+                    triggerBotTurn();
+                }
+            }
+        });
+        hideTimer.setRepeats(false);
+        hideTimer.start();
+    }
+
+    private void triggerBotTurn()
+    {
+        statusLabel.setText("CPU is thinking...");
+        Timer timer = new Timer(700, null);
+        timer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                performBotFirstFlip();
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private void performBotFirstFlip()
+    {
+        int index = practiceMatch.getBotStrategy().chooseFirstFlip(practiceMatch.getMatched());
+        practiceMatch.flip(index);
+        board[index] = practiceMatch.symbolAt(index);
+        boardPanel.repaint();
+
+        final int firstIndex = index;
+        Timer timer = new Timer(700, null);
+        timer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                performBotSecondFlip(firstIndex);
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private void performBotSecondFlip(int firstIndex)
+    {
+        char firstSymbol = practiceMatch.symbolAt(firstIndex);
+        int secondIndex = practiceMatch.getBotStrategy().chooseSecondFlip(firstIndex, firstSymbol, practiceMatch.getMatched());
+        MemoryMatchPracticeMatch.FlipResult result = practiceMatch.flip(secondIndex);
+        board[secondIndex] = practiceMatch.symbolAt(secondIndex);
+        boardPanel.repaint();
+        handlePracticeFlipResult(result);
+    }
+
+    private void handlePracticeGameOver(MemoryMatchPracticeMatch.FlipResult result)
+    {
+        gameOver = true;
+        int myScore = result.scoreHuman, botScore = result.scoreBot;
+        String text = myScore == botScore ? "It's a draw."
+            : myScore > botScore ? "You won with " + myScore + " pairs!" : "You lost - " + myScore + " pairs.";
+        statusLabel.setText(text);
+
+        String shareText = myScore > botScore ? "I won a Memory Match practice game on Vertex!" : null;
+        SnakeGameOverDialog.show(this, myScore, text, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { MemoryMatchWindow.this.dispose(); }
+        });
     }
 
     @Override

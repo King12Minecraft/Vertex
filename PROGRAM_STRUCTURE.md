@@ -161,8 +161,26 @@ bigger undertaking on its own" - no longer true once the shared engine already e
 for other games); it gained a mode-select screen, matching the rest, rather than the
 single always-online layout it had before. Memory Match, Fusion Grid, Word Duel, and
 Dice Duel don't fit this engine's perfect-information, deterministic-transition
-assumptions (hidden card values, random future draws, or randomness mid-decision) and
-are expected to get their own bespoke heuristic bots instead, not a `GameModel`.
+assumptions (hidden card values, random future draws, or randomness mid-decision), so
+each got its own bespoke heuristic bot instead of a `GameModel`. Word Duel
+(`WordDuelBotStrategy`/`WordDuelFallbackStrategy`, scoring words via
+`WordDuelWordList.bestWordFrom`/`anyWordFrom`) and Fusion Grid (`FusionGridBotStrategy`/
+`FusionGridFallbackStrategy`, scoring each empty cell via a pure `simulateCascade`
+replay of the real merge rule) are still plain `ai.BotStrategy` registered with
+`AiKernel` — a bot turn there really is one `chooseMove` call, non-adversarial (Word
+Duel) or heuristic-scored (Fusion Grid), so the existing framework fits as-is. Dice
+Duel (`DiceDuelBotStrategy`) and Memory Match (`MemoryMatchBotStrategy`) are standalone
+classes called directly by their `Window`, not through `AiKernel`, because a turn there
+is inherently more than one decision: Dice Duel's `chooseDiceToHold`/`chooseCategory`
+(greedy against `DiceDuelMatch.scoreFor`) happen across up to two rerolls: and Memory
+Match's `chooseFirstFlip`/`chooseSecondFlip` need a private, per-match `known` map fed
+by an `observe(index, symbol)` call on *every* flip (the bot's own and the human's) so
+it only "remembers" what has actually been shown on screen — the one genuinely
+hidden-information game here, and deliberately not omniscient. `MemoryMatchWindow`'s
+practice mode runs on its own `MemoryMatchPracticeMatch` rather than the shared
+`ai/search` `PracticeMatch`, for the same reason: that class assumes both players see
+one shared state, which doesn't hold when part of the state (face-down cards) is
+genuinely secret.
 
 ## ai — four independent toolkits, unified by one philosophy
 
