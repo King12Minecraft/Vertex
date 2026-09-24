@@ -145,14 +145,20 @@ Bot-AI-bearing games bridge into the `ai` package: `TicTacToePracticeMatch` +
 `RockPaperScissorsFixedMoveStrategy`; `MazeChaseGame` +
 `MazeChaseChaserBotStrategy`/`MazeChaseChaserRandomStrategy`/`MazeChaseChaserState` —
 all register primary+fallback strategies with `ai.AiKernel`. `ConnectFourWindow`,
-`ReversiWindow`, `DotsAndBoxesWindow`, and `CheckersWindow` do too, but via the shared
-`ai/search` engine instead of bespoke per-game bot classes: each brings only a
-`GameModel` adapter (`ConnectFourGameModel`/`ReversiGameModel`/
-`DotsAndBoxesGameModel`/`CheckersGameModel`) and registers `ai.search.GenericBotStrategy`
-+ `ai.search.RandomMoveStrategy` as its primary/fallback pair. Checkers' `GameModel` is
-parameterized over a small custom `CheckersState`/`CheckersMove` pair (not a plain
-`char[]`/`Integer` like the others) since its mandatory-multi-jump rule needs a real
-extra field (which piece must keep capturing), not just a board.
+`ReversiWindow`, `DotsAndBoxesWindow`, `CheckersWindow`, and `ChessWindow` do too, but
+via the shared `ai/search` engine instead of bespoke per-game bot classes: each brings
+only a `GameModel` adapter (`ConnectFourGameModel`/`ReversiGameModel`/
+`DotsAndBoxesGameModel`/`CheckersGameModel`/`ChessGameModel`) and registers
+`ai.search.GenericBotStrategy` + `ai.search.RandomMoveStrategy` as its primary/fallback
+pair. Checkers and Chess are parameterized over small custom state/move pairs (not a
+plain `char[]`/`Integer` like the other three) since their real rules need more than a
+board: Checkers' mandatory-multi-jump rule needs to know which piece must keep
+capturing; Chess needs castling rights, the en passant target square, and (uniquely
+among all five) whose turn it currently is, since checkmate/stalemate depend on that
+and not just the board. `ChessWindow` previously had no offline mode at all ("a real
+chess engine is a much bigger undertaking on its own" - no longer true once the shared
+engine already existed for other games); it gained a mode-select screen, matching the
+other four, rather than the single always-online layout it had before.
 
 ## ai — four independent toolkits, unified by one philosophy
 
