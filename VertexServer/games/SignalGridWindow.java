@@ -10,12 +10,18 @@ import theme.ThemeManager;
 import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
+import ui.GameModeCard;
+import ai.AiKernel;
+import ai.search.GenericBotStrategy;
+import ai.search.RandomMoveStrategy;
+import ai.search.PracticeMatch;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -50,12 +56,26 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
 
     private static final Color[] PLAYER_COLORS = { new Color(90, 170, 230), new Color(230, 110, 100) };
 
+    /** "Practice" mode's AI - registered once per JVM, same pattern the other ai.search-backed games use. */
+    private static final String AI_GAME_ID = "signal-grid-practice";
+    private static final SignalGridGameModel AI_MODEL = new SignalGridGameModel();
+    static
+    {
+        AiKernel.register(AI_GAME_ID,
+            new GenericBotStrategy<int[], SignalGridMove>(AI_MODEL, SignalGridGameModel.PLAYER_B, 2),
+            new RandomMoveStrategy<int[], SignalGridMove>(AI_MODEL, SignalGridGameModel.PLAYER_B));
+    }
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
 
     private JLabel searchingLabel;
     private BoardPanel boardPanel;
     private JLabel statusLabel;
+    private ThemedButton hintButton;
+
+    private boolean isPracticeMode = false;
+    private PracticeMatch<int[], SignalGridMove> practiceMatch;
 
     private String matchId;
     private int mySymbol = -1;
@@ -90,7 +110,7 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 NetworkManager.removePushListener(SignalGridWindow.this);
             }
         });
@@ -101,7 +121,7 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(420, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Signal Grid");
         title.setFont(UITheme.FONT_HEADING);
@@ -109,29 +129,49 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
 
-        JLabel subtitle = new JLabel("Ranked 1v1 - place a node, fire it, capture what it hits.");
+        JLabel subtitle = new JLabel("Place a node, fire it, capture what it hits.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -202,6 +242,20 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         center.add(directionRow);
 
         wrap.add(center, BorderLayout.CENTER);
+
+        hintButton = new ThemedButton("Hint", false);
+        hintButton.setPreferredSize(new Dimension(90, 34));
+        hintButton.setVisible(false);
+        hintButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { showHint(); }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottomRow.add(hintButton);
+        wrap.add(bottomRow, BorderLayout.SOUTH);
+
         return wrap;
     }
 
@@ -246,6 +300,13 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
     private void fireInDirection(String direction)
     {
         if (gameOver || !myTurn || selectedIndex < 0) return;
+
+        if (isPracticeMode)
+        {
+            makePracticeMove(selectedIndex, directionCodeFor(direction));
+            return;
+        }
+
         Message request = new Message();
         request.setType(MessageType.SIGNALGRID_FIRE_REQUEST);
         request.setMatchId(matchId);
@@ -253,6 +314,124 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         request.setSymbol(direction);
         NetworkManager.sendAsync(request);
         selectedIndex = -1;
+    }
+
+    private int directionCodeFor(String direction)
+    {
+        if ("UP".equals(direction)) return SignalGridMatch.UP;
+        if ("DOWN".equals(direction)) return SignalGridMatch.DOWN;
+        if ("LEFT".equals(direction)) return SignalGridMatch.LEFT;
+        return SignalGridMatch.RIGHT;
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        mySymbol = SignalGridGameModel.PLAYER_A;
+        opponentUsername = "CPU";
+        selectedIndex = -1;
+        practiceMatch = new PracticeMatch<int[], SignalGridMove>(AI_MODEL, SignalGridGameModel.newBoard(), AI_GAME_ID,
+            SignalGridGameModel.PLAYER_A, SignalGridGameModel.PLAYER_B, SignalGridGameModel.PLAYER_A);
+        cardLayout.show(cards, BOARD);
+        pack();
+        setLocationRelativeTo(null);
+        hintButton.setVisible(true);
+        gameOver = false;
+        myTurn = true;
+        refreshPracticeBoard();
+        statusLabel.setText("Your move - click an empty cell");
+    }
+
+    private void makePracticeMove(int index, int direction)
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        boolean applied = practiceMatch.humanMove(new SignalGridMove(index, direction));
+        selectedIndex = -1;
+        if (!applied)
+        {
+            return;
+        }
+        refreshPracticeBoard();
+        myTurn = false;
+
+        if (practiceMatch.isOver())
+        {
+            handlePracticeGameOver();
+        }
+        else
+        {
+            triggerBotMove();
+        }
+    }
+
+    private void triggerBotMove()
+    {
+        statusLabel.setText("CPU is thinking...");
+        Timer botTimer = new Timer(500, null);
+        botTimer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                practiceMatch.botMove();
+                refreshPracticeBoard();
+
+                if (practiceMatch.isOver())
+                {
+                    handlePracticeGameOver();
+                }
+                else
+                {
+                    myTurn = true;
+                    statusLabel.setText("Your move - click an empty cell");
+                }
+            }
+        });
+        botTimer.setRepeats(false);
+        botTimer.start();
+    }
+
+    private void showHint()
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        SignalGridMove suggestion = practiceMatch.suggestMove();
+        selectedIndex = suggestion.index;
+        String dirLabel = suggestion.direction == SignalGridMatch.UP ? "UP"
+            : suggestion.direction == SignalGridMatch.DOWN ? "DOWN"
+            : suggestion.direction == SignalGridMatch.LEFT ? "LEFT" : "RIGHT";
+        statusLabel.setText("Hint: place here, then fire " + dirLabel);
+        boardPanel.repaint();
+    }
+
+    private void handlePracticeGameOver()
+    {
+        gameOver = true;
+        hintButton.setVisible(false);
+        Integer winner = practiceMatch.getWinnerIndex();
+        String text = winner == null ? "It's a draw."
+            : winner == SignalGridGameModel.PLAYER_A ? "You won!" : "You lost.";
+        statusLabel.setText(text);
+
+        String shareText = winner != null && winner == SignalGridGameModel.PLAYER_A
+            ? "I won a Signal Grid practice match on Vertex!" : null;
+        SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { SignalGridWindow.this.dispose(); }
+        });
+    }
+
+    private void refreshPracticeBoard()
+    {
+        owners = practiceMatch.getState();
+        boardPanel.repaint();
     }
 
     @Override

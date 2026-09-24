@@ -145,20 +145,24 @@ Bot-AI-bearing games bridge into the `ai` package: `TicTacToePracticeMatch` +
 `RockPaperScissorsFixedMoveStrategy`; `MazeChaseGame` +
 `MazeChaseChaserBotStrategy`/`MazeChaseChaserRandomStrategy`/`MazeChaseChaserState` —
 all register primary+fallback strategies with `ai.AiKernel`. `ConnectFourWindow`,
-`ReversiWindow`, `DotsAndBoxesWindow`, `CheckersWindow`, and `ChessWindow` do too, but
-via the shared `ai/search` engine instead of bespoke per-game bot classes: each brings
-only a `GameModel` adapter (`ConnectFourGameModel`/`ReversiGameModel`/
-`DotsAndBoxesGameModel`/`CheckersGameModel`/`ChessGameModel`) and registers
-`ai.search.GenericBotStrategy` + `ai.search.RandomMoveStrategy` as its primary/fallback
-pair. Checkers and Chess are parameterized over small custom state/move pairs (not a
-plain `char[]`/`Integer` like the other three) since their real rules need more than a
-board: Checkers' mandatory-multi-jump rule needs to know which piece must keep
-capturing; Chess needs castling rights, the en passant target square, and (uniquely
-among all five) whose turn it currently is, since checkmate/stalemate depend on that
-and not just the board. `ChessWindow` previously had no offline mode at all ("a real
-chess engine is a much bigger undertaking on its own" - no longer true once the shared
-engine already existed for other games); it gained a mode-select screen, matching the
-other four, rather than the single always-online layout it had before.
+`ReversiWindow`, `DotsAndBoxesWindow`, `CheckersWindow`, `ChessWindow`, and
+`SignalGridWindow` do too, but via the shared `ai/search` engine instead of bespoke
+per-game bot classes: each brings only a `GameModel` adapter
+(`ConnectFourGameModel`/`ReversiGameModel`/`DotsAndBoxesGameModel`/`CheckersGameModel`/
+`ChessGameModel`/`SignalGridGameModel`) and registers `ai.search.GenericBotStrategy` +
+`ai.search.RandomMoveStrategy` as its primary/fallback pair. Checkers and Chess are
+parameterized over small custom state/move pairs (not a plain `char[]`/`Integer` like
+the other four) since their real rules need more than a board: Checkers' mandatory-
+multi-jump rule needs to know which piece must keep capturing; Chess needs castling
+rights, the en passant target square, and (uniquely among all six) whose turn it
+currently is, since checkmate/stalemate depend on that and not just the board.
+`ChessWindow` previously had no offline mode at all ("a real chess engine is a much
+bigger undertaking on its own" - no longer true once the shared engine already existed
+for other games); it gained a mode-select screen, matching the rest, rather than the
+single always-online layout it had before. Memory Match, Fusion Grid, Word Duel, and
+Dice Duel don't fit this engine's perfect-information, deterministic-transition
+assumptions (hidden card values, random future draws, or randomness mid-decision) and
+are expected to get their own bespoke heuristic bots instead, not a `GameModel`.
 
 ## ai — four independent toolkits, unified by one philosophy
 
