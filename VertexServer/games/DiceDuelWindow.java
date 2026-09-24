@@ -10,12 +10,14 @@ import theme.ThemeManager;
 import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
+import ui.GameModeCard;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -32,7 +34,10 @@ import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
 /**
  * DiceDuelWindow
@@ -62,6 +67,12 @@ public class DiceDuelWindow extends JFrame implements NetworkManager.PushListene
     private JPanel categoryPanel;
     private JLabel myScoreLabel;
     private JLabel opponentScoreLabel;
+
+    /** "Practice" mode's AI - not ai.search-backed (see DiceDuelBotStrategy's javadoc for why) and not routed through AiKernel either, since a turn is two different kinds of decision, not one chooseMove(state) call. One shared stateless instance is fine - both its methods are pure functions of whatever dice/categories they're handed. */
+    private static final DiceDuelBotStrategy BOT_STRATEGY = new DiceDuelBotStrategy();
+
+    private boolean isPracticeMode = false;
+    private int botRerollStep;
 
     private String matchId;
     private int mySymbol = -1;
@@ -98,7 +109,7 @@ public class DiceDuelWindow extends JFrame implements NetworkManager.PushListene
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 NetworkManager.removePushListener(DiceDuelWindow.this);
             }
         });
@@ -109,7 +120,7 @@ public class DiceDuelWindow extends JFrame implements NetworkManager.PushListene
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(420, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Dice Duel");
         title.setFont(UITheme.FONT_HEADING);
@@ -117,29 +128,49 @@ public class DiceDuelWindow extends JFrame implements NetworkManager.PushListene
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
 
-        JLabel subtitle = new JLabel("Ranked 1v1 - roll, hold, re-roll, and lock in your score.");
+        JLabel subtitle = new JLabel("Roll, hold, re-roll, and lock in your score.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -280,6 +311,21 @@ public class DiceDuelWindow extends JFrame implements NetworkManager.PushListene
     private void requestReroll()
     {
         if (!myTurn || gameOver || rerollsUsed >= DiceDuelMatch.MAX_REROLLS_PER_TURN) return;
+
+        if (isPracticeMode)
+        {
+            Random random = new Random();
+            for (int i = 0; i < dice.length; i++)
+            {
+                if (!held[i]) dice[i] = 1 + random.nextInt(6);
+            }
+            rerollsUsed++;
+            updateDiceButtons();
+            rerollButton.setText("Re-roll unheld dice (" + (DiceDuelMatch.MAX_REROLLS_PER_TURN - rerollsUsed) + " left)");
+            rebuildCategoryButtons();
+            return;
+        }
+
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < held.length; i++)
         {
@@ -299,11 +345,171 @@ public class DiceDuelWindow extends JFrame implements NetworkManager.PushListene
     private void lockCategory(String category)
     {
         if (!myTurn || gameOver) return;
+
+        if (isPracticeMode)
+        {
+            myFilledCategories.put(category, DiceDuelMatch.scoreFor(category, dice));
+            rebuildCategoryButtons();
+            updateScoreLabels();
+            myTurn = false;
+
+            if (myFilledCategories.size() == DiceDuelMatch.CATEGORIES.length
+                && opponentFilledCategories.size() == DiceDuelMatch.CATEGORIES.length)
+            {
+                handlePracticeGameOver();
+            }
+            else
+            {
+                statusLabel.setText("CPU's turn...");
+                triggerBotTurn();
+            }
+            return;
+        }
+
         Message request = new Message();
         request.setType(MessageType.DICEDUEL_LOCK_REQUEST);
         request.setMatchId(matchId);
         request.setChatText(category);
         NetworkManager.sendAsync(request);
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        mySymbol = 0;
+        opponentUsername = "CPU";
+        myFilledCategories.clear();
+        opponentFilledCategories.clear();
+        gameOver = false;
+        rerollsUsed = 0;
+        java.util.Arrays.fill(held, false);
+        rollDice();
+
+        cardLayout.show(cards, BOARD);
+        pack();
+        setLocationRelativeTo(null);
+
+        updateDiceButtons();
+        for (DieButton button : diceButtons) button.setHeld(false);
+        rerollButton.setText("Re-roll unheld dice (" + DiceDuelMatch.MAX_REROLLS_PER_TURN + " left)");
+        rebuildCategoryButtons();
+        updateScoreLabels();
+        myTurn = true;
+        statusLabel.setText("Your turn");
+    }
+
+    private void rollDice()
+    {
+        Random random = new Random();
+        for (int i = 0; i < dice.length; i++)
+        {
+            dice[i] = 1 + random.nextInt(6);
+        }
+    }
+
+    private void updateDiceButtons()
+    {
+        for (int i = 0; i < diceButtons.length; i++)
+        {
+            diceButtons[i].setValue(dice[i]);
+        }
+    }
+
+    /** One full bot turn: a fresh roll, then up to MAX_REROLLS_PER_TURN reroll decisions (each on its own short "thinking" delay so the dice visibly change instead of jumping straight to a final answer), then a category lock - scheduled as a self-rescheduling chain of Timers rather than a loop, same shape DotsAndBoxesWindow/CheckersWindow use for their own chained bot turns. */
+    private void triggerBotTurn()
+    {
+        rollDice();
+        botRerollStep = 0;
+        updateDiceButtons();
+        scheduleBotStep();
+    }
+
+    private void scheduleBotStep()
+    {
+        Timer timer = new Timer(700, null);
+        timer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                performBotStep();
+            }
+        });
+        timer.setRepeats(false);
+        timer.start();
+    }
+
+    private void performBotStep()
+    {
+        Set<String> open = openCategoriesFor(opponentFilledCategories);
+
+        if (botRerollStep < DiceDuelMatch.MAX_REROLLS_PER_TURN)
+        {
+            boolean[] hold = BOT_STRATEGY.chooseDiceToHold(dice, open);
+            Random random = new Random();
+            for (int i = 0; i < dice.length; i++)
+            {
+                if (!hold[i]) dice[i] = 1 + random.nextInt(6);
+            }
+            botRerollStep++;
+            updateDiceButtons();
+            scheduleBotStep();
+            return;
+        }
+
+        String category = BOT_STRATEGY.chooseCategory(dice, open);
+        if (category == null) category = open.iterator().next(); // defensive - open is never actually empty here
+
+        opponentFilledCategories.put(category, DiceDuelMatch.scoreFor(category, dice));
+        rebuildCategoryButtons();
+        updateScoreLabels();
+
+        if (myFilledCategories.size() == DiceDuelMatch.CATEGORIES.length
+            && opponentFilledCategories.size() == DiceDuelMatch.CATEGORIES.length)
+        {
+            handlePracticeGameOver();
+        }
+        else
+        {
+            rollDice();
+            java.util.Arrays.fill(held, false);
+            rerollsUsed = 0;
+            updateDiceButtons();
+            for (DieButton button : diceButtons) button.setHeld(false);
+            rerollButton.setText("Re-roll unheld dice (" + DiceDuelMatch.MAX_REROLLS_PER_TURN + " left)");
+            rebuildCategoryButtons();
+            myTurn = true;
+            statusLabel.setText("Your turn");
+        }
+    }
+
+    private Set<String> openCategoriesFor(Map<String, Integer> filled)
+    {
+        Set<String> open = new HashSet<String>();
+        for (String category : DiceDuelMatch.CATEGORIES)
+        {
+            if (!filled.containsKey(category)) open.add(category);
+        }
+        return open;
+    }
+
+    private void handlePracticeGameOver()
+    {
+        gameOver = true;
+        int myTotal = sum(myFilledCategories);
+        int botTotal = sum(opponentFilledCategories);
+        String text = myTotal == botTotal ? "It's a draw."
+            : myTotal > botTotal ? "You won with " + myTotal + " points!"
+            : "You lost - " + myTotal + " points.";
+        statusLabel.setText(text);
+
+        String shareText = myTotal > botTotal ? "I won a Dice Duel practice match on Vertex!" : null;
+        SnakeGameOverDialog.show(this, myTotal, text, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { DiceDuelWindow.this.dispose(); }
+        });
     }
 
     @Override

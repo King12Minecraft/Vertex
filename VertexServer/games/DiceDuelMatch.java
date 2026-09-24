@@ -135,7 +135,8 @@ public class DiceDuelMatch
         return playerIndex == turnPlayerIndex;
     }
 
-    private int scoreFor(String category, int[] roll)
+    /** Public/static so DiceDuelBotStrategy can score hypothetical categories too, not just DiceDuelMatch itself - it's already stateless, just promoted from a private instance method. */
+    public static int scoreFor(String category, int[] roll)
     {
         int[] counts = new int[7];
         for (int value : roll) counts[value]++;
@@ -163,7 +164,7 @@ public class DiceDuelMatch
         return 0;
     }
 
-    private String faceCategoryName(int face)
+    public static String faceCategoryName(int face)
     {
         String[] names = { "ONES", "TWOS", "THREES", "FOURS", "FIVES", "SIXES" };
         return names[face - 1];
