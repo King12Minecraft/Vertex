@@ -11,6 +11,8 @@ import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
 import ui.ThemedTextField;
+import ui.GameModeCard;
+import ai.AiKernel;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
@@ -47,6 +49,13 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
     private static final String ROUND = "ROUND";
     private static final long ROUND_DURATION_MS = 60_000;
 
+    /** "Practice" mode's AI - registered once per JVM. Not ai.search-backed (see WordDuelBotStrategy's javadoc for why) but still goes through AiKernel for the same try-primary-then-fallback safety net every other bot in Vertex gets. */
+    private static final String AI_GAME_ID = "word-duel-practice";
+    static
+    {
+        AiKernel.register(AI_GAME_ID, new WordDuelBotStrategy(), new WordDuelFallbackStrategy());
+    }
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
 
@@ -56,6 +65,11 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
     private JLabel myBestLabel;
     private JLabel opponentBestLabel;
     private ThemedTextField wordField;
+
+    private boolean isPracticeMode = false;
+    private String practiceLetters;
+    private String botWord;
+    private boolean botWordRevealed;
 
     private String matchId;
     private String opponentUsername;
@@ -88,7 +102,7 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 if (countdownTimer != null) countdownTimer.stop();
                 NetworkManager.removePushListener(WordDuelWindow.this);
             }
@@ -100,7 +114,7 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(420, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Word Duel");
         title.setFont(UITheme.FONT_HEADING);
@@ -115,22 +129,42 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -250,6 +284,12 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         String word = wordField.getValue().trim();
         if (word.isEmpty()) return;
 
+        if (isPracticeMode)
+        {
+            submitPracticeWord(word);
+            return;
+        }
+
         Message request = new Message();
         request.setType(MessageType.WORDDUEL_SUBMIT_REQUEST);
         request.setMatchId(matchId);
@@ -262,6 +302,83 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
             myBestLabel.setText("Your best so far: " + myBestWord + " (" + myBestWord.length() + ")");
         }
         wordField.clear();
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        opponentUsername = "CPU";
+        myBestWord = "";
+        gameOver = false;
+        practiceLetters = WordDuelMatch.drawLetters();
+        botWord = AiKernel.<String, String>chooseMove(AI_GAME_ID, practiceLetters);
+        botWordRevealed = false;
+
+        lettersLabel.setText(formatLetters(practiceLetters));
+        myBestLabel.setText("Your best so far: (none yet)");
+        opponentBestLabel.setText("Opponent's best: 0 letters");
+        roundStartedAt = System.currentTimeMillis();
+        startCountdown();
+
+        // A random mid-round delay before "revealing" the CPU's word length, rather than
+        // showing its final length instantly - matches the suspense a real opponent
+        // gradually improving their submission would create, since the bot (unlike a human)
+        // otherwise settles on its one best word immediately.
+        int revealDelayMs = 2000 + new java.util.Random().nextInt(4000);
+        Timer revealTimer = new Timer(revealDelayMs, null);
+        revealTimer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                if (!gameOver)
+                {
+                    botWordRevealed = true;
+                    opponentBestLabel.setText("Opponent's best: " + botWord.length() + " letters");
+                }
+            }
+        });
+        revealTimer.setRepeats(false);
+        revealTimer.start();
+
+        cardLayout.show(cards, ROUND);
+        pack();
+        setLocationRelativeTo(null);
+    }
+
+    private void submitPracticeWord(String word)
+    {
+        String candidate = word.trim().toLowerCase();
+        boolean valid = !candidate.isEmpty()
+            && WordDuelWordList.canBeFormedFrom(candidate, practiceLetters)
+            && WordDuelWordList.isValidWord(candidate);
+
+        if (valid && candidate.length() > myBestWord.length())
+        {
+            myBestWord = candidate;
+            myBestLabel.setText("Your best so far: " + myBestWord + " (" + myBestWord.length() + ")");
+        }
+        wordField.clear();
+    }
+
+    private void finishPracticeRound()
+    {
+        if (gameOver) return;
+        gameOver = true;
+        if (countdownTimer != null) countdownTimer.stop();
+
+        int myLen = myBestWord.length(), botLen = botWord.length();
+        String winnerText = myLen == botLen ? "It's a draw - both: " + (myLen == 0 ? "(nothing)" : myBestWord)
+            : myLen > botLen ? "You won! Your word: " + myBestWord
+            : "You lost. Your word: " + (myBestWord.isEmpty() ? "(none)" : myBestWord) + " - CPU: " + botWord;
+
+        String shareText = myLen > botLen ? "I won a Word Duel practice match on Vertex with \"" + myBestWord + "\"!" : null;
+        SnakeGameOverDialog.show(this, myLen, winnerText, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { WordDuelWindow.this.dispose(); }
+        });
     }
 
     @Override
@@ -374,9 +491,10 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         long elapsed = System.currentTimeMillis() - roundStartedAt;
         long remainingSec = Math.max(0, (ROUND_DURATION_MS - elapsed) / 1000);
         timeLabel.setText(remainingSec + "s left");
-        if (remainingSec <= 0 && countdownTimer != null)
+        if (remainingSec <= 0)
         {
-            countdownTimer.stop();
+            if (countdownTimer != null) countdownTimer.stop();
+            if (isPracticeMode) finishPracticeRound();
         }
     }
 }

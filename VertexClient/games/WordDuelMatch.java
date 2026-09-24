@@ -59,7 +59,8 @@ public class WordDuelMatch
         this.letters = drawLetters();
     }
 
-    private String drawLetters()
+    /** Public/static so WordDuelWindow's Practice mode (fully offline, no server) can draw its own letters the exact same way an online match does - it's already stateless, just promoted from a private instance method. */
+    public static String drawLetters()
     {
         Random random = new Random();
         StringBuilder sb = new StringBuilder();
@@ -97,7 +98,7 @@ public class WordDuelMatch
     {
         if (over || word == null) return;
         String candidate = word.trim().toLowerCase();
-        if (candidate.isEmpty() || !usesOnlyAvailableLetters(candidate) || !WordDuelWordList.isValidWord(candidate))
+        if (candidate.isEmpty() || !WordDuelWordList.canBeFormedFrom(candidate, letters) || !WordDuelWordList.isValidWord(candidate))
         {
             return;
         }
@@ -111,25 +112,6 @@ public class WordDuelMatch
 
         if (isA) bestWordA = candidate; else bestWordB = candidate;
         broadcastProgress();
-    }
-
-    private boolean usesOnlyAvailableLetters(String word)
-    {
-        int[] available = new int[26];
-        for (char c : letters.toLowerCase().toCharArray()) available[c - 'a']++;
-
-        int[] needed = new int[26];
-        for (char c : word.toCharArray())
-        {
-            if (c < 'a' || c > 'z') return false;
-            needed[c - 'a']++;
-        }
-
-        for (int i = 0; i < 26; i++)
-        {
-            if (needed[i] > available[i]) return false;
-        }
-        return true;
     }
 
     /** Only reveals each player's current best LENGTH to the other side while the round is live, not the word itself - actual words are only revealed once the round ends, keeping some suspense. */

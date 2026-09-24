@@ -144,4 +144,54 @@ public class WordDuelWordList
     {
         return word != null && WORDS.contains(word.toLowerCase());
     }
+
+    /** Every letter in `word` must be available in `letters`, respecting how many of each letter each contains (e.g. "eel" needs two Es) - the same rule WordDuelMatch.submitWord enforces server-side, factored out here so a bot (WordDuelBotStrategy) can reuse it while searching for a word to submit, not just validate one specific submission. */
+    public static boolean canBeFormedFrom(String word, String letters)
+    {
+        int[] available = new int[26];
+        for (char c : letters.toLowerCase().toCharArray())
+        {
+            if (c >= 'a' && c <= 'z') available[c - 'a']++;
+        }
+
+        int[] needed = new int[26];
+        for (char c : word.toLowerCase().toCharArray())
+        {
+            if (c < 'a' || c > 'z') return false;
+            needed[c - 'a']++;
+        }
+
+        for (int i = 0; i < 26; i++)
+        {
+            if (needed[i] > available[i]) return false;
+        }
+        return true;
+    }
+
+    /** The longest word in this list formable from `letters` (ties broken by whichever is encountered first) - null if nothing fits. WordDuelMatch only ever validates a human's specific submission and never needs this; it exists for WordDuelBotStrategy, which does need to search for one. */
+    public static String bestWordFrom(String letters)
+    {
+        String best = null;
+        for (String word : WORDS)
+        {
+            if (canBeFormedFrom(word, letters) && (best == null || word.length() > best.length()))
+            {
+                best = word;
+            }
+        }
+        return best;
+    }
+
+    /** The first word in this list (in whatever order the underlying HashSet iterates - unspecified, but stable within one run) that's formable from `letters` - null if nothing fits. Deliberately not "the best" - this is WordDuelBotStrategy's trivial, bulletproof fallback, distinct from bestWordFrom's real search. */
+    public static String anyWordFrom(String letters)
+    {
+        for (String word : WORDS)
+        {
+            if (canBeFormedFrom(word, letters))
+            {
+                return word;
+            }
+        }
+        return null;
+    }
 }
