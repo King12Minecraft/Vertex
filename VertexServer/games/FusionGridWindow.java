@@ -10,12 +10,15 @@ import theme.ThemeManager;
 import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
+import ui.GameModeCard;
+import ai.AiKernel;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -49,6 +52,13 @@ public class FusionGridWindow extends JFrame implements NetworkManager.PushListe
 
     private static final Color[] PLAYER_COLORS = { new Color(90, 170, 230), new Color(230, 110, 100) };
 
+    /** "Practice" mode's AI - registered once per JVM. Not ai.search-backed (see FusionGridBotStrategy's javadoc for why) but still a plain ai.BotStrategy, so it goes through AiKernel for the usual safety net. */
+    private static final String AI_GAME_ID = "fusion-grid-practice";
+    static
+    {
+        AiKernel.register(AI_GAME_ID, new FusionGridBotStrategy(), new FusionGridFallbackStrategy());
+    }
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
 
@@ -57,6 +67,8 @@ public class FusionGridWindow extends JFrame implements NetworkManager.PushListe
     private JLabel statusLabel;
     private JLabel nextTileLabel;
     private JLabel scoreLabel;
+
+    private boolean isPracticeMode = false;
 
     private String matchId;
     private int mySymbol = -1;
@@ -93,7 +105,7 @@ public class FusionGridWindow extends JFrame implements NetworkManager.PushListe
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 NetworkManager.removePushListener(FusionGridWindow.this);
             }
         });
@@ -104,7 +116,7 @@ public class FusionGridWindow extends JFrame implements NetworkManager.PushListe
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(420, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Fusion Grid");
         title.setFont(UITheme.FONT_HEADING);
@@ -112,29 +124,49 @@ public class FusionGridWindow extends JFrame implements NetworkManager.PushListe
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
 
-        JLabel subtitle = new JLabel("Ranked 1v1 - place tiles, merge your own, block theirs.");
+        JLabel subtitle = new JLabel("Place tiles, merge your own, block theirs.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -229,11 +261,128 @@ public class FusionGridWindow extends JFrame implements NetworkManager.PushListe
     private void placeTile(int index)
     {
         if (gameOver || !myTurn || cellOwners[index] != -1) return;
+
+        if (isPracticeMode)
+        {
+            makePracticeMove(index);
+            return;
+        }
+
         Message request = new Message();
         request.setType(MessageType.FUSIONGRID_PLACE_REQUEST);
         request.setMatchId(matchId);
         request.setCellIndex(index);
         NetworkManager.sendAsync(request);
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        mySymbol = 0;
+        opponentUsername = "CPU";
+        java.util.Arrays.fill(cellOwners, -1);
+        java.util.Arrays.fill(cellValues, 0);
+        scoreA = 0;
+        scoreB = 0;
+        gameOver = false;
+        nextTileValue = FusionGridMatch.randomTileValue();
+        myTurn = true;
+
+        cardLayout.show(cards, BOARD);
+        pack();
+        setLocationRelativeTo(null);
+
+        nextTileLabel.setText("Next tile: " + nextTileValue);
+        scoreLabel.setText("You: 0    Opponent: 0");
+        statusLabel.setText("Your move");
+        boardPanel.repaint();
+    }
+
+    private void makePracticeMove(int index)
+    {
+        cellValues[index] = nextTileValue;
+        cellOwners[index] = mySymbol;
+        int gained = FusionGridBotStrategy.simulateCascade(cellValues, cellOwners, index, mySymbol);
+        scoreA += gained;
+
+        if (isBoardFull())
+        {
+            gameOver = true;
+            handlePracticeGameOver();
+            return;
+        }
+
+        myTurn = false;
+        nextTileValue = FusionGridMatch.randomTileValue();
+        refreshPracticeBoard();
+        statusLabel.setText("CPU is thinking...");
+
+        Timer botTimer = new Timer(500, null);
+        botTimer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                makeBotMove();
+            }
+        });
+        botTimer.setRepeats(false);
+        botTimer.start();
+    }
+
+    private void makeBotMove()
+    {
+        FusionGridState state = new FusionGridState(cellValues.clone(), cellOwners.clone(), nextTileValue, 1);
+        int index = AiKernel.<FusionGridState, Integer>chooseMove(AI_GAME_ID, state);
+
+        cellValues[index] = nextTileValue;
+        cellOwners[index] = 1;
+        int gained = FusionGridBotStrategy.simulateCascade(cellValues, cellOwners, index, 1);
+        scoreB += gained;
+
+        if (isBoardFull())
+        {
+            gameOver = true;
+            handlePracticeGameOver();
+            return;
+        }
+
+        myTurn = true;
+        nextTileValue = FusionGridMatch.randomTileValue();
+        refreshPracticeBoard();
+        statusLabel.setText("Your move");
+    }
+
+    private boolean isBoardFull()
+    {
+        for (int owner : cellOwners)
+        {
+            if (owner == -1) return false;
+        }
+        return true;
+    }
+
+    private void refreshPracticeBoard()
+    {
+        nextTileLabel.setText("Next tile: " + nextTileValue);
+        scoreLabel.setText("You: " + scoreA + "    Opponent: " + scoreB);
+        boardPanel.repaint();
+    }
+
+    private void handlePracticeGameOver()
+    {
+        refreshPracticeBoard();
+        String text = scoreA == scoreB ? "It's a draw."
+            : scoreA > scoreB ? "You won with " + scoreA + " points!" : "You lost - " + scoreA + " points.";
+        statusLabel.setText(text);
+
+        String shareText = scoreA > scoreB ? "I won a Fusion Grid practice match on Vertex!" : null;
+        SnakeGameOverDialog.show(this, scoreA, text, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { FusionGridWindow.this.dispose(); }
+        });
     }
 
     @Override

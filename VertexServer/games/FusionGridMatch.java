@@ -69,8 +69,14 @@ public class FusionGridMatch
 
     private void drawNextTile()
     {
-        double roll = random.nextDouble();
-        currentTileValue = roll < 0.6 ? 2 : roll < 0.9 ? 4 : 8;
+        currentTileValue = randomTileValue();
+    }
+
+    /** Public/static so FusionGridWindow's Practice mode (fully offline, no server) can draw tiles with the exact same weighting an online match uses. */
+    public static int randomTileValue()
+    {
+        double roll = new java.util.Random().nextDouble();
+        return roll < 0.6 ? 2 : roll < 0.9 ? 4 : 8;
     }
 
     public void start()
