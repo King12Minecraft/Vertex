@@ -1,6 +1,7 @@
 package games;
 import net.MessageType;
 import ui.ThemedButton;
+import ui.GameModeCard;
 import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
@@ -9,18 +10,24 @@ import net.NetworkManager;
 import theme.GlitchEffectOverlay;
 import theme.SignatureOverlay;
 import net.Message;
+import ai.AiKernel;
+import ai.search.GenericBotStrategy;
+import ai.search.RandomMoveStrategy;
+import ai.search.PracticeMatch;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
@@ -47,12 +54,26 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
     private static final String SEARCHING = "SEARCHING";
     private static final String BOARD = "BOARD";
 
+    /** "Practice" mode's AI - registered once per JVM, same pattern the other ai.search-backed games use. */
+    private static final String AI_GAME_ID = "checkers-practice";
+    private static final CheckersGameModel AI_MODEL = new CheckersGameModel();
+    static
+    {
+        AiKernel.register(AI_GAME_ID,
+            new GenericBotStrategy<CheckersState, CheckersMove>(AI_MODEL, CheckersGameModel.BLACK, 5),
+            new RandomMoveStrategy<CheckersState, CheckersMove>(AI_MODEL, CheckersGameModel.BLACK));
+    }
+
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
 
     private JLabel searchingLabel;
     private BoardPanel boardPanel;
     private JLabel statusLabel;
+    private ThemedButton hintButton;
+
+    private boolean isPracticeMode = false;
+    private PracticeMatch<CheckersState, CheckersMove> practiceMatch;
 
     private String matchId;
     private String mySymbol;
@@ -86,7 +107,7 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
         {
             public void windowClosing(WindowEvent e)
             {
-                leaveMatch();
+                if (!isPracticeMode) leaveMatch();
                 NetworkManager.removePushListener(CheckersWindow.this);
             }
         });
@@ -97,7 +118,7 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(380, 240));
+        panel.setPreferredSize(new Dimension(460, 320));
 
         JLabel title = new JLabel("Checkers");
         title.setFont(UITheme.FONT_HEADING);
@@ -105,29 +126,49 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
 
-        JLabel subtitle = new JLabel("Ranked 1v1 - standard rules, mandatory captures.");
+        JLabel subtitle = new JLabel("Standard rules, mandatory captures.");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         subtitle.setBorder(new EmptyBorder(6, 0, 24, 0));
         panel.add(subtitle);
 
-        ThemedButton playOnline = new ThemedButton("Find Match", true);
-        playOnline.setAlignmentX(Component.LEFT_ALIGNMENT);
-        playOnline.setMaximumSize(new Dimension(2000, 42));
-        playOnline.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e)
+        JPanel tileRow = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        tileRow.setOpaque(false);
+        tileRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        tileRow.setMaximumSize(new Dimension(2000, 150));
+
+        tileRow.add(new GameModeCard("Play Online", "Ranked 1v1 against a real opponent.",
+            ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), new GameModeCard.ClickListener()
             {
-                cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
-                findMatch();
-            }
-        });
-        panel.add(playOnline);
+                public void onClick() { chooseMode(true); }
+            }));
+
+        tileRow.add(new GameModeCard("Practice Mode", "Against the computer, fully offline.",
+            ThemeManager.getColor(ThemeColor.TEXT_MUTED), new GameModeCard.ClickListener()
+            {
+                public void onClick() { chooseMode(false); }
+            }));
+
+        panel.add(tileRow);
 
         return panel;
+    }
+
+    private void chooseMode(boolean online)
+    {
+        isPracticeMode = !online;
+        if (online)
+        {
+            cardLayout.show(cards, SEARCHING);
+            pack();
+            setLocationRelativeTo(null);
+            findMatch();
+        }
+        else
+        {
+            startPracticeMatch();
+        }
     }
 
     private JPanel createSearchingScreen()
@@ -181,6 +222,19 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
         boardPanel = new BoardPanel();
         wrap.add(boardPanel, BorderLayout.CENTER);
 
+        hintButton = new ThemedButton("Hint", false);
+        hintButton.setPreferredSize(new Dimension(90, 34));
+        hintButton.setVisible(false);
+        hintButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { showHint(); }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottomRow.add(hintButton);
+        wrap.add(bottomRow, BorderLayout.SOUTH);
+
         return wrap;
     }
 
@@ -205,6 +259,12 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
 
     private void trySelectOrMove(int index)
     {
+        if (isPracticeMode)
+        {
+            tryPracticeSelectOrMove(index);
+            return;
+        }
+
         if (gameOver || !myTurn)
         {
             return;
@@ -236,6 +296,147 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
         request.setChessToSquare(index);
         NetworkManager.sendAsync(request);
         selectedIndex = null;
+        boardPanel.repaint();
+    }
+
+    // ==================== PRACTICE MODE (local, offline) ====================
+
+    private void startPracticeMatch()
+    {
+        mySymbol = "RED";
+        opponentUsername = "CPU";
+        selectedIndex = null;
+        practiceMatch = new PracticeMatch<CheckersState, CheckersMove>(AI_MODEL, CheckersGameModel.newBoard(), AI_GAME_ID,
+            CheckersGameModel.RED, CheckersGameModel.BLACK, CheckersGameModel.RED);
+        cardLayout.show(cards, BOARD);
+        pack();
+        setLocationRelativeTo(null);
+        hintButton.setVisible(true);
+        gameOver = false;
+        refreshPracticeBoard();
+        settleTurn();
+    }
+
+    private void tryPracticeSelectOrMove(int index)
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        boardPanel.hintMove = null;
+
+        boolean forcedContinuation = practiceMatch.getState().mustContinueFrom != null;
+        char piece = board[index];
+        boolean isMyPiece = piece != '.' && (Character.toLowerCase(piece) == 'r') == "RED".equals(mySymbol);
+
+        if (selectedIndex == null)
+        {
+            if (isMyPiece)
+            {
+                selectedIndex = index;
+                boardPanel.repaint();
+            }
+            return;
+        }
+
+        // Re-selecting a different one of my own pieces - only allowed when not mid a
+        // mandatory multi-jump (the real rule: that same piece must keep jumping).
+        if (isMyPiece && !forcedContinuation && index != selectedIndex.intValue())
+        {
+            selectedIndex = index;
+            boardPanel.repaint();
+            return;
+        }
+
+        boolean applied = practiceMatch.humanMove(new CheckersMove(selectedIndex, index));
+        if (!applied)
+        {
+            return;
+        }
+        selectedIndex = null;
+        refreshPracticeBoard();
+        settleTurn();
+    }
+
+    /** Dispatches after every practice-mode state change: reports the result if the match just ended, triggers the bot (chaining through repeated jumps on its own turn too) if it's now the bot's turn, or - if it's the human's turn but they're mid a mandatory multi-jump - auto-selects the continuing piece so they only need to click the next landing square. */
+    private void settleTurn()
+    {
+        if (practiceMatch.isOver())
+        {
+            handlePracticeGameOver();
+            return;
+        }
+
+        if (practiceMatch.isHumanTurn())
+        {
+            CheckersState state = practiceMatch.getState();
+            if (state.mustContinueFrom != null)
+            {
+                selectedIndex = state.mustContinueFrom;
+                statusLabel.setText("Keep jumping with the same piece!");
+            }
+            else
+            {
+                statusLabel.setText("Your move (RED)");
+            }
+            boardPanel.repaint();
+        }
+        else
+        {
+            triggerBotMove();
+        }
+    }
+
+    private void triggerBotMove()
+    {
+        statusLabel.setText("CPU is thinking...");
+        Timer botTimer = new Timer(500, null);
+        botTimer.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                ((Timer) e.getSource()).stop();
+                practiceMatch.botMove();
+                refreshPracticeBoard();
+                settleTurn();
+            }
+        });
+        botTimer.setRepeats(false);
+        botTimer.start();
+    }
+
+    private void showHint()
+    {
+        if (gameOver || !practiceMatch.isHumanTurn())
+        {
+            return;
+        }
+        boardPanel.hintMove = practiceMatch.suggestMove();
+        boardPanel.repaint();
+    }
+
+    private void handlePracticeGameOver()
+    {
+        gameOver = true;
+        hintButton.setVisible(false);
+        selectedIndex = null;
+        Integer winner = practiceMatch.getWinnerIndex();
+        String text = winner == null ? "It's a draw."
+            : winner == CheckersGameModel.RED ? "You won!" : "You lost.";
+        statusLabel.setText(text);
+
+        String shareText = winner != null && winner == CheckersGameModel.RED
+            ? "I won a Checkers practice match on Vertex!" : null;
+        SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
+        {
+            public void onPlayAgain() { startPracticeMatch(); }
+            public void onClose() { CheckersWindow.this.dispose(); }
+        });
+    }
+
+    private void refreshPracticeBoard()
+    {
+        board = practiceMatch.getState().board;
         boardPanel.repaint();
     }
 
@@ -337,6 +538,7 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
     private class BoardPanel extends JPanel
     {
         private static final int CELL = 56;
+        private CheckersMove hintMove;
 
         BoardPanel()
         {
@@ -374,6 +576,11 @@ public class CheckersWindow extends JFrame implements NetworkManager.PushListene
                     if (selectedIndex != null && selectedIndex == index)
                     {
                         g2.setColor(new Color(255, 230, 80, 120));
+                        g2.fillRect(col * CELL, row * CELL, CELL, CELL);
+                    }
+                    if (hintMove != null && (hintMove.from == index || hintMove.to == index))
+                    {
+                        g2.setColor(new Color(90, 220, 120, 130));
                         g2.fillRect(col * CELL, row * CELL, CELL, CELL);
                     }
 

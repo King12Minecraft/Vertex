@@ -144,11 +144,15 @@ Bot-AI-bearing games bridge into the `ai` package: `TicTacToePracticeMatch` +
 `RockPaperScissorsWindow` + `RockPaperScissorsBotStrategy`/
 `RockPaperScissorsFixedMoveStrategy`; `MazeChaseGame` +
 `MazeChaseChaserBotStrategy`/`MazeChaseChaserRandomStrategy`/`MazeChaseChaserState` —
-all register primary+fallback strategies with `ai.AiKernel`. `ConnectFourWindow` and
-`ReversiWindow` do too, but via the shared `ai/search` engine instead of bespoke
-per-game bot classes: each brings only a `GameModel` adapter
-(`ConnectFourGameModel`/`ReversiGameModel`) and registers `ai.search.GenericBotStrategy`
-+ `ai.search.RandomMoveStrategy` as its primary/fallback pair.
+all register primary+fallback strategies with `ai.AiKernel`. `ConnectFourWindow`,
+`ReversiWindow`, `DotsAndBoxesWindow`, and `CheckersWindow` do too, but via the shared
+`ai/search` engine instead of bespoke per-game bot classes: each brings only a
+`GameModel` adapter (`ConnectFourGameModel`/`ReversiGameModel`/
+`DotsAndBoxesGameModel`/`CheckersGameModel`) and registers `ai.search.GenericBotStrategy`
++ `ai.search.RandomMoveStrategy` as its primary/fallback pair. Checkers' `GameModel` is
+parameterized over a small custom `CheckersState`/`CheckersMove` pair (not a plain
+`char[]`/`Integer` like the others) since its mandatory-multi-jump rule needs a real
+extra field (which piece must keep capturing), not just a board.
 
 ## ai — four independent toolkits, unified by one philosophy
 
