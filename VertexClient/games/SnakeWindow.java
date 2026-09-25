@@ -4,16 +4,15 @@ import net.MessageType;
 import net.Message;
 import economy.GuestPlayTracker;
 import account.Session;
+import pages.MainMenu;
 import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import ui.ThemedButton;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -22,17 +21,31 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 /**
  * SnakeWindow
  * -----------
- * Standalone window for playing Snake: a mode-select screen (Classic
+ * Embedded in MainMenu's game-host slot: a mode-select screen (Classic
  * vs Wrap-Around), then the game itself. Launched from GamesPanel's
- * Play button once GamesPanel recognizes the "snake" gameId.
+ * Play button once GamesPanel recognizes the "snake" gameId - but also
+ * the one game reachable from OfflineHubWindow's pre-login "Play
+ * Offline" screen, where MainMenu doesn't exist yet. setReturnAction(...)
+ * lets a non-MainMenu host (OfflineHubWindow) supply its own "go back"
+ * callback instead of the default MainMenu.getInstance().returnToGames().
+ *
+ * Offline/single-player, so requestLeave() has nothing to confirm or
+ * tell the server - it just stops SnakePanel's timers (same cleanup
+ * startGame() already did when switching modes) and lets the host
+ * navigate away.
  */
-public class SnakeWindow extends JFrame
+public class SnakeWindow extends JPanel implements EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String PLAY = "PLAY";
@@ -40,30 +53,51 @@ public class SnakeWindow extends JFrame
     private final CardLayout cardLayout = new CardLayout();
     private final JPanel cards = new JPanel(cardLayout);
     private SnakePanel snakePanel;
+    private JPanel playWrap;
+    private Runnable returnAction;
 
     public SnakeWindow()
     {
-        super("Vertex - Snake");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelect(), MODE_SELECT);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+    }
+
+    /** Overrides the default MainMenu.getInstance().returnToGames() "go back" action - used by OfflineHubWindow, which hosts this panel before any MainMenu exists. */
+    public void setReturnAction(Runnable returnAction)
+    {
+        this.returnAction = returnAction;
+    }
+
+    private void returnToHost()
+    {
+        if (returnAction != null) { returnAction.run(); }
+        else { MainMenu.getInstance().returnToGames(); }
+    }
+
+    @Override
+    public boolean requestLeave()
+    {
+        if (snakePanel != null)
+        {
+            snakePanel.stopTimer();
+        }
+        return true;
     }
 
     private JPanel createModeSelect()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(420, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         final JLabel title = new JLabel("Snake");
         title.setFont(UITheme.FONT_HEADING);
@@ -91,7 +125,7 @@ public class SnakeWindow extends JFrame
             }
         });
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel modeButton(String name, String description, final SnakeGame.Mode mode)
@@ -146,7 +180,7 @@ public class SnakeWindow extends JFrame
         if (snakePanel != null)
         {
             snakePanel.stopTimer();
-            cards.remove(snakePanel);
+            cards.remove(playWrap);
         }
 
         Runnable onGameOver = new Runnable()
@@ -158,7 +192,7 @@ public class SnakeWindow extends JFrame
                 SnakeGameOverDialog.show(snakePanel, game.getScore(), null, shareText, new SnakeGameOverDialog.Choice()
                 {
                     public void onPlayAgain() { startGame(mode); }
-                    public void onClose() { SnakeWindow.this.dispose(); }
+                    public void onClose() { returnToHost(); }
                 });
             }
         };
@@ -166,10 +200,30 @@ public class SnakeWindow extends JFrame
         snakePanel = new SnakePanel(game, onGameOver);
         game.start();
 
-        cards.add(snakePanel, PLAY);
+        playWrap = new JPanel(new BorderLayout());
+        playWrap.setOpaque(false);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(snakePanel, new GridBagConstraints());
+        playWrap.add(boardCenterer, BorderLayout.CENTER);
+
+        ThemedButton leaveButton = new ThemedButton("Leave", false);
+        leaveButton.setPreferredSize(new Dimension(90, 34));
+        leaveButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { returnToHost(); }
+            }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(8, 0, 0, 0));
+        bottomRow.add(leaveButton);
+        playWrap.add(bottomRow, BorderLayout.SOUTH);
+
+        cards.add(playWrap, PLAY);
         cardLayout.show(cards, PLAY);
-        pack();
-        setLocationRelativeTo(null);
         snakePanel.requestFocusInWindow();
         snakePanel.startTimer();
     }

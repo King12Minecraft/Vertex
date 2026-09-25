@@ -91,12 +91,26 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   Reversi/Connect Four/Signal Grid/Dots and Boxes, no new surprises. All 6 games with
   the shared `ai/search` engine are now embedded, alongside Chess.
 
+- **Snake converted to the embedded pattern** — eighth game done this way, and the
+  first offline/single-player game (no matchmaking, no network match to confirm
+  leaving). Found and fixed a real regression while converting it: Snake is also the
+  one game reachable from `OfflineHubWindow`'s pre-login "Play Offline" screen, where
+  `MainMenu` doesn't exist yet - hardcoding `MainMenu.getInstance().returnToGames()`
+  the way every other converted game does would have thrown a `NullPointerException`
+  the moment a logged-out guest tried to leave a Snake game. Fixed with a
+  `setReturnAction(Runnable)` escape hatch: defaults to the usual
+  `MainMenu.getInstance().returnToGames()` when unset, but `OfflineHubWindow` now
+  supplies its own small `CardLayout`-based "go back to the offline hub" callback
+  instead, since it's a standalone `JFrame` with no `MainMenu` shell to hand off to.
+
 ## 🔧 In Progress
 
-- **Rolling embedded games out past the `ai/search` games** — the pattern is proven
-  seven times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots and
-  Boxes, Checkers); the other ~40 games still open their own `JFrame` and need the
-  same conversion, one at a time.
+- **Rolling embedded games out past the `ai/search` games and Snake** — the pattern is
+  proven eight times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
+  and Boxes, Checkers, Snake); the other ~39 games still open their own `JFrame` and
+  need the same conversion, one at a time. Any future offline-capable game reachable
+  from `OfflineHubWindow` needs the same `setReturnAction`-style treatment Snake got,
+  not just the standard MainMenu-only conversion.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style

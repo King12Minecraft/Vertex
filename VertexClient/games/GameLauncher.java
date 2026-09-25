@@ -52,8 +52,7 @@ public class GameLauncher
         {
             if ("snake".equals(game.getGameId()))
             {
-                SnakeWindow window = new SnakeWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new SnakeWindow());
             }
             else if ("tictactoe-online".equals(game.getGameId()))
             {

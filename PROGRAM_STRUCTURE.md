@@ -135,11 +135,14 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
   gate since there's nothing to preview yet. Chess, Reversi, Connect Four,
-  Signal Grid, Tic-Tac-Toe, Dots and Boxes, and Checkers's cases are the
-  exceptions to `new XxxWindow().setVisible(true)` so far - they call
+  Signal Grid, Tic-Tac-Toe, Dots and Boxes, Checkers, and Snake's cases are
+  the exceptions to `new XxxWindow().setVisible(true)` so far - they call
   `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
   conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`); every
   other game still opens its own window until it's converted the same way.
+  Snake is also reachable pre-login from `pages/OfflineHubWindow.java`
+  ("Play Offline" on the login screen), which has no `MainMenu` to hand off
+  to - see `SnakeWindow.setReturnAction(...)` below.
 - **`EmbeddedGamePanel.java`** - implemented by a game panel embedded in
   `MainMenu`'s game-host slot rather than opened as its own window (`ChessWindow` is
   the first). One method, `requestLeave()`: `MainMenu` calls it before navigating away
@@ -164,7 +167,17 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   top-aligns - so the board stayed pinned to the top with dead space below
   once embedded. Same `GridBagLayout` fix applies; the lesson generalizes to
   any pre-existing "centering" wrapper, not just ones that are missing
-  entirely.
+  entirely. Snake (eighth game converted, and the first offline/single-
+  player one) turned up a different kind of gotcha: it's also reachable
+  pre-login from `pages/OfflineHubWindow.java`'s "Play Offline" screen,
+  which is its own standalone `JFrame` with no `MainMenu` to hand off to -
+  hardcoding `MainMenu.getInstance().returnToGames()` the way every other
+  converted game does would `NullPointerException` for a logged-out guest.
+  `SnakeWindow.setReturnAction(Runnable)` fixes this: unset, it falls back to
+  the usual `MainMenu.getInstance().returnToGames()`; `OfflineHubWindow`
+  supplies its own small `CardLayout` "go back to the hub" callback instead.
+  Any future offline-capable game added to `OfflineHubWindow` needs the same
+  treatment.
 - **`GameMetadata.java`** — presentation-only (difficulty, tags) for game detail
   dialogs; has no effect on matchmaking or gameplay.
 - **`MatchManager.java`** — the original reference matchmaking manager (for

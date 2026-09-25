@@ -18,6 +18,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridLayout;
@@ -40,6 +41,12 @@ import java.awt.event.MouseEvent;
  */
 public class OfflineHubWindow extends JFrame
 {
+    private static final String HUB = "HUB";
+    private static final String GAME = "GAME";
+
+    private final CardLayout cardLayout = new CardLayout();
+    private final JPanel cards = new JPanel(cardLayout);
+
     public OfflineHubWindow()
     {
         super("Vertex - Offline Mode");
@@ -76,7 +83,9 @@ public class OfflineHubWindow extends JFrame
         grid.add(buildOfflineCard("snake", "Snake", "Classic snake, Classic and Wrap-Around modes."));
         content.add(grid);
 
-        root.add(content, BorderLayout.CENTER);
+        cards.add(content, HUB);
+        root.add(cards, BorderLayout.CENTER);
+        cardLayout.show(cards, HUB);
         setContentPane(root);
 
         ThemeManager.addListener(new Runnable()
@@ -139,8 +148,17 @@ public class OfflineHubWindow extends JFrame
     {
         if ("snake".equals(gameId))
         {
-            SnakeWindow window = new SnakeWindow();
-            window.setVisible(true);
+            final SnakeWindow game = new SnakeWindow();
+            game.setReturnAction(new Runnable()
+            {
+                public void run()
+                {
+                    cards.remove(game);
+                    cardLayout.show(cards, HUB);
+                }
+            });
+            cards.add(game, GAME);
+            cardLayout.show(cards, GAME);
         }
         // Future offline-capable games get their launch case added here.
     }
