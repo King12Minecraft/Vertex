@@ -168,20 +168,26 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   recipe throughout, including the round screen (letters + text field + Submit) which
   never had a Leave affordance before and now gets one alongside the rest of its
   content, same as the other single-screen games without a bare "board" concept.
+- **Dice Duel converted to the embedded pattern** — 36 games embedded total now. Same
+  recipe as Reversi/Word Duel: unconditional `requestLeave()`, `GridBagLayout`
+  centering on all three screens (the board screen's outer wrapper previously had its
+  own fixed `setPreferredSize(420, 420)`, an unusual variant of the same stretch-not-
+  center bug - removed now that the actual content column is centered directly), and
+  a new "Leave" button on the board screen.
 
 ## 🔧 In Progress
 
 - **Rolling embedded games out past every offline/single-player game** — the pattern
-  is proven 35 times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
+  is proven 36 times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
   and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole,
   Match Three, Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping
   Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy Bird,
   Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble Shooter,
-  Battleship, Memory Match, Word Duel). Every offline/single-player game in the whole
-  catalog is now embedded, plus both spectate/tournament-capable games - the other
-  ~12 games left are all online-multiplayer (matchmaking, some with real-time tick
-  loops) or bot-fill games, and need the same conversion one at a time. Any future
-  offline-capable game reachable from `OfflineHubWindow` needs the same
+  Battleship, Memory Match, Word Duel, Dice Duel). Every offline/single-player game in
+  the whole catalog is now embedded, plus both spectate/tournament-capable games - the
+  other ~11 games left are all online-multiplayer (matchmaking, some with real-time
+  tick loops) or bot-fill games, and need the same conversion one at a time. Any
+  future offline-capable game reachable from `OfflineHubWindow` needs the same
   `setReturnAction`-style treatment Snake got, not just the standard MainMenu-only
   conversion. **Standing check for every remaining conversion**: grep for every
   external construction site of that game's window (not just `GameLauncher.java`)

@@ -218,8 +218,7 @@ public class GameLauncher
             }
             else if ("dice-duel".equals(game.getGameId()))
             {
-                DiceDuelWindow window = new DiceDuelWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new DiceDuelWindow());
             }
             else if ("snake-arena".equals(game.getGameId()))
             {
