@@ -165,8 +165,7 @@ public class SpectateDialog
                         dialog.dispose();
                         if ("chess".equals(gameId))
                         {
-                            ChessWindow window = new ChessWindow(matchId);
-                            window.setVisible(true);
+                            pages.MainMenu.getInstance().showGame(new ChessWindow(matchId));
                         }
                         else if ("rock-paper-scissors".equals(gameId))
                         {
