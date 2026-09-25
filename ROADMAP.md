@@ -180,6 +180,14 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   screens, a new "Leave" button on the round screen alongside the sentence/typing
   field/progress bars (it never had one before, same as Word Duel). No new wrinkles;
   `GameLauncher.java`'s `typing-duel` case was its only external construction site.
+- **Racing converted to the embedded pattern** — 38 games embedded total now, and the
+  first online-multiplayer game converted. Same recipe: unconditional
+  `requestLeave()` (leaves the queue if mid-search, otherwise a no-op), all four
+  screens (mode-select, searching, waiting, and the race track itself) wrapped in
+  `GridBagLayout` centerers. The race screen was a new variant: `RacingPanel` (a
+  fixed-size custom-painted canvas) is added straight to the `CardLayout`, rebuilt on
+  every restart via `startRace(...)`, so the centering wrapper is rebuilt alongside
+  it each time rather than created once in the constructor.
 
 ## 🔧 In Progress
 

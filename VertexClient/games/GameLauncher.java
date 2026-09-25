@@ -60,8 +60,7 @@ public class GameLauncher
             }
             else if ("racing".equals(game.getGameId()))
             {
-                RacingWindow window = new RacingWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new RacingWindow());
             }
             else if ("puzzle-quest".equals(game.getGameId()))
             {
