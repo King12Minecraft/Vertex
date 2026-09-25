@@ -134,7 +134,19 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet.
+  gate since there's nothing to preview yet. Chess's case is the one exception to
+  `new XxxWindow().setVisible(true)` - it calls `MainMenu.getInstance().showGame(...)`
+  instead, the embedded-games proof-of-concept (see `EmbeddedGamePanel` below and
+  `pages/MainMenu.java`); every other game still opens its own window until it's
+  converted the same way.
+- **`EmbeddedGamePanel.java`** - implemented by a game panel embedded in
+  `MainMenu`'s game-host slot rather than opened as its own window (`ChessWindow` is
+  the first). One method, `requestLeave()`: `MainMenu` calls it before navigating away
+  from a hosted game (e.g. a Sidebar click mid-match) - the embedded replacement for
+  the old per-window `windowClosing` confirmation, since there's no window-close event
+  once a game isn't its own window. Return `false` to intercept (show a confirm
+  dialog, then call `MainMenu.getInstance().returnToGames()` yourself if confirmed)
+  rather than letting navigation proceed silently mid-match.
 - **`GameMetadata.java`** — presentation-only (difficulty, tags) for game detail
   dialogs; has no effect on matchmaking or gameplay.
 - **`MatchManager.java`** — the original reference matchmaking manager (for
@@ -371,7 +383,17 @@ every such panel's javadoc repeats that this is UI convenience only.
 (north) + a `CardLayout` content area (center) holding one panel per
 `pages/Pages.java` key. `MainMenu` implements `net/NavigationListener` so `Sidebar`
 reports nav clicks without knowing how paging works; page switches crossfade (snapshot
-outgoing page, swap underneath, fade out over ~220ms) instead of snapping.
+outgoing page, swap underneath, fade out over ~220ms) instead of snapping. One of
+those keys, `Pages.GAME_HOST`, is special: it's the single slot an embedded game
+occupies (see `games/EmbeddedGamePanel.java`), filled/cleared via
+`MainMenu.showGame(JComponent)`/`returnToGames()` rather than being a fixed panel
+registered up front like every other page. `onNavigate(...)` (the guard-checked path
+`Sidebar` clicks go through) and the private `switchToPage(...)` (the actual card
+swap, used internally by `showGame`/`returnToGames` too) are deliberately separate:
+`onNavigate` asks the currently-hosted game's `requestLeave()` before leaving
+`GAME_HOST`, but `showGame`/`returnToGames` skip that ask since by the time either
+runs, leaving has already been decided one way or another - going through
+`onNavigate` there would ask a second time.
 `Sidebar.java` gates its Moderation entry via `PermissionManager.isAtLeastModerator(...)`
 (a separate Admin entry was removed as redundant, since Role is hierarchical).
 `TopBar.java` holds page title, live online-count, notification bell, account menu.

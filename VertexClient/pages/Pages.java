@@ -12,6 +12,8 @@ public class Pages
     public static final String HOME       = "HOME";
     public static final String GAMES      = "GAMES";
     public static final String ALL_GAMES  = "ALL_GAMES";
+    /** The single slot an embedded game (see games.EmbeddedGamePanel) occupies while being played - MainMenu.showGame(...)/returnToGames() swap its one child in and out. */
+    public static final String GAME_HOST  = "GAME_HOST";
     public static final String GAME_SUGGESTIONS = "GAME_SUGGESTIONS";
     public static final String QUESTS      = "QUESTS";
     public static final String LEADERBOARDS = "LEADERBOARDS";

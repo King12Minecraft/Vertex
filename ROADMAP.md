@@ -39,19 +39,32 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
 - **Moderator chat** — a live, server-role-gated staff-only channel.
 - **Party Mode** ("funny effect mode") — an off-by-default toggle for a cosmetic
   cursor trail + confetti-on-win, purely decorative.
+- **Embedded games proof-of-concept (Chess)** — every game used to open as its own
+  separate `JFrame` window; Chess now embeds inside the main launcher window instead,
+  via a new `Pages.GAME_HOST` slot in `MainMenu`'s existing `CardLayout`
+  (`MainMenu.showGame(...)`/`returnToGames()`), with `games.EmbeddedGamePanel` as the
+  replacement for the old windowClosing confirmation (MainMenu calls
+  `requestLeave()` before navigating away mid-match, e.g. a Sidebar click). Verified
+  visually under Xvfb: the actual board fills the available space (BorderLayout's
+  CENTER region stretches it automatically, no extra sizing code needed) and the
+  mode-select screen was re-centered in its own available space rather than left
+  pinned in the top-left corner with dead space around it. Also fixed a real ordering
+  bug caught during this conversion: the old code called `dispose()` unconditionally
+  after a match-over dialog, even when a rematch had just swapped in a brand new
+  window — the embedded version would have made that swap-then-immediately-undo
+  visible as a jarring flicker back to the games list, since both actions now touch
+  the same single game-host slot; fixed by only calling `returnToGames()` when no
+  rematch was requested.
 
 ## 🔧 In Progress
 
-- **Embedded games proof-of-concept (Chess)** — every game currently opens as its own
-  separate `JFrame` window. Converting Chess to embed inside the main launcher window
-  instead (a new "game host" page in `MainMenu`'s existing `CardLayout`), to prove the
-  pattern before rolling it out to the rest. This is the single biggest item in the
-  backlog — bigger than the server cleanup was.
-  - Also wanted alongside this: the rules/detail page should fill the screen instead
-    of being a small popup, and a game should be able to have chat "popped out"
-    alongside it while playing (with some games, like a Gartic-Phone-style drawing
-    game, needing chat *restricted* rather than open, since free chat would let
-    players just say the answer out loud).
+- **Rolling embedded games out past Chess** — the pattern is proven; the other ~46
+  games still open their own `JFrame` and need the same conversion, one at a time.
+- Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
+  screen instead of being a small popup, and a game should be able to have chat
+  "popped out" alongside it while playing (with some games, like a Gartic-Phone-style
+  drawing game, needing chat *restricted* rather than open, since free chat would let
+  players just say the answer out loud).
 
 ## 📋 Planned — infrastructure & shared packages
 

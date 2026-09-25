@@ -1,4 +1,5 @@
 package games;
+import pages.MainMenu;
 import ui.GameHubDialog;
 
 import javax.swing.JOptionPane;
@@ -116,8 +117,11 @@ public class GameLauncher
             }
             else if ("chess".equals(game.getGameId()))
             {
-                ChessWindow window = new ChessWindow();
-                window.setVisible(true);
+                // The embedded-games proof-of-concept: Chess joins MainMenu's
+                // game-host slot instead of opening its own JFrame. Every
+                // other game here still opens its own window until it's
+                // converted the same way.
+                MainMenu.getInstance().showGame(new ChessWindow());
             }
             else if ("battleship".equals(game.getGameId()))
             {

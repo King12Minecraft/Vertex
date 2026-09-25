@@ -4,6 +4,7 @@ import games.RematchOfferDialog;
 import social.GameInviteDialog;
 import ui.GameHubDialog;
 import ui.CursorTrailOverlay;
+import games.EmbeddedGamePanel;
 import net.MessageType;
 import net.NetworkManager;
 import account.PermissionManager;
@@ -29,6 +30,7 @@ import javax.swing.Timer;
 import java.awt.AlphaComposite;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -90,6 +92,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     private final JPanel contentPanel;
     private final JLayeredPane transitionPane;
     private final GamesPanel gamesPanel;
+    private JPanel gameHostContainer;
     private String currentPageKey = Pages.HOME;
 
     public MainMenu()
@@ -185,6 +188,9 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         contentPanel.add(new ShopPanel(), Pages.SHOP);
         contentPanel.add(new ProfilePanel(), Pages.PROFILE);
         contentPanel.add(new SettingsPanel(), Pages.SETTINGS);
+        gameHostContainer = new JPanel(new BorderLayout());
+        gameHostContainer.setOpaque(false);
+        contentPanel.add(gameHostContainer, Pages.GAME_HOST);
 
         Account current = Session.getCurrentAccount();
         if (PermissionManager.isAtLeastModerator(current))
@@ -299,6 +305,26 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
             return;
         }
 
+        if (Pages.GAME_HOST.equals(currentPageKey) && !Pages.GAME_HOST.equals(pageKey))
+        {
+            Component hosted = gameHostContainer.getComponentCount() > 0 ? gameHostContainer.getComponent(0) : null;
+            if (hosted instanceof EmbeddedGamePanel && !((EmbeddedGamePanel) hosted).requestLeave())
+            {
+                // The game itself is handling this (e.g. showing its own
+                // "leave match?" confirm dialog) - don't navigate away yet.
+                // If the player does confirm, the game calls
+                // returnToGames() itself, which bypasses this guard since
+                // it's already been asked and answered once.
+                return;
+            }
+        }
+
+        switchToPage(pageKey);
+    }
+
+    /** The actual page swap, without the leave-confirmation guard - onNavigate goes through that guard first; showGame(...)/returnToGames() call this directly since by the time either runs, leaving has already been decided (there was nothing at stake, or the game itself already asked and got a yes). */
+    private void switchToPage(String pageKey)
+    {
         BufferedImage snapshot = captureSnapshot();
 
         // ALL_GAMES is a virtual entry - it shows the same GamesPanel instance
@@ -325,6 +351,23 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         {
             runFadeTransition(snapshot);
         }
+    }
+
+    /** Embeds the given game panel in the single game-host slot and navigates to it - the replacement for a game opening its own separate JFrame. Called by GameLauncher.openGame(...) for games that have been converted to EmbeddedGamePanel (Chess is the first; most games still open their own window until they're converted too). */
+    public void showGame(javax.swing.JComponent gamePanel)
+    {
+        gameHostContainer.removeAll();
+        gameHostContainer.add(gamePanel, BorderLayout.CENTER);
+        gameHostContainer.revalidate();
+        switchToPage(Pages.GAME_HOST);
+    }
+
+    /** Clears the game-host slot and returns to the Games page - an embedded game calls this itself once it's confirmed leaving (see EmbeddedGamePanel.requestLeave()), the same way the old per-window games called dispose(). Bypasses onNavigate's guard on purpose - see switchToPage's own note. */
+    public void returnToGames()
+    {
+        gameHostContainer.removeAll();
+        gameHostContainer.revalidate();
+        switchToPage(Pages.GAMES);
     }
 
     /** Screenshots the currently-visible page content before swapping - null if not laid out yet (e.g. very first frame). */

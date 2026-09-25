@@ -1,11 +1,10 @@
 package games;
 import economy.GuestPlayTracker;
+import pages.MainMenu;
 import ui.GameHubDialog;
 import ui.GameModeCard;
 import economy.PlayerColorRegistry;
 import account.Session;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
 import net.NetworkManager;
 import net.MessageType;
 import ui.ThemedButton;
@@ -19,10 +18,8 @@ import ai.search.GenericBotStrategy;
 import ai.search.RandomMoveStrategy;
 import ai.search.PracticeMatch;
 
-import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -34,11 +31,11 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * ChessWindow
@@ -51,8 +48,17 @@ import java.awt.event.WindowEvent;
  * mode round-trips that through the server, practice mode validates it
  * locally via ChessGameModel/PracticeMatch. Pieces render as Unicode
  * chess glyphs directly in the cell buttons - no image assets needed.
+ *
+ * Embedded, not its own window: the proof-of-concept for converting
+ * every game away from opening a separate JFrame, to instead embed in
+ * MainMenu's game-host slot (see MainMenu.showGame(...)) and fill
+ * whatever space the launcher gives it. EmbeddedGamePanel.requestLeave()
+ * is the replacement for the old windowClosing confirmation - there's
+ * no window-close event once this isn't a window, so MainMenu calls it
+ * before navigating away instead (e.g. a Sidebar click mid-match), and
+ * the in-panel "Leave" button calls the same method directly.
  */
-public class ChessWindow extends JFrame implements NetworkManager.PushListener
+public class ChessWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String WHITE_PIECES = "PNBRQK";
     private static final String BLACK_PIECES = "pnbrqk";
@@ -108,12 +114,10 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
 
     private ChessWindow(String spectateMatchId, String rematchWaitOpponent)
     {
-        super(spectateMatchId != null ? "Vertex - Chess (Spectating)" : "Vertex - Chess");
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
         isSpectator = spectateMatchId != null;
         boolean isRematchWait = rematchWaitOpponent != null;
+
+        setLayout(new BorderLayout());
 
         RoundedPanel outer = new RoundedPanel(ThemeColor.BG_APP, 0);
         outer.setLayout(new BorderLayout());
@@ -125,11 +129,7 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         }
         outer.add(cards, BorderLayout.CENTER);
 
-        setContentPane(outer);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+        add(outer, BorderLayout.CENTER);
 
         NetworkManager.addPushListener(this);
 
@@ -154,29 +154,27 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         {
             cardLayout.show(cards, MODE_SELECT);
         }
+    }
 
-        addWindowListener(new WindowAdapter()
+    /** The embedded replacement for the old windowClosing confirmation - see EmbeddedGamePanel's own javadoc for when MainMenu calls this, and why. */
+    public boolean requestLeave()
+    {
+        if (matchId != null && !isSpectator)
         {
-            public void windowClosing(WindowEvent e)
+            int choice = javax.swing.JOptionPane.showConfirmDialog(this,
+                "Leave this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
+                "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
+            if (choice != javax.swing.JOptionPane.YES_OPTION)
             {
-                if (matchId != null && !isSpectator)
-                {
-                    int choice = javax.swing.JOptionPane.showConfirmDialog(ChessWindow.this,
-                        "Close this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
-                        "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
-                    if (choice != javax.swing.JOptionPane.YES_OPTION)
-                    {
-                        return;
-                    }
-                }
-                if (matchId == null && !isPracticeMode)
-                {
-                    leaveQueue();
-                }
-                NetworkManager.removePushListener(ChessWindow.this);
-                dispose();
+                return false;
             }
-        });
+        }
+        if (matchId == null && !isPracticeMode)
+        {
+            leaveQueue();
+        }
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     /** The board+status+controls screen, shared by online play, spectating, rematch-wait, and Practice mode - only the mode-select screen (added separately, only for the "normal" non-spectate/non-rematch path) decides which of those this window ends up doing. */
@@ -214,11 +212,28 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         }
         root.add(board, BorderLayout.CENTER);
 
+        JPanel controls = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 8));
+        controls.setOpaque(false);
+
+        // Always present, in every mode (spectating/rematch-wait included) -
+        // the embedded replacement for the window's old OS close button,
+        // which no longer exists now that this isn't its own window.
+        ThemedButton leaveButton = new ThemedButton("Leave", false);
+        leaveButton.setPreferredSize(new Dimension(90, 32));
+        leaveButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave())
+                {
+                    MainMenu.getInstance().returnToGames();
+                }
+            }
+        });
+        controls.add(leaveButton);
+
         if (!isSpectator && !isRematchWait)
         {
-            JPanel controls = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 10, 8));
-            controls.setOpaque(false);
-
             offerDrawButton = new ThemedButton("Offer Draw", false);
             offerDrawButton.setPreferredSize(new Dimension(110, 32));
             offerDrawButton.addActionListener(new ActionListener()
@@ -261,19 +276,24 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
                 public void actionPerformed(ActionEvent e) { showHint(); }
             });
             controls.add(hintButton);
-
-            root.add(controls, BorderLayout.SOUTH);
         }
+
+        root.add(controls, BorderLayout.SOUTH);
 
         return root;
     }
 
+    /** Embedded, this fills whatever space MainMenu's game-host slot gives it - much bigger than the old fixed-size popup window - so the actual mode-select content is centered within that space via an outer GridBagLayout wrapper, rather than pinned to the top-left corner with dead space around it. */
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Chess");
         title.setFont(UITheme.FONT_HEADING);
@@ -310,7 +330,7 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
             }));
 
         panel.add(tileRow);
-        return panel;
+        return wrapper;
     }
 
     // ==================== PRACTICE MODE (local, offline) ====================
@@ -329,8 +349,6 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         hintButton.setVisible(true);
 
         cardLayout.show(cards, MAIN);
-        pack();
-        setLocationRelativeTo(null);
         myTurn = true;
         statusLabel.setText("You are WHITE vs CPU - your move");
         refreshPracticeBoard();
@@ -438,7 +456,7 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
         {
             public void onPlayAgain() { startPracticeMatch(); }
-            public void onClose() { ChessWindow.this.dispose(); }
+            public void onClose() { MainMenu.getInstance().returnToGames(); }
         });
     }
 
@@ -634,7 +652,7 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         else if (message.getType() == MessageType.SPECTATE_ENDED)
         {
             GameHubDialog.show(this, "Chess", "The match you were watching has ended.");
-            dispose();
+            MainMenu.getInstance().returnToGames();
         }
         else if (message.getType() == MessageType.CHESS_DRAW_OFFERED)
         {
@@ -684,11 +702,23 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
 
             recordPlayed();
             final String finalOpponent = opponentUsername;
+            final boolean[] rematchRequested = { false };
             GameHubDialog.showWithAction(this, "Chess", text, "Rematch", new Runnable()
             {
-                public void run() { requestRematch(finalOpponent); }
+                public void run()
+                {
+                    rematchRequested[0] = true;
+                    requestRematch(finalOpponent);
+                }
             });
-            dispose();
+            // requestRematch (if it ran) already swapped the game-host slot to
+            // the new rematch-wait panel via MainMenu.showGame(...) - calling
+            // returnToGames() here too would immediately undo that, so only
+            // do it when the dialog was just dismissed with no rematch.
+            if (!rematchRequested[0])
+            {
+                MainMenu.getInstance().returnToGames();
+            }
         }
     }
 
@@ -700,8 +730,8 @@ public class ChessWindow extends JFrame implements NetworkManager.PushListener
         request.setGameId("chess");
         NetworkManager.sendAsync(request);
 
-        ChessWindow window = ChessWindow.forRematchWait(opponent);
-        window.setVisible(true);
+        ChessWindow panel = ChessWindow.forRematchWait(opponent);
+        MainMenu.getInstance().showGame(panel);
     }
 
     private void recordPlayed()
