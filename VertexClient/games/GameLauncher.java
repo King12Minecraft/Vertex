@@ -274,8 +274,7 @@ public class GameLauncher
             }
             else if ("signal-grid".equals(game.getGameId()))
             {
-                SignalGridWindow window = new SignalGridWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new SignalGridWindow());
             }
             else if ("card-rush".equals(game.getGameId()))
             {

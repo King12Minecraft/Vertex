@@ -67,12 +67,16 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
 - **Connect Four converted to the embedded pattern** — third game done this way, same
   shell shape as Reversi (no existing leave confirmation, fixed-pixel board needing
   the same centering fix), converted with no new surprises.
+- **Signal Grid converted to the embedded pattern** — fourth game done this way; its
+  board screen has an extra wrinkle (board + a row of 4 direction-fire buttons stacked
+  together, not just a bare board), handled by wrapping that whole stacked group in one
+  `GridBagLayout` centering wrapper rather than centering the board alone.
 
 ## 🔧 In Progress
 
-- **Rolling embedded games out past Chess, Reversi, and Connect Four** — the pattern is
-  proven three times now; the other ~44 games still open their own `JFrame` and need
-  the same conversion, one at a time.
+- **Rolling embedded games out past Chess, Reversi, Connect Four, and Signal Grid** —
+  the pattern is proven four times now; the other ~43 games still open their own
+  `JFrame` and need the same conversion, one at a time.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style

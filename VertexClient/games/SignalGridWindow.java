@@ -3,8 +3,7 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
@@ -17,7 +16,6 @@ import ai.search.RandomMoveStrategy;
 import ai.search.PracticeMatch;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -31,12 +29,12 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * SignalGridWindow
@@ -47,8 +45,13 @@ import java.awt.event.WindowEvent;
  * move). SignalGridMatch is the sole authority on what the signal
  * actually hits; this window just sends the placement+direction and
  * redraws whatever board state comes back.
+ *
+ * Embedded in MainMenu's game-host slot rather than its own window -
+ * see ChessWindow/ReversiWindow's javadoc for the pattern. Never
+ * confirmed before leaving mid-match even as its own window, so
+ * requestLeave() here stays unconditional.
  */
-public class SignalGridWindow extends JFrame implements NetworkManager.PushListener
+public class SignalGridWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -87,41 +90,37 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
 
     public SignalGridWindow()
     {
-        super("Vertex - Signal Grid");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
         java.util.Arrays.fill(owners, -1);
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (!isPracticeMode) leaveMatch();
-                NetworkManager.removePushListener(SignalGridWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (!isPracticeMode) leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Signal Grid");
         title.setFont(UITheme.FONT_HEADING);
@@ -155,7 +154,7 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -164,8 +163,6 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -176,10 +173,14 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Signal Grid");
         title.setFont(UITheme.FONT_HEADING);
@@ -202,12 +203,12 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createBoardScreen()
@@ -241,7 +242,20 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         directionRow.add(directionButton("RIGHT", "\u2192"));
         center.add(directionRow);
 
-        wrap.add(center, BorderLayout.CENTER);
+        JPanel centerer = new JPanel(new GridBagLayout());
+        centerer.setOpaque(false);
+        centerer.add(center, new GridBagConstraints());
+        wrap.add(centerer, BorderLayout.CENTER);
+
+        ThemedButton leaveButton = new ThemedButton("Leave", false);
+        leaveButton.setPreferredSize(new Dimension(90, 34));
+        leaveButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
 
         hintButton = new ThemedButton("Hint", false);
         hintButton.setPreferredSize(new Dimension(90, 34));
@@ -250,10 +264,11 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         {
             public void actionPerformed(ActionEvent e) { showHint(); }
         });
-        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         bottomRow.setOpaque(false);
         bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
         bottomRow.add(hintButton);
+        bottomRow.add(leaveButton);
         wrap.add(bottomRow, BorderLayout.SOUTH);
 
         return wrap;
@@ -334,8 +349,6 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         practiceMatch = new PracticeMatch<int[], SignalGridMove>(AI_MODEL, SignalGridGameModel.newBoard(), AI_GAME_ID,
             SignalGridGameModel.PLAYER_A, SignalGridGameModel.PLAYER_B, SignalGridGameModel.PLAYER_A);
         cardLayout.show(cards, BOARD);
-        pack();
-        setLocationRelativeTo(null);
         hintButton.setVisible(true);
         gameOver = false;
         myTurn = true;
@@ -424,7 +437,7 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
         SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
         {
             public void onPlayAgain() { startPracticeMatch(); }
-            public void onClose() { SignalGridWindow.this.dispose(); }
+            public void onClose() { MainMenu.getInstance().returnToGames(); }
         });
     }
 
@@ -468,8 +481,6 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
             myTurn = mySymbol == 0;
             updateStatus();
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (type == MessageType.SIGNALGRID_UPDATE)
         {
@@ -501,11 +512,9 @@ public class SignalGridWindow extends JFrame implements NetworkManager.PushListe
                     matchId = null;
                     java.util.Arrays.fill(owners, -1);
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { SignalGridWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }
