@@ -250,6 +250,12 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   Infrastructure only for now - no shipped game uses it yet, same "prove it generalizes
   first" approach `ai/search` took before `ConnectFourGameModel` existed. See
   `PROGRAM_STRUCTURE.md`'s `engine` section for the full breakdown.
+- **Snake Arena converted to the embedded pattern** — 44 games embedded total now.
+  Same recipe: unconditional `requestLeave()`, mode-select and searching screens
+  wrapped in `GridBagLayout` centerers, and the board screen's bare `ArenaPanel`
+  (a fixed-size custom-painted grid, both snakes/food redrawn from server state)
+  given its own `GridBagLayout` centerer (`arenaCenterer`) - same bare-board fix as
+  Fight Arena, Square Wars, and Air Hockey.
 
 ## 🔧 In Progress
 

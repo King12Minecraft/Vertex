@@ -216,8 +216,7 @@ public class GameLauncher
             }
             else if ("snake-arena".equals(game.getGameId()))
             {
-                SnakeArenaWindow window = new SnakeArenaWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new SnakeArenaWindow());
             }
             else if ("tetris-duel".equals(game.getGameId()))
             {
