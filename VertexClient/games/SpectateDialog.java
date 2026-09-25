@@ -174,8 +174,8 @@ public class SpectateDialog
                         }
                         else if ("battleship".equals(gameId))
                         {
-                            BattleshipWindow window = BattleshipWindow.forSpectating(matchId, playerAName, playerBName);
-                            window.setVisible(true);
+                            pages.MainMenu.getInstance().showGame(
+                                BattleshipWindow.forSpectating(matchId, playerAName, playerBName));
                         }
                     }
                 });

@@ -115,8 +115,7 @@ public class GameLauncher
             }
             else if ("battleship".equals(game.getGameId()))
             {
-                BattleshipWindow window = new BattleshipWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new BattleshipWindow());
             }
             else if ("checkers".equals(game.getGameId()))
             {

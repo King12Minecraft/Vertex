@@ -2,6 +2,7 @@ package games;
 import ai.AiKernel;
 import economy.GuestPlayTracker;
 import account.Session;
+import pages.MainMenu;
 import ui.GameHubDialog;
 import ui.ThemedButton;
 import ui.GameModeCard;
@@ -12,14 +13,10 @@ import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
 import net.Message;
 
-import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -30,12 +27,13 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.Random;
 
 /**
@@ -47,8 +45,13 @@ import java.util.Random;
  * this focused on the actual hunt-and-sink gameplay. Two 10x10 grids:
  * "My Fleet" (ships visible, shows where the opponent has hit you) and
  * "Enemy Waters" (clickable, shows only your own shot results).
+ *
+ * Embedded in MainMenu's game-host slot (see ChessWindow's javadoc for
+ * the pattern). requestLeave() replaces the old windowClosing
+ * confirmation exactly, same "only confirm mid-match, never for a
+ * spectator" behavior as Rock Paper Scissors.
  */
-public class BattleshipWindow extends JFrame implements NetworkManager.PushListener
+public class BattleshipWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final int SIZE = 10;
     private static final int[] SHIP_LENGTHS = { 5, 4, 3, 3, 2 };
@@ -111,23 +114,17 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
 
     private BattleshipWindow(String spectateMatchId, String playerAName, String playerBName, String rematchWaitOpponent)
     {
-        super(spectateMatchId != null ? "Vertex - Battleship (Spectating)" : "Vertex - Battleship");
         isSpectator = spectateMatchId != null;
         boolean isRematchWait = rematchWaitOpponent != null;
         spectatorPlayerA = playerAName;
         spectatorPlayerB = playerBName;
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
-
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+        add(cards, BorderLayout.CENTER);
 
         NetworkManager.addPushListener(this);
 
@@ -152,42 +149,41 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         {
             cardLayout.show(cards, MODE_SELECT);
         }
+    }
 
-        pack();
-        setLocationRelativeTo(null);
-
-        addWindowListener(new WindowAdapter()
+    @Override
+    public boolean requestLeave()
+    {
+        if (matchId != null && !isSpectator)
         {
-            public void windowClosing(WindowEvent e)
+            int choice = javax.swing.JOptionPane.showConfirmDialog(this,
+                "Leave this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
+                "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
+            if (choice != javax.swing.JOptionPane.YES_OPTION)
             {
-                if (matchId != null && !isSpectator)
-                {
-                    int choice = javax.swing.JOptionPane.showConfirmDialog(BattleshipWindow.this,
-                        "Close this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
-                        "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
-                    if (choice != javax.swing.JOptionPane.YES_OPTION)
-                    {
-                        return;
-                    }
-                }
-                if (!isSpectator && !vsAi && matchId == null)
-                {
-                    leaveQueue();
-                }
-                NetworkManager.removePushListener(BattleshipWindow.this);
-                dispose();
+                return false;
             }
-        });
+        }
+        if (!isSpectator && !vsAi && matchId == null)
+        {
+            leaveQueue();
+        }
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     // ==================== Mode select ====================
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Battleship");
         title.setFont(UITheme.FONT_HEADING);
@@ -222,7 +218,7 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
             }));
 
         panel.add(tileRow);
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean aiMode)
@@ -236,8 +232,6 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         else
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
     }
@@ -246,10 +240,14 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Battleship");
         title.setFont(UITheme.FONT_HEADING);
@@ -272,12 +270,12 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
             public void actionPerformed(ActionEvent e)
             {
                 leaveQueue();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private void findMatch()
@@ -320,7 +318,26 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         gridsRow.add(buildGridColumn(leftLabel, myGridCells, false));
         gridsRow.add(buildGridColumn(rightLabel, enemyGridCells, !isSpectator));
 
-        panel.add(gridsRow, BorderLayout.CENTER);
+        JPanel gridsCenterer = new JPanel(new GridBagLayout());
+        gridsCenterer.setOpaque(false);
+        gridsCenterer.add(gridsRow, new GridBagConstraints());
+        panel.add(gridsCenterer, BorderLayout.CENTER);
+
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottomRow.add(leave);
+        panel.add(bottomRow, BorderLayout.SOUTH);
+
         return panel;
     }
 
@@ -382,8 +399,6 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         statusLabel.setText("Your turn - fire at Enemy Waters");
 
         cardLayout.show(cards, BOARD);
-        pack();
-        setLocationRelativeTo(null);
     }
 
     private void placeFleetLocally(int[] fleet)
@@ -470,7 +485,7 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         {
             recordPlayed();
             GameHubDialog.show(this, "Battleship", "You sank the enemy fleet - you win!");
-            dispose();
+            MainMenu.getInstance().returnToGames();
             return;
         }
 
@@ -515,7 +530,7 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
             {
                 recordPlayed();
                 GameHubDialog.show(this, "Battleship", "The computer sank your fleet - you lose.");
-                dispose();
+                MainMenu.getInstance().returnToGames();
                 return;
             }
 
@@ -625,8 +640,6 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
                     targetGrid[i].setBackground(fleetLayout.charAt(i) == '.' ? new Color(60, 100, 150) : new Color(150, 150, 150));
                 }
                 cardLayout.show(cards, BOARD);
-                pack();
-                setLocationRelativeTo(null);
                 return;
             }
 
@@ -644,8 +657,6 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
 
             statusLabel.setText(myTurn ? "Your turn - fire at Enemy Waters" : "Waiting for " + opponentUsername + "...");
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (message.getType() == MessageType.BATTLESHIP_FIRE_RESULT)
         {
@@ -681,7 +692,7 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         else if (message.getType() == MessageType.SPECTATE_ENDED)
         {
             GameHubDialog.show(this, "Battleship", "The match you were watching has ended.");
-            dispose();
+            MainMenu.getInstance().returnToGames();
         }
         else if (message.getType() == MessageType.BATTLESHIP_MATCH_OVER)
         {
@@ -692,11 +703,12 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
                 : "WIN".equals(result) ? "You sank the enemy fleet - you win!"
                 : "Your fleet was sunk - you lose.";
             final String finalOpponent = opponentUsername;
+            final boolean[] rematchRequested = { false };
             GameHubDialog.showWithAction(this, "Battleship", text, "Rematch", new Runnable()
             {
-                public void run() { requestRematch(finalOpponent); }
+                public void run() { rematchRequested[0] = true; requestRematch(finalOpponent); }
             });
-            dispose();
+            if (!rematchRequested[0]) { MainMenu.getInstance().returnToGames(); }
         }
     }
 
@@ -708,8 +720,7 @@ public class BattleshipWindow extends JFrame implements NetworkManager.PushListe
         request.setGameId("battleship");
         NetworkManager.sendAsync(request);
 
-        BattleshipWindow window = BattleshipWindow.forRematchWait(opponent);
-        window.setVisible(true);
+        MainMenu.getInstance().showGame(BattleshipWindow.forRematchWait(opponent));
     }
 
     private void recordPlayed()

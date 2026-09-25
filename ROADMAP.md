@@ -150,22 +150,30 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   Bubble Shooter, closing out the "offline/single-player" games package entirely
   (every remaining game left to convert is online-multiplayer). Same recipe as the
   rest of the offline batches, no new surprises. 32 games embedded total now.
+- **Battleship converted to the embedded pattern** — 33 games embedded total now, and
+  the second (after Rock Paper Scissors) with the multi-entry-point shape: normal
+  play, a `SpectateDialog` "Watch" path, and a rematch-wait screen, plus the same
+  rematch-flow `boolean[] rematchRequested` guard RPS needed. `SpectateDialog`'s
+  Battleship spectate line got the same proactive `MainMenu.getInstance().showGame(...)`
+  fix RPS's did, rather than shipping broken like Chess's first pass. Both AI-mode
+  win/loss dialogs (no rematch offered there, always a plain `GameHubDialog.show(...)`)
+  just needed their trailing `dispose()` swapped for `returnToGames()`, no ordering
+  guard needed since neither path opens a new embedded window.
 
 ## 🔧 In Progress
 
 - **Rolling embedded games out past every offline/single-player game** — the pattern
-  is proven 32 times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
+  is proven 33 times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
   and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole,
   Match Three, Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping
   Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy Bird,
-  Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble Shooter). Every
-  offline/single-player game in the whole catalog is now embedded - the other ~15
-  games left are all online-multiplayer (matchmaking, spectating, tournaments) or
-  real-time-tick games, closer in shape to Rock Paper Scissors/Chess than to the
-  offline batches, and need the same conversion one at a time, watching for the same
-  multi-entry-point trap RPS/Chess had. Any future offline-capable game reachable from
-  `OfflineHubWindow` needs the same `setReturnAction`-style treatment Snake got, not
-  just the standard MainMenu-only conversion. **Standing check for every remaining
+  Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble Shooter,
+  Battleship). Every offline/single-player game in the whole catalog is now embedded,
+  plus both spectate/tournament-capable games - the other ~14 games left are all
+  online-multiplayer (matchmaking, some with real-time tick loops) or bot-fill games,
+  and need the same conversion one at a time. Any future offline-capable game reachable
+  from `OfflineHubWindow` needs the same `setReturnAction`-style treatment Snake got,
+  not just the standard MainMenu-only conversion. **Standing check for every remaining
   conversion**: grep for every external construction site of that game's window (not
   just `GameLauncher.java`) before considering it done - Chess's
   spectate-path bug is exactly the kind of thing that slips through otherwise.
