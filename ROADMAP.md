@@ -422,6 +422,38 @@ recorded below as they're confirmed.
   drawing game, needing chat *restricted* rather than open, since free chat would let
   players just say the answer out loud).
 
+- **Reconnection audit finding, confirmed real, design drafted, implementation
+  deliberately deferred.** Checked `TicTacToeMatch.handleDisconnect` (and the
+  identical pattern repeated across all 30 `currentXxxMatch` fields on
+  `ClientHandler`, each with its own `handleDisconnect(ClientHandler)`): any
+  disconnect at all - a genuine quit or a one-second wifi hiccup, indistinguishable
+  today - immediately ends the match and declares the other player the winner via
+  `MATCH_OVER`/`OPPONENT_LEFT`. Confirms exactly what the platform strategy doc's
+  Multiplayer Breakthroughs section predicted. Concrete plan for a real fix (not
+  implemented tonight - see below for why):
+  1. Give match classes a short grace state instead of ending immediately on
+     disconnect: mark the player's slot "disconnected," start a timer (~30-60s),
+     notify the *other* player "opponent disconnected, waiting..." instead of an
+     immediate win.
+  2. On login, check whether the account has a match awaiting reconnect (a small
+     `accountId -> pending match` registry, likely on `MatchManager` or similar) -
+     if so, re-associate the new `ClientHandler` with the match object (replacing
+     the stale reference) and cancel the grace timer.
+  3. If the timer expires with no reconnect, finalize exactly as today
+     (`OPPONENT_LEFT`).
+  4. Client-side: every online game's `Window` needs a new "opponent
+     disconnected, waiting" UI state distinct from match-over, and the app needs a
+     "you have a match in progress, rejoin?" flow on login/reconnect.
+  **Why this wasn't attempted tonight despite being real and important**: it's
+  genuinely cross-cutting (new message types, server-side timer/state logic,
+  client UI changes, eventually all 30 match types) and state-sensitive in a way
+  that's easy to get subtly wrong under time pressure - a half-built version could
+  leave matches stuck in limbo, which is a worse outcome than today's honest
+  instant-forfeit. This needs a proper, focused session (prove it on one simple
+  turn-based game first, the same "prove it generalizes, then expand" approach used
+  for `ai/search`/`engine`), not a rushed addition alongside a dozen other changes
+  in one night.
+
 ## 📋 Planned — infrastructure & shared packages
 
 - **`economy` package additions** — an `EconomyKernel` any game can call in one line
