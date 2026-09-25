@@ -644,17 +644,84 @@ Pages: Home/Changelog, Download (default landing page), Credits, a simplified pu
 file the jars are stamped with, so the version number never drifts between the app and
 the site.
 
-## 🎲 Games backlog (separate, huge, not started)
+## 🎲 Games backlog (curated 2026-09-25 - see note below)
 
-314 total game concepts from the user's own backlog doc: the flagship **"Vertex:
-Dominion"** (a persistent, whole-server nation-building strategy game — categorically
-bigger than every other game combined, resolved on a daily server tick rather than
-played as a quick match), 7 fully-detailed "Original Seven," and 306 more short-pitch
-concepts across 38 categories. Also newly suggested: a Gartic-Phone-style
-drawing/guessing game (needs restricted, not open, chat — see "Embedded games" above).
-Still-deferred engine shapes flagged early on and never built: continuous-control
-games (Air Hockey, Fight Arena), parallel-simulation games (Racing, Space Battle),
-multiplayer bot-fill (Among Us, Trivia Blitz).
+**Correction to this section's own history:** earlier drafts of this file described
+"314 total game concepts... 7 fully-detailed Original Seven... 306 more across 38
+categories," attributed to `GAMEHUB_ALL_IDEAS_v4.md`. That number doesn't actually
+exist anywhere in this repo - `GAMEHUB_ALL_IDEAS_v4.md`'s real game catalog (its
+Section 12) lists about 25 concrete concepts, not 314. Rather than keep repeating an
+inflated figure, this section was re-derived from that file's actual contents,
+cross-checked against the 50 games already built. Most of the old list turned out
+to already be covered - worth knowing, not worth hiding.
+
+### Already covered by an existing game (remove from backlog - nothing to build)
+Tic-Tac-Toe, RPS, 2048, Snake, Ping Pong, Dino Dash, Battleship, Crossing Road,
+Tetris, match-3 (→ Gem Match), Aim Trainer, Car Racing (→ Racing), Pac-Man (→ Maze
+Chase), Zombie Survival, Hill Climb Racing-style (→ Hill Climb), Fighting Arena (→
+Fight Arena, which already has 1v1/2v2/3v3/FFA), Among Us, **Paper.io-style
+territory game (→ Square Wars - same claim-the-grid mechanic, just a different
+name)**, "co-op games" (→ Zombie Survival already is one), "FFA mode" (→ Fight
+Arena's Chaos Mode already is one).
+
+### Deliberately not attempted casually (genuinely multi-phase projects, stay flagged)
+Mario-style platformer, Pokémon-style creature collector/battler, Terraria-style
+sandbox - each realistically a multi-year undertaking even approximated. **Vertex:
+Dominion** is its own flagship, categorically bigger than everything else (a
+persistent, whole-server nation-building game on a daily tick, not a quick match) -
+tracked separately, not folded into this list.
+
+### The real remaining backlog - concrete concepts, not vague entries
+- **Gartic Phone-style telephone/drawing game** — round 1: everyone draws a secret
+  prompt; round 2: your drawing gets passed to the next player, who has to *guess*
+  what it is in one word/phrase, blind; round 3: that guess gets passed again and
+  drawn; repeat until it's back to the original artist, then everyone watches the
+  full chain unfold (usually hilariously mangled). Needs a **restricted chat
+  channel per match** (only that match's players, not open general chat) - the
+  one real new infrastructure piece this needs, reusable by any future game with
+  the same "small private channel for one match" shape.
+- **A Quiplash/Jackbox-style prompt-and-vote game (original concept, working title
+  "Caption Chaos")** — the server shows a silly prompt ("The worst thing to say on
+  a first date"), everyone privately submits an answer, then everyone votes
+  anonymously for their favorite (can't vote for your own); most votes wins the
+  round. Cheap to build (no real-time sync, no physics, just request/response like
+  Trivia Blitz), and this exact genre (Jackbox's Quiplash, Drawful) is consistently
+  one of the most replayed party-game formats that exists - genuinely fun, not
+  filler. A natural second phase once Gartic Phone's restricted-chat/match-channel
+  piece exists, since both games are "small private channel + round structure."
+- **Casino mini-games** (slots, a roulette-style wheel, a simple blackjack) —
+  stakes and payouts computed server-side only, same rule as everything else in the
+  economy. Confirmed still worth an `Admin`-level per-server toggle (default off)
+  before shipping, since it's virtual-currency wagering and server operators should
+  get to decide if that fits their audience - not something to hardcode as
+  always-on. Not blocked on a design question, just correctly sequenced after the
+  toggle exists.
+
+### New concepts worth adding (researched 2026-09-25, original implementations only)
+Looked at what actually makes multiplayer games popular right now (io-game and
+party-game genres, not any specific game's content/art/code) to find good, provable
+formats - not to copy anything:
+- **A vertical "climber" single-player game** (original mechanic, `Doodle Jump`
+  genre) — bounce upward off procedurally-placed platforms, camera scrolls up
+  forever, moving/breakable/spring platforms add variety, game ends when you fall
+  off the bottom of the screen. Distinct from every existing single-player game
+  here (nothing else is a vertical endless climber).
+- **A number-merge puzzle, `Threes`/`1010!` genre, distinct from 2048** — a small
+  grid where you place incoming numbered/colored pieces rather than 2048's
+  slide-and-merge-everything mechanic; genuinely different enough from 2048 to be
+  its own game, not a reskin.
+- Both chosen specifically because the ask was "don't make this only multiplayer" -
+  the platform already has ~26 single-player games, so 2 well-chosen new ones
+  (each a distinct mechanic, not a reskin of something existing) is a more honest
+  amount to add than a long filler list.
+
+Still-deferred engine shapes flagged early on and never built as generic
+infrastructure (each existing game solved its own version instead): continuous-
+control games (Air Hockey, Fight Arena already work without it), parallel-
+simulation games (Racing, Space Battle already work without it), multiplayer
+bot-fill (Among Us, Trivia Blitz already work without it) - noted here in case a
+*future* game's shape genuinely needs the generic version, not because today's
+games are missing anything.
 
 ---
 
