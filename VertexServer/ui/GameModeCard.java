@@ -11,6 +11,9 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.GeneralPath;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
@@ -44,10 +47,11 @@ public class GameModeCard extends RoundedPanel
         setLayout(new BorderLayout());
         setPreferredSize(new Dimension(190, 150));
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        enableTopAccent();
+        // No enableTopAccent() here - the color-coded band below already
+        // occupies the top edge, and (now that it's corner-aware) would
+        // just paint over a second bar anyway.
 
-        JPanel colorBand = new JPanel();
-        colorBand.setBackground(accentColor);
+        JPanel colorBand = roundedTopBand(accentColor, UITheme.RADIUS_PANEL);
         colorBand.setPreferredSize(new Dimension(0, 8));
         add(colorBand, BorderLayout.NORTH);
 
@@ -85,5 +89,38 @@ public class GameModeCard extends RoundedPanel
             public void mouseEntered(MouseEvent e) { glow().animateIn(); }
             public void mouseExited(MouseEvent e) { glow().animateOut(); }
         });
+    }
+
+    /** A solid-color strip whose top corners are rounded to match the card - a plain square-cornered JPanel here would poke out past the (now more rounded) card's own top corners. */
+    private static JPanel roundedTopBand(final Color accentColor, final int radius)
+    {
+        return new JPanel()
+        {
+            { setOpaque(false); }
+
+            @Override
+            protected void paintComponent(Graphics g)
+            {
+                Graphics2D g2 = (Graphics2D) g.create();
+                UITheme.applyAntialiasing(g2);
+
+                int w = getWidth();
+                int h = getHeight();
+                int r = Math.min(radius, h);
+
+                GeneralPath shape = new GeneralPath();
+                shape.moveTo(0, h);
+                shape.lineTo(0, r);
+                shape.quadTo(0, 0, r, 0);
+                shape.lineTo(w - r, 0);
+                shape.quadTo(w, 0, w, r);
+                shape.lineTo(w, h);
+                shape.closePath();
+
+                g2.setColor(accentColor);
+                g2.fill(shape);
+                g2.dispose();
+            }
+        };
     }
 }

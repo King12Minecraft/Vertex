@@ -270,7 +270,7 @@ public class TopBar extends RoundedPanel
         usernameLabel.setForeground(custom != null ? custom : ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
     }
 
-    /** Chrome detail matching the Sidebar's divider treatment - a thin accent-gradient line along the bottom edge. */
+    /** Aurora Glass: a plain 1px neutral divider along the bottom edge, matching every other panel's glass-edge border - the earlier solid accent-gradient bar read as one more loud flat-color stripe on top of the ones already removed from SidebarButton/HeroBanner. */
     @Override
     protected void paintComponent(java.awt.Graphics g)
     {
@@ -282,12 +282,8 @@ public class TopBar extends RoundedPanel
         int w = getWidth();
         int h = getHeight();
 
-        java.awt.Color accentStart = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-        java.awt.Color accentEnd = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END);
-        java.awt.LinearGradientPaint divider = new java.awt.LinearGradientPaint(
-            0, 0, Math.max(w, 1), 0, new float[] {0f, 1f}, new java.awt.Color[] {accentStart, accentEnd});
-        g2.setPaint(divider);
-        g2.fillRect(0, h - 2, w, 2);
+        g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+        g2.fillRect(0, h - 1, w, 1);
 
         g2.dispose();
     }
