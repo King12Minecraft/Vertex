@@ -135,8 +135,8 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
   gate since there's nothing to preview yet. Chess, Reversi, Connect Four,
-  Signal Grid, Tic-Tac-Toe, and Dots and Boxes's cases are the exceptions to
-  `new XxxWindow().setVisible(true)` so far - they call
+  Signal Grid, Tic-Tac-Toe, Dots and Boxes, and Checkers's cases are the
+  exceptions to `new XxxWindow().setVisible(true)` so far - they call
   `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
   conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`); every
   other game still opens its own window until it's converted the same way.

@@ -129,8 +129,7 @@ public class GameLauncher
             }
             else if ("checkers".equals(game.getGameId()))
             {
-                CheckersWindow window = new CheckersWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new CheckersWindow());
             }
             else if ("square-wars".equals(game.getGameId()))
             {

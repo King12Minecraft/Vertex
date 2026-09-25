@@ -86,11 +86,17 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   shape as Reversi/Connect Four/Signal Grid (no existing leave confirmation, fixed-pixel
   board needing the centering fix), no new surprises.
 
+- **Checkers converted to the embedded pattern** — seventh game done this way and the
+  last of the original `ai/search`-backed practice-mode games; same shape as
+  Reversi/Connect Four/Signal Grid/Dots and Boxes, no new surprises. All 6 games with
+  the shared `ai/search` engine are now embedded, alongside Chess.
+
 ## 🔧 In Progress
 
-- **Rolling embedded games out past Chess, Reversi, Connect Four, Signal Grid,
-  Tic-Tac-Toe, and Dots and Boxes** — the pattern is proven six times now; the other
-  ~41 games still open their own `JFrame` and need the same conversion, one at a time.
+- **Rolling embedded games out past the `ai/search` games** — the pattern is proven
+  seven times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots and
+  Boxes, Checkers); the other ~40 games still open their own `JFrame` and need the
+  same conversion, one at a time.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style
