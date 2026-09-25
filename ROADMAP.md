@@ -103,14 +103,28 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   supplies its own small `CardLayout`-based "go back to the offline hub" callback
   instead, since it's a standalone `JFrame` with no `MainMenu` shell to hand off to.
 
+- **10 more single-player offline games converted in one batch** — 2048, Minesweeper,
+  Sudoku, Simon Says, Whack-a-Mole, Gem Match (Match Three), Lights Out, Peg Solitaire,
+  Mancala, and Klondike Solitaire. All share the same simple shape (one screen, no
+  matchmaking, `requestLeave()` with nothing to confirm), so the same recipe applied
+  cleanly to every one: a `GridBagLayout` centering wrapper around the board (several
+  of these were direct `BorderLayout.CENTER` children before - which stretches rather
+  than centers a fixed-preferred-size board, the same class of bug found during the
+  Reversi/Tic-Tac-Toe conversions, just discovered fresh in each of these since none
+  had been embedded before), and a new "Leave" button added next to whatever
+  restart/new-game button already existed. 18 games embedded total now.
+
 ## 🔧 In Progress
 
-- **Rolling embedded games out past the `ai/search` games and Snake** — the pattern is
-  proven eight times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
-  and Boxes, Checkers, Snake); the other ~39 games still open their own `JFrame` and
-  need the same conversion, one at a time. Any future offline-capable game reachable
-  from `OfflineHubWindow` needs the same `setReturnAction`-style treatment Snake got,
-  not just the standard MainMenu-only conversion.
+- **Rolling embedded games out past the `ai/search` games and the offline-game batch**
+  — the pattern is proven 18 times now (Chess, Reversi, Connect Four, Signal Grid,
+  Tic-Tac-Toe, Dots and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon Says,
+  Whack-a-Mole, Match Three, Lights Out, Peg Solitaire, Mancala, Klondike); the other
+  ~29 games (mostly online multiplayer with matchmaking, plus a few real-time arcade
+  games) still open their own `JFrame` and need the same conversion, one at a time.
+  Any future offline-capable game reachable from `OfflineHubWindow` needs the same
+  `setReturnAction`-style treatment Snake got, not just the standard MainMenu-only
+  conversion.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style

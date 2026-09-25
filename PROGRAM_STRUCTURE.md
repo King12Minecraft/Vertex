@@ -134,12 +134,14 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. Chess, Reversi, Connect Four,
-  Signal Grid, Tic-Tac-Toe, Dots and Boxes, Checkers, and Snake's cases are
-  the exceptions to `new XxxWindow().setVisible(true)` so far - they call
+  gate since there's nothing to preview yet. 18 games so far are the exceptions
+  to `new XxxWindow().setVisible(true)` - they call
   `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
-  conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`); every
-  other game still opens its own window until it's converted the same way.
+  conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`): Chess,
+  Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots and Boxes, Checkers,
+  Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Match Three,
+  Lights Out, Peg Solitaire, Mancala, and Klondike. Every other game still
+  opens its own window until it's converted the same way.
   Snake is also reachable pre-login from `pages/OfflineHubWindow.java`
   ("Play Offline" on the login screen), which has no `MainMenu` to hand off
   to - see `SnakeWindow.setReturnAction(...)` below.

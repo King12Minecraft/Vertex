@@ -3,14 +3,12 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
-import ui.RoundedPanel;
 import ui.ThemedButton;
 
-import javax.swing.BorderFactory;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -23,6 +21,8 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -35,9 +35,11 @@ import java.awt.event.MouseEvent;
  * Tetris/2048, since there's no opponent to keep in sync with. On a
  * win, reports completion to the server once (GAME_PLAYED_REQUEST,
  * gameId "minesweeper") for a flat coin reward, the same pattern
- * Puzzle Quest already uses.
+ * Puzzle Quest already uses. Embedded in MainMenu's game-host slot
+ * (see ChessWindow's javadoc for the pattern); requestLeave() has
+ * nothing to confirm.
  */
-public class MinesweeperWindow extends JFrame
+public class MinesweeperWindow extends JPanel implements EmbeddedGamePanel
 {
     private static final int[] NUMBER_COLORS_RGB = {
         0x000000, 0x1565C0, 0x2E7D32, 0xC62828, 0x6A1B9A, 0xE65100, 0x00838F, 0x424242, 0x757575
@@ -50,10 +52,7 @@ public class MinesweeperWindow extends JFrame
 
     public MinesweeperWindow()
     {
-        super("Vertex - Minesweeper");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
@@ -74,22 +73,34 @@ public class MinesweeperWindow extends JFrame
         {
             public void actionPerformed(ActionEvent e) { startNewGame(); }
         });
-        JPanel restartWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { MainMenu.getInstance().returnToGames(); }
+        });
+        JPanel restartWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         restartWrap.setOpaque(false);
         restartWrap.add(restart);
+        restartWrap.add(leave);
         topRow.add(restartWrap, BorderLayout.EAST);
 
         root.add(topRow, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        root.add(boardPanel, BorderLayout.CENTER);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(boardPanel, new GridBagConstraints());
+        root.add(boardCenterer, BorderLayout.CENTER);
 
-        getContentPane().add(root);
+        add(root, BorderLayout.CENTER);
         startNewGame();
-        pack();
-        setLocationRelativeTo(null);
-        theme.SignatureOverlay.attach(this);
-        theme.GlitchEffectOverlay.attach(this);
+    }
+
+    @Override
+    public boolean requestLeave()
+    {
+        return true;
     }
 
     private void startNewGame()
@@ -138,7 +149,7 @@ public class MinesweeperWindow extends JFrame
             new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain() { startNewGame(); }
-                public void onClose() { MinesweeperWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
     }
 

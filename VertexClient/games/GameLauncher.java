@@ -80,8 +80,7 @@ public class GameLauncher
             }
             else if ("2048".equals(game.getGameId()))
             {
-                Merge2048Window window = new Merge2048Window();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new Merge2048Window());
             }
             else if ("dino-dash".equals(game.getGameId()))
             {
@@ -142,28 +141,23 @@ public class GameLauncher
             }
             else if ("minesweeper".equals(game.getGameId()))
             {
-                MinesweeperWindow window = new MinesweeperWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new MinesweeperWindow());
             }
             else if ("sudoku".equals(game.getGameId()))
             {
-                SudokuWindow window = new SudokuWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new SudokuWindow());
             }
             else if ("simon-says".equals(game.getGameId()))
             {
-                SimonWindow window = new SimonWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new SimonWindow());
             }
             else if ("whack-a-mole".equals(game.getGameId()))
             {
-                WhackAMoleWindow window = new WhackAMoleWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new WhackAMoleWindow());
             }
             else if ("match-three".equals(game.getGameId()))
             {
-                MatchThreeWindow window = new MatchThreeWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new MatchThreeWindow());
             }
             else if ("maze-chase".equals(game.getGameId()))
             {
@@ -197,18 +191,15 @@ public class GameLauncher
             }
             else if ("lights-out".equals(game.getGameId()))
             {
-                LightsOutWindow window = new LightsOutWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new LightsOutWindow());
             }
             else if ("peg-solitaire".equals(game.getGameId()))
             {
-                PegSolitaireWindow window = new PegSolitaireWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new PegSolitaireWindow());
             }
             else if ("klondike".equals(game.getGameId()))
             {
-                KlondikeWindow window = new KlondikeWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new KlondikeWindow());
             }
             else if ("yahtzee".equals(game.getGameId()))
             {
@@ -217,8 +208,7 @@ public class GameLauncher
             }
             else if ("mancala".equals(game.getGameId()))
             {
-                MancalaWindow window = new MancalaWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new MancalaWindow());
             }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {

@@ -3,15 +3,13 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
 
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -20,6 +18,8 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -35,9 +35,11 @@ import java.awt.event.MouseEvent;
  * ducking) and the repaint, at a steady ~60ms interval. Reports the
  * final score to the server once the 30-second round ends, for a
  * score-scaled coin reward, same "practice score" pattern Dino Dash/
- * Aim Trainer already use.
+ * Aim Trainer already use. Embedded in MainMenu's game-host slot (see
+ * ChessWindow's javadoc for the pattern); requestLeave() stops the
+ * game timer and has nothing to confirm.
  */
-public class WhackAMoleWindow extends JFrame
+public class WhackAMoleWindow extends JPanel implements EmbeddedGamePanel
 {
     private WhackAMoleGame game;
     private HoleButton[] holes = new HoleButton[WhackAMoleGame.GRID_SIZE];
@@ -47,10 +49,7 @@ public class WhackAMoleWindow extends JFrame
 
     public WhackAMoleWindow()
     {
-        super("Vertex - Whack-a-Mole");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
@@ -76,14 +75,35 @@ public class WhackAMoleWindow extends JFrame
             holes[i] = hole;
             grid.add(hole);
         }
-        root.add(grid, BorderLayout.CENTER);
+        JPanel gridCenterer = new JPanel(new GridBagLayout());
+        gridCenterer.setOpaque(false);
+        gridCenterer.add(grid, new GridBagConstraints());
+        root.add(gridCenterer, BorderLayout.CENTER);
 
-        getContentPane().add(root);
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottomRow.add(leave);
+        root.add(bottomRow, BorderLayout.SOUTH);
+
+        add(root, BorderLayout.CENTER);
         startNewGame();
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+    }
+
+    @Override
+    public boolean requestLeave()
+    {
+        if (gameTimer != null) { gameTimer.stop(); }
+        return true;
     }
 
     private void startNewGame()
@@ -144,7 +164,7 @@ public class WhackAMoleWindow extends JFrame
             new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain() { startNewGame(); }
-                public void onClose() { WhackAMoleWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
     }
 

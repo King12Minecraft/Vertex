@@ -5,9 +5,8 @@ import net.MessageType;
 import net.Message;
 import economy.GuestPlayTracker;
 import account.Session;
+import pages.MainMenu;
 import ui.GameHubDialog;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
 import ui.ThemedButton;
 import theme.GameColors;
 import theme.UITheme;
@@ -15,7 +14,6 @@ import theme.ThemeColor;
 import ui.RoundedPanel;
 
 import javax.swing.AbstractAction;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
@@ -26,6 +24,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -35,9 +35,10 @@ import java.awt.event.ActionListener;
  * Window + rendering combined into one file (the grid is simple enough
  * not to need a separate panel class) - arrow keys or WASD slide the
  * grid, model logic lives in Merge2048Game. Single-player, fully
- * offline.
+ * offline - embedded in MainMenu's game-host slot (see ChessWindow's
+ * javadoc for the pattern); requestLeave() has nothing to confirm.
  */
-public class Merge2048Window extends JFrame
+public class Merge2048Window extends JPanel implements EmbeddedGamePanel
 {
     private final Merge2048Game game = new Merge2048Game();
     private BoardPanel board;
@@ -45,10 +46,7 @@ public class Merge2048Window extends JFrame
 
     public Merge2048Window()
     {
-        super("Vertex - 2048");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BorderLayout());
@@ -61,13 +59,16 @@ public class Merge2048Window extends JFrame
         panel.add(scoreLabel, BorderLayout.NORTH);
 
         board = new BoardPanel();
-        panel.add(board, BorderLayout.CENTER);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(board, new GridBagConstraints());
+        panel.add(boardCenterer, BorderLayout.CENTER);
 
-        ThemedButton close = new ThemedButton("Close", false);
+        ThemedButton close = new ThemedButton("Leave", false);
         close.setPreferredSize(new Dimension(100, 36));
         close.addActionListener(new ActionListener()
         {
-            public void actionPerformed(ActionEvent e) { dispose(); }
+            public void actionPerformed(ActionEvent e) { MainMenu.getInstance().returnToGames(); }
         });
         JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         bottomRow.setOpaque(false);
@@ -75,12 +76,14 @@ public class Merge2048Window extends JFrame
         bottomRow.add(close);
         panel.add(bottomRow, BorderLayout.SOUTH);
 
-        getContentPane().add(panel, BorderLayout.CENTER);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+        add(panel, BorderLayout.CENTER);
         board.requestFocusInWindow();
+    }
+
+    @Override
+    public boolean requestLeave()
+    {
+        return true;
     }
 
     private void afterMove(boolean moved)
