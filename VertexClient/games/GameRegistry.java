@@ -11,6 +11,9 @@ public class GameRegistry
 
     private void seed()
     {
+        // Spectatable is set explicitly below, after construction, only for the
+        // three games with a SpectateDialog "Watch" entry point - see
+        // GameInfo.setSpectatable's javadoc.
         games.add(new GameInfo("snake", "Snake", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("tictactoe-online", "Tic-Tac-Toe (Online)", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("square-wars", "Square Wars", "Multiplayer", "Online", true, false, "1.0"));
@@ -60,6 +63,23 @@ public class GameRegistry
         games.add(new GameInfo("signal-grid", "Signal Grid", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("card-rush", "Card Rush", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
+
+        markSpectatable("chess", "rock-paper-scissors", "battleship");
+    }
+
+    private void markSpectatable(String... gameIds)
+    {
+        for (String gameId : gameIds)
+        {
+            for (GameInfo game : games)
+            {
+                if (game.getGameId().equals(gameId))
+                {
+                    game.setSpectatable(true);
+                    break;
+                }
+            }
+        }
     }
 
     public synchronized List<GameInfo> getAllGames() { return new ArrayList<GameInfo>(games); }

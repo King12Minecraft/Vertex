@@ -125,10 +125,14 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   byte-identical between `VertexClient` and `VertexServer` - never references Swing,
   since the server compiles this file too with no UI classes available to it).
   `ClientHandler.handleGameList()` serves this, patching in live queue counts for a
-  few games. Currently just id/name/type/statusText/online/comingSoon/version - no
-  capability flags (offline-capable, spectatable, min/max players) yet; that's the
-  next natural extension once a concrete feature needs to read them (search/discovery
-  filters, an admin per-server catalog toggle), not built speculatively ahead of one.
+  few games. One capability flag so far: `spectatable` (true only for Chess, Rock
+  Paper Scissors, Battleship - the three games with a real `SpectateDialog` "Watch"
+  entry point), set via a small `markSpectatable(...)` helper called after the list
+  is built rather than a required constructor parameter every other call site would
+  have to pass. `type` ("Single Player"/"Multiplayer"/"Single/Multiplayer") already
+  mostly covers offline-capability, so a separate redundant flag for that wasn't
+  added. Further capability flags (min/max players, party-joinable) are deliberately
+  not built ahead of a concrete feature that needs them.
 - **`GameManager.java`** — client-side cache of the fetched catalog.
 - **`GameWindowFactory.java`** — client-only (unlike `GameRegistry`/`GameInfo`,
   since every entry here references a `*Window` constructor that only exists in

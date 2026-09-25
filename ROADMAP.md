@@ -347,6 +347,21 @@ recorded below as they're confirmed.
   the games list UI) before this session started - it was never disconnected, just
   never wired to the launch mechanism; that's genuinely the next step (capability
   flags: offline-capable, spectatable, min/max players), not a from-scratch build.
+- **First `GameInfo` capability flag added: `spectatable`.** True only for Chess,
+  Rock Paper Scissors, and Battleship (the three games with a real `SpectateDialog`
+  "Watch" entry point) - false by default for the other 46. `GameRegistry.seed()`
+  sets it via a small `markSpectatable(gameIds...)` helper after construction, same
+  post-construction-setter convention `queueCount` already used, rather than adding a
+  required 8th constructor parameter to all 49 call sites for something only 3 of
+  them need. Verified with a scratchpad test confirming the spectatable set matches
+  exactly `{chess, rock-paper-scissors, battleship}` out of all 49 games. Deliberately
+  scoped to just this one flag tonight rather than the full capability set the
+  strategy doc describes (offline-capable, min/max players, party-joinable) - `type`
+  already mostly captures offline-capability ("Single Player" vs "Multiplayer" vs
+  "Single/Multiplayer"), so adding a redundant parallel flag for that wasn't
+  justified; the others don't have a concrete consumer yet and building them
+  speculatively ahead of one was explicitly flagged as an anti-pattern to avoid in
+  the strategy doc's own "Things NOT to build" section.
 
 ## 🔧 In Progress
 

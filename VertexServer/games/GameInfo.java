@@ -23,6 +23,7 @@ public class GameInfo implements Serializable
     private boolean comingSoon;
     private String version;
     private int queueCount;
+    private boolean spectatable;
 
     public GameInfo(String gameId, String name, String type, String statusText,
                      boolean online, boolean comingSoon, String version)
@@ -35,6 +36,7 @@ public class GameInfo implements Serializable
         this.comingSoon = comingSoon;
         this.version = version;
         this.queueCount = 0;
+        this.spectatable = false;
     }
 
     public String getGameId() { return gameId; }
@@ -48,4 +50,8 @@ public class GameInfo implements Serializable
     /** Live count of players currently waiting in the matchmaking queue for this game - server-populated, 0 for games with no real matchmaking yet. */
     public int getQueueCount() { return queueCount; }
     public void setQueueCount(int queueCount) { this.queueCount = queueCount; }
+
+    /** True only for the handful of games with a SpectateDialog "Watch" entry point (Chess, Rock Paper Scissors, Battleship as of this writing) - lets a future generic spectator UI ask "can this game be watched" instead of hardcoding that list. False by default, set explicitly in GameRegistry.seed() for the games that support it. */
+    public boolean isSpectatable() { return spectatable; }
+    public void setSpectatable(boolean spectatable) { this.spectatable = spectatable; }
 }
