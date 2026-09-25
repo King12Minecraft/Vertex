@@ -336,6 +336,100 @@ Match/Game logic validates and applies it like any other input.
   orchestration has been verified, against fake `FactSource`s. Needs real-network
   verification (e.g. via BlueJ) before being trusted in a live match.
 
+## engine — shared sprite/animation/game-loop/collision toolkit
+
+Client-only (like `ui`/`theme`/`pages` — not mirrored into `VertexServer`, confirmed via
+`/tmp/keep_files.txt`), and unused by any shipped game so far: built minimal-first,
+same philosophy as `ai/search` — a small number of focused, independently useful
+classes rather than one big framework, aimed at making a *simple* new game buildable in
+a few hundred lines instead of starting every game from scratch. Every existing game in
+this codebase already hand-rolls its own version of this exact plumbing (a private
+`javax.swing.Timer` field, its own `ballX`/`ballVx`-style physics, its own AABB overlap
+checks) — `engine` doesn't retrofit those working games, it's for whichever game reaches
+for it next.
+
+- **`GameLoop.java`** — a named wrapper around the same `javax.swing.Timer`-driven tick
+  loop every offline game already hand-rolls (`BrickBreakerWindow`, `FightArenaPanel`,
+  `TetrisWindow`, ...) — same mechanism (fires on the EDT, so game state/physics/repaint
+  all stay safely on the UI thread with zero extra synchronization), just one shared
+  name/API. `Ticker.tick(dtSeconds)` hands real elapsed time for frame-rate-independent
+  motion; a game that prefers the existing codebase convention of moving a fixed amount
+  every tick (`BrickBreakerGame.ballX += ballVx`) can simply ignore `dt` — both styles
+  work with the same loop. Deliberately not a second thread or a fixed-timestep-with-
+  catch-up loop — this codebase has no game needing sub-frame accuracy, and a second
+  thread touching Swing components would break the single-threaded rule Swing needs
+  everywhere else in Vertex.
+- **`Vector2.java`** — immutable 2D vector (`add`/`subtract`/`scale`/`dot`/`length`/
+  `normalize`/`rotate`/`reflect`/`angle`). Most existing games move objects with plain
+  `double x/y/vx/vy` fields instead (see `BrickBreakerGame`, `AirHockeyWindow`) — that's
+  still fine, and `GameObject` uses that same convention for its own position/velocity.
+  `Vector2` is for where plain doubles get awkward: `pseudo3d`'s raycasting needs real
+  vector rotation for the camera direction/plane, and `Collision.bounceOffSide` returns
+  one for angled bounce responses.
+- **`GameObject.java`** — optional base class for a moving, collidable thing (a ball, a
+  paddle, an enemy). Plain `x`/`y`/`vx`/`vy`/`width`/`height`/`alive` fields matching
+  every existing game's own convention; `update(dt)` integrates velocity into position by
+  default (override for gravity/AI-steering/scripted motion), `bounds()` returns a
+  `Rectangle2D.Double` for `Collision`'s checks. Entirely optional — a game can keep its
+  own plain fields and call `Collision`'s static methods directly instead.
+- **`Collision.java`** — the same handful of overlap tests and bounce responses every
+  physics-y game already hand-rolls per-game (`BrickBreakerGame.checkPaddleCollision`/
+  `checkBrickCollision`, `AirHockeyMatch`'s puck-vs-paddle), written once. Static utility
+  like `Minimax`/`GridPathfinder` — `aabbOverlap`, `circleOverlap`, `circleRectOverlap`
+  (clamp-the-circle's-center approach, more accurate near corners than approximating a
+  circle as its own bounding box the way `BrickBreakerGame` does today), `overlapSide`
+  (which edge of a rect a circle is hitting from — the exact question
+  `checkBrickCollision` answers by hand), and `bounceOffSide` (flips `vx`/`vy` off that
+  side, returned as a `Vector2`).
+- **`Sprite.java`/`SpriteSheet.java`/`Animation.java`** — no game in this codebase
+  currently draws image-based sprites (every board/piece is hand-painted with
+  `Graphics2D` `fillRect`/`fillOval`/etc. — see `ReversiWindow`, `BrickBreakerWindow`);
+  these exist for the games that will want actual bitmap art without each one
+  reinventing "load an image, slice a sheet into frames, cycle them over time." `Sprite`
+  wraps one `BufferedImage` frame (also useful for a game that renders complex vector
+  art once into an offscreen buffer and blits it every frame instead of repainting the
+  same shapes every tick, the way `GameLogo` caches its rendered icon). `SpriteSheet`
+  slices a grid-laid-out image into frames, loading from the classpath
+  (`Class.getResourceAsStream`, the same portable-jar-friendly approach
+  `GameLogo.loadSource()` uses for `vertex_logo.png`) or wrapping an already-loaded
+  `BufferedImage` for procedurally-drawn sheets. `Animation` advances through a frame
+  sequence on the same `dt` `GameLoop` hands its `Ticker`; loops by default, or
+  `loop=false` for a one-shot effect (an explosion) with `isFinished()` to know when to
+  remove it.
+- **`engine/pseudo3d`** — the planned pseudo-3D capability: isometric/raycasting tricks
+  in plain Java2D, deliberately not real 3D (JOGL/LWJGL/a native rendering pipeline was
+  ruled out as breaking the "one portable jar, no install" model everything else
+  follows). `RayCaster.java` — classic Wolfenstein-3D-style raycasting via the standard
+  DDA grid-traversal algorithm: one ray per screen column against a 2D `int[][]` map,
+  rendered as vertical wall slices with a flat per-cell color (darkened on one wall
+  orientation for cheap directional shading) rather than real textures. The caller owns
+  the camera (`posX`/`posY`, a unit `dirX`/`dirY`, and a `planeX`/`planeY` perpendicular
+  to `dir` whose length sets the field of view) — rotating the view is just rotating
+  `dir` and `plane` together by the same angle via `Vector2.rotate`. `IsometricProjection
+  .java` — converts tile `(col,row)` to on-screen pixel position for the classic 2:1
+  diamond-tile look and back (`screenToTile`, for mouse picking), plus `drawOrder(col,
+  row)`, the standard isometric painter's-algorithm sort key (draw increasing
+  `col+row` first so nearer tiles correctly overlap farther ones without a real depth
+  buffer).
+- **Verification**: a scratchpad smoke test (`EngineSmokeTest.java`, not part of the
+  shipped codebase) exercises every class directly — vector math identities, collision
+  overlap/bounce correctness, a procedurally-built sprite sheet sliced and animated
+  through a full loop cycle plus a one-shot animation finishing correctly, a raycaster
+  render against a small test map confirmed to actually paint wall-colored pixels, an
+  isometric tile↔screen round-trip, and a real `GameLoop` started/stopped/confirmed to
+  fire real ticks — 39/39 checks passed. A separate visual demo
+  (`RayCasterVisualDemo.java`) rendered both a raycaster corridor view and an isometric
+  tile grid to PNG and was eyeballed to confirm they actually look like the intended
+  pseudo-3D style, not just "some pixel matched."
+- **Not built yet** (still just `ROADMAP.md` ideas, not started): a particle system for
+  effects (explosions, bursts) — skipped for this minimal-first pass since
+  `ConfettiOverlay` already covers the one existing burst-effect need and a generic
+  particle system isn't yet justified by a second use case; and wiring any actual game
+  onto `engine` — this pass is infrastructure only, proven via the smoke test and visual
+  demo above rather than a real game adopting it yet (the same "prove it generalizes,
+  then let games opt in" approach `ai/search` took before `ConnectFourGameModel`/
+  `ReversiGameModel` existed).
+
 ## economy — coins, ratings, achievements, cosmetics
 
 Hook-in pattern: `EconomyManager`, `GameHistoryManager`, `LeaderboardManager` are

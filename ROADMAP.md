@@ -228,6 +228,28 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   (`tableCenterer`) - same bare-board fix as Fight Arena and Square Wars. Mouse
   coordinates used for paddle-position reporting stay relative to `TablePanel` itself
   regardless of the wrapper, so centering doesn't affect gameplay input.
+- **`engine` package built** — the shared sprite/animation/game-loop/collision toolkit
+  from the infrastructure backlog, built minimal-first (same approach as `ai/search`):
+  `GameLoop` (named wrapper around the `javax.swing.Timer`-tick loop every offline game
+  already hand-rolls), `Vector2` (immutable 2D vector math), `GameObject` (optional
+  position/velocity/bounds base class), `Collision` (AABB/circle/circle-rect overlap
+  tests plus side-detection and bounce response — the same checks `BrickBreakerGame`/
+  `AirHockeyMatch` already hand-roll per-game, generalized), and `Sprite`/`SpriteSheet`/
+  `Animation` for image-based sprite work (no game uses raster sprites today — every
+  board is hand-painted with `Graphics2D` shapes — this is for whichever game wants
+  bitmap art next). Also includes the planned **pseudo-3D** capability:
+  `engine/pseudo3d/RayCaster` (Wolfenstein-3D-style DDA raycasting over a 2D grid map)
+  and `engine/pseudo3d/IsometricProjection` (tile↔screen conversion plus the standard
+  painter's-algorithm draw-order key) — both plain Java2D, no real 3D pipeline. Verified
+  with a 39-check scratchpad smoke test (vector math identities, collision correctness,
+  a procedurally-built sprite sheet animated through a full loop and a one-shot cycle,
+  a raycaster render confirmed to paint actual wall pixels, an isometric round-trip, and
+  a real `GameLoop` confirmed to fire ticks) plus a separate visual demo rendering both
+  a raycaster corridor and an isometric tile grid to PNG. Client-only, not mirrored to
+  `VertexServer` (confirmed via `/tmp/keep_files.txt`), same as `ui`/`theme`/`pages`.
+  Infrastructure only for now - no shipped game uses it yet, same "prove it generalizes
+  first" approach `ai/search` took before `ConnectFourGameModel` existed. See
+  `PROGRAM_STRUCTURE.md`'s `engine` section for the full breakdown.
 
 ## 🔧 In Progress
 
@@ -255,13 +277,6 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
 
 ## 📋 Planned — infrastructure & shared packages
 
-- **`engine` package** — shared sprite/animation/game-loop/collision toolkit, built
-  minimal-first (same approach as `ai/search`), aimed at making a *simple* new game
-  buildable in a few hundred lines instead of starting from scratch each time.
-  Includes a planned **pseudo-3D** capability (isometric/raycasting tricks in plain
-  2D Java2D) — real 3D (JOGL/LWJGL, native libraries, a separate rendering pipeline)
-  was deliberately ruled out as a different, much bigger project that would break the
-  "one portable jar, no install" model everything else follows.
 - **`economy` package additions** — an `EconomyKernel` any game can call in one line
   to grant coins/XP/unlock cosmetics, instead of reimplementing reward logic per game.
 - **`achievements` kernel** — generic trigger-based unlock system, parallel to
