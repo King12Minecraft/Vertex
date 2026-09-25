@@ -69,8 +69,7 @@ public class GameLauncher
             }
             else if ("rock-paper-scissors".equals(game.getGameId()))
             {
-                RockPaperScissorsWindow window = new RockPaperScissorsWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new RockPaperScissorsWindow());
             }
             else if ("pingpong".equals(game.getGameId()))
             {

@@ -134,7 +134,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. 28 games so far are the exceptions
+  gate since there's nothing to preview yet. 29 games so far are the exceptions
   to `new XxxWindow().setVisible(true)` - they call
   `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
   conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`): Chess,
@@ -142,8 +142,15 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Match Three,
   Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping Pong,
   Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy
-  Bird, and Galaxy Defender. Every other game still opens its own window
-  until it's converted the same way.
+  Bird, Galaxy Defender, and Rock Paper Scissors. Every other game still opens
+  its own window until it's converted the same way. A game reachable from
+  more than one place (Chess and Rock Paper Scissors both have a
+  `SpectateDialog` "Watch" entry point, separate from `GameLauncher`) needs
+  every one of those call sites updated, not just the main one - a real bug
+  (Chess's spectate path silently doing nothing once `ChessWindow` became a
+  `JPanel`) shipped from missing this the first time and had to be found and
+  fixed separately; Rock Paper Scissors's own spectate line was fixed
+  proactively in the same conversion instead.
   Snake is also reachable pre-login from `pages/OfflineHubWindow.java`
   ("Play Offline" on the login screen), which has no `MainMenu` to hand off
   to - see `SnakeWindow.setReturnAction(...)` below.

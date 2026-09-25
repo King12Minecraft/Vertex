@@ -169,8 +169,8 @@ public class SpectateDialog
                         }
                         else if ("rock-paper-scissors".equals(gameId))
                         {
-                            RockPaperScissorsWindow window = RockPaperScissorsWindow.forSpectating(matchId, playerAName, playerBName);
-                            window.setVisible(true);
+                            pages.MainMenu.getInstance().showGame(
+                                RockPaperScissorsWindow.forSpectating(matchId, playerAName, playerBName));
                         }
                         else if ("battleship".equals(gameId))
                         {

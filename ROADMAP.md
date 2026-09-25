@@ -126,19 +126,43 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   actually centering its content vertically, a `BoxLayout` cousin of the `FlowLayout`
   top-alignment bug found during the Tic-Tac-Toe conversion - fixed the same way,
   wrapped in a `GridBagLayout` centerer. 28 games embedded total now.
+- **Bug found and fixed: `SpectateDialog`'s Chess "Watch" button was silently broken**
+  by the original Chess embedding conversion — it still called
+  `new ChessWindow(matchId); window.setVisible(true)`, which does nothing once
+  `ChessWindow` is a `JPanel` instead of a `JFrame`. Caught by a deliberate sweep
+  (grepping for `new <Window>(` across the whole client, excluding each window's own
+  file and `GameLauncher.java`) run before converting Rock Paper Scissors, since RPS
+  has the same spectate-window pattern in the same file. Fixed by routing through
+  `MainMenu.getInstance().showGame(...)` like every other entry point. Worth
+  remembering for every future conversion: check for *every* external construction
+  site of a game window, not just `GameLauncher`'s.
+- **Rock Paper Scissors converted to the embedded pattern** — 29 games embedded total
+  now. More involved than the earlier batches: three ways into the same window (normal
+  play, spectating an in-progress match via `SpectateDialog`, and a rematch-wait
+  screen), plus a rematch flow with the same "swap-then-immediately-undo" risk found
+  during the original Chess conversion (a rematch spawns a brand new embedded window,
+  so the old window's own cleanup must skip `returnToGames()` when a rematch was just
+  requested - fixed with the same `boolean[] rematchRequested` flag Chess uses).
+  `SpectateDialog`'s RPS spectate line got the same `MainMenu.getInstance().showGame(...)`
+  fix as the Chess bug above, fixed proactively this time instead of shipping broken
+  first.
 
 ## 🔧 In Progress
 
 - **Rolling embedded games out past the `ai/search` games and both offline-game
-  batches** — the pattern is proven 28 times now (Chess, Reversi, Connect Four, Signal
+  batches** — the pattern is proven 29 times now (Chess, Reversi, Connect Four, Signal
   Grid, Tic-Tac-Toe, Dots and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon
   Says, Whack-a-Mole, Match Three, Lights Out, Peg Solitaire, Mancala, Klondike, Dino
   Dash, Tetris, Ping Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick
-  Breaker, Flappy Bird, Galaxy Defender); the other ~19 games (mostly online
-  multiplayer with matchmaking, plus a few real-time arcade games) still open their
-  own `JFrame` and need the same conversion, one at a time. Any future offline-capable
-  game reachable from `OfflineHubWindow` needs the same `setReturnAction`-style
-  treatment Snake got, not just the standard MainMenu-only conversion.
+  Breaker, Flappy Bird, Galaxy Defender, Rock Paper Scissors); the other ~18 games
+  (mostly online multiplayer with matchmaking, plus a few real-time arcade games and
+  Battleship's own spectate path in `SpectateDialog`) still open their own `JFrame`
+  and need the same conversion, one at a time. Any future offline-capable game
+  reachable from `OfflineHubWindow` needs the same `setReturnAction`-style treatment
+  Snake got, not just the standard MainMenu-only conversion. **Standing check for
+  every remaining conversion**: grep for every external construction site of that
+  game's window (not just `GameLauncher.java`) before considering it done - Chess's
+  spectate-path bug is exactly the kind of thing that slips through otherwise.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style

@@ -2,6 +2,7 @@ package games;
 import ai.AiKernel;
 import economy.GuestPlayTracker;
 import account.Session;
+import pages.MainMenu;
 import ui.GameHubDialog;
 import ui.ThemedButton;
 import ui.GameModeCard;
@@ -12,12 +13,9 @@ import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
 import net.Message;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -26,11 +24,11 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * RockPaperScissorsWindow
@@ -42,8 +40,13 @@ import java.awt.event.WindowEvent;
  * picking randomly inline - see RockPaperScissorsBotStrategy). Purely
  * event-driven either way - no game loop/timer needed, a move
  * resolves the instant both sides have picked.
+ *
+ * Embedded in MainMenu's game-host slot (see ChessWindow's javadoc for
+ * the pattern). requestLeave() replaces the old windowClosing
+ * confirmation exactly, including the same "only confirm mid-match,
+ * never for a spectator" behavior.
  */
-public class RockPaperScissorsWindow extends JFrame implements NetworkManager.PushListener
+public class RockPaperScissorsWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String[] MOVES = { "Rock", "Paper", "Scissors" };
     private static final String MODE_SELECT = "MODE_SELECT";
@@ -104,23 +107,17 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
 
     private RockPaperScissorsWindow(String spectateMatchId, String playerAName, String playerBName, String rematchWaitOpponent)
     {
-        super(spectateMatchId != null ? "Vertex - Rock Paper Scissors (Spectating)" : "Vertex - Rock Paper Scissors");
         isSpectator = spectateMatchId != null;
         boolean isRematchWait = rematchWaitOpponent != null;
         spectatorPlayerA = playerAName;
         spectatorPlayerB = playerBName;
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createGameScreen(), GAME);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
-
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+        add(cards, BorderLayout.CENTER);
 
         NetworkManager.addPushListener(this);
 
@@ -149,51 +146,50 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
         {
             cardLayout.show(cards, MODE_SELECT);
         }
+    }
 
-        pack();
-        setLocationRelativeTo(null);
-
-        addWindowListener(new WindowAdapter()
+    @Override
+    public boolean requestLeave()
+    {
+        if (matchId != null && !isSpectator)
         {
-            public void windowClosing(WindowEvent e)
+            int choice = javax.swing.JOptionPane.showConfirmDialog(this,
+                "Leave this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
+                "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
+            if (choice != javax.swing.JOptionPane.YES_OPTION)
             {
-                if (matchId != null && !isSpectator)
-                {
-                    int choice = javax.swing.JOptionPane.showConfirmDialog(RockPaperScissorsWindow.this,
-                        "Close this game? " + (opponentUsername != null ? opponentUsername : "Your opponent") + " will win by default.",
-                        "Leave Match", javax.swing.JOptionPane.YES_NO_OPTION);
-                    if (choice != javax.swing.JOptionPane.YES_OPTION)
-                    {
-                        return;
-                    }
-                }
-                if (!isSpectator && !vsAi && matchId == null)
-                {
-                    leaveQueue();
-                }
-                // vsAI mode has no natural conclusion (rounds continue until closed), so this is
-                // its only real "done playing" signal - recorded here. Online mode is different:
-                // it has a genuine conclusion point (RPS_MATCH_OVER), which records the play
-                // explicitly there instead, matching Chess/Battleship's "only count real
-                // completions" design - not whatever state a mid-game close happens to leave it in.
-                if (vsAi)
-                {
-                    recordPlayed();
-                }
-                NetworkManager.removePushListener(RockPaperScissorsWindow.this);
-                dispose();
+                return false;
             }
-        });
+        }
+        if (!isSpectator && !vsAi && matchId == null)
+        {
+            leaveQueue();
+        }
+        // vsAI mode has no natural conclusion (rounds continue until closed), so this is
+        // its only real "done playing" signal - recorded here. Online mode is different:
+        // it has a genuine conclusion point (RPS_MATCH_OVER), which records the play
+        // explicitly there instead, matching Chess/Battleship's "only count real
+        // completions" design - not whatever state a mid-game close happens to leave it in.
+        if (vsAi)
+        {
+            recordPlayed();
+        }
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     // ==================== Mode select ====================
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Rock Paper Scissors");
         title.setFont(UITheme.FONT_HEADING);
@@ -228,7 +224,7 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
             }));
 
         panel.add(tileRow);
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean aiMode)
@@ -240,14 +236,10 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
             statusLabel.setText("Choose your move.");
             scoreLabel.setText(offlineScoreText());
             cardLayout.show(cards, GAME);
-            pack();
-            setLocationRelativeTo(null);
         }
         else
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
     }
@@ -256,10 +248,14 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Rock Paper Scissors");
         title.setFont(UITheme.FONT_HEADING);
@@ -282,12 +278,12 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
             public void actionPerformed(ActionEvent e)
             {
                 leaveQueue();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private void findMatch()
@@ -356,7 +352,26 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
         center.add(buttonRow);
         moveButtonRow = buttonRow;
 
-        panel.add(center, BorderLayout.CENTER);
+        JPanel centerCenterer = new JPanel(new GridBagLayout());
+        centerCenterer.setOpaque(false);
+        centerCenterer.add(center, new GridBagConstraints());
+        panel.add(centerCenterer, BorderLayout.CENTER);
+
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(10, 0, 0, 0));
+        bottomRow.add(leave);
+        panel.add(bottomRow, BorderLayout.SOUTH);
+
         return panel;
     }
 
@@ -461,8 +476,6 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
             scoreLabel.setText("You 0 - " + opponentUsername + " 0");
 
             cardLayout.show(cards, GAME);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (message.getType() == MessageType.RPS_ROUND_RESULT)
         {
@@ -489,7 +502,7 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
         else if (message.getType() == MessageType.SPECTATE_ENDED)
         {
             GameHubDialog.show(this, "Rock Paper Scissors", "The match you were watching has ended.");
-            dispose();
+            MainMenu.getInstance().returnToGames();
         }
         else if (message.getType() == MessageType.RPS_MATCH_OVER)
         {
@@ -510,11 +523,12 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
 
             final String finalOpponent = opponentUsername;
             recordPlayed();
+            final boolean[] rematchRequested = { false };
             GameHubDialog.showWithAction(this, "Rock Paper Scissors", text, "Rematch", new Runnable()
             {
-                public void run() { requestRematch(finalOpponent); }
+                public void run() { rematchRequested[0] = true; requestRematch(finalOpponent); }
             });
-            dispose();
+            if (!rematchRequested[0]) { MainMenu.getInstance().returnToGames(); }
         }
     }
 
@@ -526,8 +540,7 @@ public class RockPaperScissorsWindow extends JFrame implements NetworkManager.Pu
         request.setGameId("rock-paper-scissors");
         NetworkManager.sendAsync(request);
 
-        RockPaperScissorsWindow window = RockPaperScissorsWindow.forRematchWait(opponent);
-        window.setVisible(true);
+        MainMenu.getInstance().showGame(RockPaperScissorsWindow.forRematchWait(opponent));
     }
 
     /** Fire-and-forget - records play history once the window closes. Score = wins (vs AI) or final series score (vs Player). */
