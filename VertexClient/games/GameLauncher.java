@@ -120,8 +120,7 @@ public class GameLauncher
             }
             else if ("square-wars".equals(game.getGameId()))
             {
-                SquareWarsWindow window = new SquareWarsWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new SquareWarsWindow());
             }
             else if ("trivia-blitz".equals(game.getGameId()))
             {

@@ -6,12 +6,10 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -24,12 +22,12 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * SquareWarsWindow
@@ -44,7 +42,7 @@ import java.awt.event.WindowEvent;
  * remaining on every update - close enough for "how much longer," not
  * meant to be exact to the second.
  */
-public class SquareWarsWindow extends JFrame implements NetworkManager.PushListener
+public class SquareWarsWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -70,42 +68,39 @@ public class SquareWarsWindow extends JFrame implements NetworkManager.PushListe
 
     public SquareWarsWindow()
     {
-        super("Vertex - Square Wars");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
         java.util.Arrays.fill(board, '.');
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                leaveMatch();
-                if (countdownTimer != null) countdownTimer.stop();
-                NetworkManager.removePushListener(SquareWarsWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        leaveMatch();
+        if (countdownTimer != null) countdownTimer.stop();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
         panel.setPreferredSize(new Dimension(400, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Square Wars");
         title.setFont(UITheme.FONT_HEADING);
@@ -128,22 +123,25 @@ public class SquareWarsWindow extends JFrame implements NetworkManager.PushListe
             public void actionPerformed(ActionEvent e)
             {
                 cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
                 findMatch();
             }
         });
         panel.add(playOnline);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Square Wars");
         title.setFont(UITheme.FONT_HEADING);
@@ -166,12 +164,12 @@ public class SquareWarsWindow extends JFrame implements NetworkManager.PushListe
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createBoardScreen()
@@ -187,7 +185,10 @@ public class SquareWarsWindow extends JFrame implements NetworkManager.PushListe
         wrap.add(statusLabel, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        wrap.add(boardPanel, BorderLayout.CENTER);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(boardPanel, new GridBagConstraints());
+        wrap.add(boardCenterer, BorderLayout.CENTER);
 
         return wrap;
     }
@@ -266,8 +267,6 @@ public class SquareWarsWindow extends JFrame implements NetworkManager.PushListe
             matchStartedAt = System.currentTimeMillis();
             applyBoardState(message.getBoardState());
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
             startCountdown();
         }
         else if (type == MessageType.SQWARS_UPDATE)
@@ -299,11 +298,9 @@ public class SquareWarsWindow extends JFrame implements NetworkManager.PushListe
                     matchId = null;
                     java.util.Arrays.fill(board, '.');
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { SquareWarsWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }

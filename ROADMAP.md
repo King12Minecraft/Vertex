@@ -205,6 +205,15 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   inside the game screen's outer panel - needed its own small `GridBagLayout`
   centerer wrapper (`fightCenterer`) so it centers instead of stretching to fill the
   available area, same fix as every other bare game-board panel converted so far.
+- **Square Wars converted to the embedded pattern** — 41 games embedded total now.
+  Same recipe throughout: unconditional `requestLeave()` (also stops the local
+  countdown timer, matching the original `windowClosing` exactly), mode-select and
+  searching screens wrapped in `GridBagLayout` centerers, and the board screen's
+  bare `BoardPanel` (a fixed-size custom-painted grid claimed by clicking cells,
+  added directly to `BorderLayout.CENTER`) given its own small `GridBagLayout`
+  centerer (`boardCenterer`) - the same bare-board fix used for Fight Arena's canvas.
+  No rematch guard needed: "Play Again" re-shows the `SEARCHING` card within the same
+  window instead of opening a new one.
 
 ## 🔧 In Progress
 
