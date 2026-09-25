@@ -27,13 +27,15 @@ import javax.swing.SwingUtilities;
 /**
  * GameDetailDialog
  * -----------------
- * A dedicated "about this game" view - larger art, tags (2D,
- * Multiplayer, Online, etc. - GameMetadata), difficulty, the same
- * description text GameRulesDialog shows, and a Play button right
- * there so you don't need to close this and hunt for the card's own
- * Play button separately. Opened by clicking a card's art/name
- * (rather than replacing the card's own quick-action buttons, which
- * stay as direct shortcuts for Play/Rules/Pin).
+ * The mandatory "about this game" page every Play action shows first
+ * - GameLauncher.launch(...) (the one entry point every Play
+ * button/card/search-result/invite across the app already goes
+ * through) opens this instead of the game directly. Larger art, tags
+ * (2D, Multiplayer, Online, etc. - GameMetadata), difficulty, the same
+ * rules/controls text GameRulesDialog shows, and the actual Play
+ * button - clicking it is what calls GameLauncher.openGame(...) and
+ * starts the game for real. There's no separate way to skip straight
+ * to playing.
  */
 public class GameDetailDialog
 {
@@ -116,7 +118,7 @@ public class GameDetailDialog
             public void actionPerformed(ActionEvent e)
             {
                 dialog.dispose();
-                GameLauncher.launch(dialog.getOwner(), game);
+                GameLauncher.openGame(dialog.getOwner(), game);
             }
         });
         buttonRow.add(play);

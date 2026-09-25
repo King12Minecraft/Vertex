@@ -125,10 +125,16 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   `ClientHandler.handleGameList()` serves this, patching in live queue counts for a
   few games.
 - **`GameManager.java`** — client-side cache of the fetched catalog.
-- **`GameLauncher.java`** — the plugin **launch** dispatch: one
-  `launch(Component, GameInfo)` mapping a game id to `new XxxWindow().setVisible(true)`,
-  shared by every "Play" entry point (games page, quick-play dropdown, global search).
-  Falls back to a "not converted yet" dialog for unknown/coming-soon ids.
+- **`GameLauncher.java`** — the plugin **launch** dispatch, and the mandatory
+  rules-page gate every "Play" entry point (games page, quick-play dropdown, global
+  search, hero banner, game invites) already shares: `launch(Component, GameInfo)`,
+  the only public method, shows `GameDetailDialog` (art, tags, difficulty, rules,
+  a real Play button) instead of opening the game directly - there's no way to skip
+  straight to playing. The actual `new XxxWindow().setVisible(true)` mapping lives in
+  package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
+  button (same package), once someone has actually seen that page. `launch(...)`
+  still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
+  gate since there's nothing to preview yet.
 - **`GameMetadata.java`** — presentation-only (difficulty, tags) for game detail
   dialogs; has no effect on matchmaking or gameplay.
 - **`MatchManager.java`** — the original reference matchmaking manager (for

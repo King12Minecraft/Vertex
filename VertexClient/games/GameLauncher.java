@@ -12,6 +12,16 @@ import java.awt.Component;
  * future entry point) can launch a game the same way without
  * duplicating the switch-on-gameId logic or the error-visibility
  * safety net.
+ *
+ * launch(...) is the ONLY public entry point, and every existing call
+ * site already goes through it - it now shows GameDetailDialog (art,
+ * tags, difficulty, full rules/controls text, a Play button) rather
+ * than opening the game's window immediately, so there's no separate
+ * "skip the rules page" path to accidentally wire a future button
+ * into. GameDetailDialog's own Play button calls openGame(...) below
+ * once someone has actually seen that page - package-private on
+ * purpose, since GameDetailDialog is the only caller meant to reach
+ * it directly.
  */
 public class GameLauncher
 {
@@ -20,6 +30,7 @@ public class GameLauncher
         // Static utility class - never instantiated.
     }
 
+    /** Shows the game's rules/controls page first - see GameDetailDialog, whose own Play button is what actually starts the game (openGame(...) below). Coming-soon games skip straight to the existing "not converted yet" notice, since there's nothing to preview yet. */
     public static void launch(Component anchor, GameInfo game)
     {
         if (game.isComingSoon())
@@ -30,6 +41,12 @@ public class GameLauncher
             return;
         }
 
+        GameDetailDialog.show(anchor, game);
+    }
+
+    /** Actually opens the game's window - only meant to be called by GameDetailDialog's own Play button, once someone has already seen the rules page that launch(...) shows. */
+    static void openGame(Component anchor, GameInfo game)
+    {
         try
         {
             if ("snake".equals(game.getGameId()))
