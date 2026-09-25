@@ -220,6 +220,14 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   screen never had a Leave affordance before (only the 4 answer buttons and a scores
   area) and now gets one appended below the scores panel, same as Word Duel and
   Typing Duel's round screens.
+- **Air Hockey converted to the embedded pattern** — 43 games embedded total now.
+  Same recipe: unconditional `requestLeave()`, mode-select and searching screens
+  wrapped in `GridBagLayout` centerers, and the board screen's bare `TablePanel`
+  (a fixed-size custom-painted table fed by continuous server state updates, mouse
+  position reported to steer the paddle) given its own `GridBagLayout` centerer
+  (`tableCenterer`) - same bare-board fix as Fight Arena and Square Wars. Mouse
+  coordinates used for paddle-position reporting stay relative to `TablePanel` itself
+  regardless of the wrapper, so centering doesn't affect gameplay input.
 
 ## 🔧 In Progress
 

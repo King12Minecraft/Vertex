@@ -3,8 +3,7 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
@@ -12,7 +11,6 @@ import ui.RoundedPanel;
 import ui.ThemedButton;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -25,13 +23,13 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * AirHockeyWindow
@@ -50,7 +48,7 @@ import java.awt.event.WindowEvent;
  * isn't worth the complexity for what's still a fully playable, fair
  * game either way (both players see the exact same table).
  */
-public class AirHockeyWindow extends JFrame implements NetworkManager.PushListener
+public class AirHockeyWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -75,40 +73,37 @@ public class AirHockeyWindow extends JFrame implements NetworkManager.PushListen
 
     public AirHockeyWindow()
     {
-        super("Vertex - Air Hockey");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                leaveMatch();
-                NetworkManager.removePushListener(AirHockeyWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
         panel.setPreferredSize(new Dimension(400, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Air Hockey");
         title.setFont(UITheme.FONT_HEADING);
@@ -131,22 +126,25 @@ public class AirHockeyWindow extends JFrame implements NetworkManager.PushListen
             public void actionPerformed(ActionEvent e)
             {
                 cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
                 findMatch();
             }
         });
         panel.add(playOnline);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Air Hockey");
         title.setFont(UITheme.FONT_HEADING);
@@ -169,12 +167,12 @@ public class AirHockeyWindow extends JFrame implements NetworkManager.PushListen
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createBoardScreen()
@@ -190,7 +188,10 @@ public class AirHockeyWindow extends JFrame implements NetworkManager.PushListen
         wrap.add(statusLabel, BorderLayout.NORTH);
 
         tablePanel = new TablePanel();
-        wrap.add(tablePanel, BorderLayout.CENTER);
+        JPanel tableCenterer = new JPanel(new GridBagLayout());
+        tableCenterer.setOpaque(false);
+        tableCenterer.add(tablePanel, new GridBagConstraints());
+        wrap.add(tableCenterer, BorderLayout.CENTER);
 
         return wrap;
     }
@@ -259,8 +260,6 @@ public class AirHockeyWindow extends JFrame implements NetworkManager.PushListen
             opponentUsername = message.getOpponentUsername();
             statusLabel.setText("You are " + ("A".equals(mySymbol) ? "bottom" : "top") + " - " + opponentUsername + " is opposite");
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (type == MessageType.AIRHOCKEY_UPDATE)
         {
@@ -287,11 +286,9 @@ public class AirHockeyWindow extends JFrame implements NetworkManager.PushListen
                     gameOver = false;
                     matchId = null;
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { AirHockeyWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }

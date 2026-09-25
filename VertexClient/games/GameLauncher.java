@@ -204,8 +204,7 @@ public class GameLauncher
             }
             else if ("air-hockey".equals(game.getGameId()))
             {
-                AirHockeyWindow window = new AirHockeyWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new AirHockeyWindow());
             }
             else if ("word-duel".equals(game.getGameId()))
             {
