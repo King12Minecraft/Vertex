@@ -174,6 +174,12 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   own fixed `setPreferredSize(420, 420)`, an unusual variant of the same stretch-not-
   center bug - removed now that the actual content column is centered directly), and
   a new "Leave" button on the board screen.
+- **Typing Duel converted to the embedded pattern** — 37 games embedded total now.
+  Same recipe throughout: unconditional `requestLeave()` (never confirmed before
+  leaving mid-match even as its own window), `GridBagLayout` centering on all three
+  screens, a new "Leave" button on the round screen alongside the sentence/typing
+  field/progress bars (it never had one before, same as Word Duel). No new wrinkles;
+  `GameLauncher.java`'s `typing-duel` case was its only external construction site.
 
 ## 🔧 In Progress
 

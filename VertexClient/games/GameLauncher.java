@@ -237,8 +237,7 @@ public class GameLauncher
             }
             else if ("typing-duel".equals(game.getGameId()))
             {
-                TypingDuelWindow window = new TypingDuelWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new TypingDuelWindow());
             }
             else if ("signal-grid".equals(game.getGameId()))
             {
