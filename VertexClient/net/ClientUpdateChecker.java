@@ -32,6 +32,21 @@ import java.security.CodeSource;
  * replace, and that's a dev environment anyway, not something a
  * friend would be running.
  *
+ * SECURITY NOTE (open, unresolved - see ROADMAP.md/BLOCKED_QUESTIONS.md): this
+ * downloads and stages an executable jar from whatever server the client is
+ * currently connected to, with no code signing and over a plain, unencrypted
+ * socket (NetworkManager is TCP-only, no TLS yet). The hash check right below
+ * only verifies the download wasn't truncated/corrupted in transit - it does
+ * NOT verify the jar came from someone the user actually trusts, since the
+ * same server (or a network-level attacker impersonating it) that could serve
+ * a malicious jar could just as easily serve a matching hash for it. Today's
+ * real-world exposure is bounded by the "LAN-only for now" limitation
+ * documented on NetworkManager, but this becomes a genuine remote-code-
+ * execution path the moment internet play ships without also solving this.
+ * Left unresolved rather than rushed: real jar signing is a cross-cutting,
+ * key-management decision (whose key, where it lives, how server operators
+ * get one) that needs the user's input, not a guess made overnight.
+ *
  * Uses blocking NetworkManager.send() on its own background thread,
  * same as every other one-shot request/response call in this
  * codebase (see AchievementsPanel's note on why - both new response
@@ -81,12 +96,22 @@ public class ClientUpdateChecker
         {
             return;
         }
+        String expectedHash = versionResponse.getNewJarHash();
 
         Message downloadRequest = new Message();
         downloadRequest.setType(MessageType.CLIENT_UPDATE_DOWNLOAD_REQUEST);
         Message downloadResponse = NetworkManager.send(downloadRequest);
 
         if (downloadResponse == null || !downloadResponse.isSuccess() || downloadResponse.getFileData() == null)
+        {
+            return;
+        }
+
+        // Integrity check only, not an authenticity one - see the security note on
+        // this class. Guards against a truncated/corrupted transfer installing a
+        // broken jar; does nothing against a malicious server, which could lie
+        // about expectedHash exactly as easily as it could lie about the file.
+        if (expectedHash != null && !expectedHash.equals(FileHash.sha256Hex(downloadResponse.getFileData())))
         {
             return;
         }

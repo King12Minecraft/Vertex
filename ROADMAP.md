@@ -462,6 +462,36 @@ recorded below as they're confirmed.
   instances with nothing listening on the configured host:port and confirms each one
   now shows the connection message instead of hanging on "Loading..." or staying
   blank.
+- **Found and fixed a real gap in the client/server sync discipline itself:
+  `VertexClient/net/ClientHandler.java` and `net/Message.java` had silently
+  drifted from their `VertexServer/` counterparts.** Discovered while adding the
+  update-integrity check below - diffing the two trees' `ClientHandler.java` turned
+  up that tonight's earlier practice-reward fix (the "14 offline games paid zero
+  coins" commit) was only ever applied to `VertexServer/`. This matters because
+  `VertexClient/games/HostServerDialog.java` spins up a real, full `net.GameServer`
+  in-process (the in-app "Host a Server" feature) - anyone hosting from the client
+  app rather than a dedicated `VertexServer.jar` was still hitting the old bug.
+  `PROGRAM_STRUCTURE.md`'s "shared files" list only names a handful of files as
+  required to stay byte-identical; `ClientHandler.java`/`Message.java` weren't on
+  it despite needing to be, since the whole `net`/`games`/`economy`/`social`/`admin`
+  server stack is compiled into both trees for exactly this hosting feature. Synced
+  both files server-to-client (now byte-identical again) and re-added the note to
+  `PROGRAM_STRUCTURE.md`'s file-sync section below so this doesn't quietly happen
+  again. Verified: both trees compile clean after the sync.
+- **Client auto-update integrity check** — `ClientUpdateChecker` staged whatever
+  bytes `CLIENT_UPDATE_DOWNLOAD_RESPONSE` handed it with zero verification, so a
+  truncated or corrupted transfer would get installed as-is. Added
+  `Message.newJarHash` (the server's own jar hash, already computed for the version
+  check, now also sent alongside it) and made the client re-hash the download and
+  refuse to stage it on a mismatch. Verified against `FileHash.sha256Hex` directly:
+  matching bytes hash equal, corrupted bytes hash different. **This is explicitly
+  NOT a security fix** - it only catches accidental corruption, since the same
+  untrusted server that could serve a malicious jar could just as easily lie about
+  the matching hash. The real gap (no code signing, no TLS - a compromised or
+  spoofed server can achieve remote code execution via this exact mechanism, flagged
+  as the single most severe risk in the platform strategy analysis) is recorded in
+  `BLOCKED_QUESTIONS.md` rather than guessed at overnight - it's a real
+  key-management/architecture decision, not a mechanical fix.
 
 ## 🔧 In Progress
 

@@ -16,6 +16,19 @@ javadoc tag and are the literal same file copied into both trees (`net/Message.j
 `games/FileHash.java`, `account/Account.java`, `economy/ShopItemInfo.java`,
 `economy/ChallengeProgressInfo.java`).
 
+**That `(shared)` tag list is not the full picture, and has already caused one real
+bug** (a practice-reward fix that only landed in `VertexServer/` and silently missed
+`VertexClient/` - found and fixed 2026-09-25). The actual rule: every file under
+`net`/`account`/`social`/`admin`/`economy`/`games` (the same packages `ServerMain`
+needs, minus each game's Window/Dialog classes) needs to stay byte-identical between
+the two trees, not just the handful with the javadoc tag - because
+`VertexClient/games/HostServerDialog.java` spins up a real, full `net.GameServer` in
+the client process (the in-app "Host a Server" feature), running that exact server
+logic live. Any server-side bug fix or behavior change in those packages must be
+copied to the same path under `VertexClient/` too, checked with a diff, not just
+assumed. `ClientHandler.java` is the biggest example that isn't in the `(shared)` tag
+list despite needing to be.
+
 ## Entry points
 
 - **`Vertex.java`** — client entry point (`VertexClient/` only). Shows
@@ -85,7 +98,13 @@ the socket → dispatches by `MessageType` (e.g. `FIND_MATCH_REQUEST`) → the m
 - **`ClientUpdateChecker.java`** / **`ClientUpdatePackage.java`** — auto-update: client
   hashes its running jar (`games/FileHash`) and asks the server if it's stale; server
   re-reads `Vertex.jar`'s hash whenever its mtime changes. Client stages
-  `Vertex.jar.new`; an external native launcher swaps it in on next start.
+  `Vertex.jar.new`; an external native launcher swaps it in on next start. Before
+  staging, the client re-hashes the download against `Message.newJarHash` (the
+  server's own jar hash, sent alongside the version-check response) and refuses to
+  stage it on a mismatch - an integrity check against a corrupted transfer only, not
+  an authenticity one. **No code signing and no TLS yet** - the single most severe
+  security gap flagged in the platform strategy analysis, tracked as an open
+  question in `BLOCKED_QUESTIONS.md` rather than guessed at.
 - **`ConnectionState.java`** / **`ConnectionIndicator.java`** — connection-status enum
   + colored-dot widget. **`NavigationListener.java`** — callback interface letting
   `pages/Sidebar` report nav clicks without knowing how paging works.

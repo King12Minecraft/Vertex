@@ -650,6 +650,7 @@ public class Message implements Serializable
     // ---- Client auto-update (see ClientUpdateChecker/ClientUpdatePackage) ----
     private String clientJarHash;
     private boolean updateAvailable;
+    private String newJarHash;
 
     /** SHA-256 hex of the jar the client was actually launched from - CLIENT_VERSION_CHECK_REQUEST. */
     public String getClientJarHash() { return clientJarHash; }
@@ -658,6 +659,19 @@ public class Message implements Serializable
     /** True if the server's own Vertex.jar hash doesn't match clientJarHash - CLIENT_VERSION_CHECK_RESPONSE. Reuses getFileData()/getFileName() (chat attachments) to carry the actual jar bytes on CLIENT_UPDATE_DOWNLOAD_RESPONSE, rather than adding another byte[] field for the same shape of thing. */
     public boolean isUpdateAvailable() { return updateAvailable; }
     public void setUpdateAvailable(boolean updateAvailable) { this.updateAvailable = updateAvailable; }
+
+    /**
+     * SHA-256 hex of the server's current Vertex.jar, sent alongside
+     * updateAvailable on CLIENT_VERSION_CHECK_RESPONSE. The client re-hashes
+     * whatever CLIENT_UPDATE_DOWNLOAD_RESPONSE actually hands it and refuses to
+     * stage the file if the two don't match - an integrity check against a
+     * truncated/corrupted transfer, not an authenticity one (this connection
+     * has no TLS and the same server that would lie about the file could just
+     * as easily lie about this hash - see the security note on
+     * ClientUpdateChecker for the real, still-open gap: no jar signing yet).
+     */
+    public String getNewJarHash() { return newJarHash; }
+    public void setNewJarHash(String newJarHash) { this.newJarHash = newJarHash; }
 
     // ---- Game suggestions (community wishlist, replaces the old custom-game upload feature) ----
     private String gameSuggestionText;

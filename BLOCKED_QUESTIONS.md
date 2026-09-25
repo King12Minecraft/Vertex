@@ -18,6 +18,28 @@ raised.
 
 ## Open
 
+- **The client auto-update mechanism (`ClientUpdateChecker`) has no code signing,
+  and `NetworkManager` has no TLS** — together, whatever server a client connects to
+  (or a network attacker impersonating it, since the socket is plain unencrypted
+  TCP) can push an arbitrary jar that gets staged and auto-installed on next
+  launch, no user confirmation, no signature check. This is the single most severe
+  risk flagged in the platform strategy analysis. Added an integrity check tonight
+  (the client now re-hashes the download and refuses to stage it if it doesn't
+  match the hash the server claimed) - genuinely useful against a truncated/corrupt
+  transfer, but explicitly NOT a fix for this: the same untrusted server/attacker
+  that could serve a malicious jar could just as easily lie about the matching
+  hash. Real exposure today is bounded by "LAN-only for now" (already a documented
+  limitation), but this becomes a genuine remote-code-execution path the moment
+  internet play ships. Needs a real decision on the fix, not a guess: (a) require
+  TLS + certificate pinning specifically for the update channel even before a full
+  TLS rollout, (b) proper jar code-signing (a keypair the platform/admin controls,
+  public key embedded in the client at build time, server signs whatever jar it
+  serves) - this one has real operational cost (key generation, where it's stored,
+  how a self-hosting friend without the "official" key would get updates signed at
+  all), or (c) accept the current risk as LAN-only scope and revisit specifically
+  when internet play is actually being built. Raised 2026-09-25. No code-signing
+  assumption made; only the safe, clearly-scoped integrity check above was added.
+
 - **Sudoku has no practice-mode coin reward formula at all** in
   `EconomyConfig.getPracticeReward` — every other offline/single-player game does
   (20 games now have one after tonight's `handleGamePlayed` fix). This isn't the

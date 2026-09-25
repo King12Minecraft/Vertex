@@ -546,6 +546,7 @@ public class ClientHandler implements Runnable
         String serverHash = ClientUpdatePackage.getCurrentHash();
         boolean available = serverHash != null && !serverHash.equals(request.getClientJarHash());
         response.setUpdateAvailable(available);
+        response.setNewJarHash(serverHash);
         return response;
     }
 
