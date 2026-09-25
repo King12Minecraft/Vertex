@@ -7,7 +7,7 @@ lot of what's below and shouldn't be treated as current. This file is.
 
 ---
 
-## Games (47+ playable)
+## Games (50 playable)
 
 ### Online multiplayer, ELO-rated
 - **Chess** — full rules including castling, en passant, checkmate/stalemate. Resign or offer a draw mid-game. Spectate live matches, replay finished ones move-by-move.
@@ -96,7 +96,7 @@ Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, 
 
 ## Hosting
 
-- **Anyone can host** — both `VertexClient` and `VertexServer` carry the full server engine.
+- **Hosting is a dedicated-server thing** — only `VertexServer.jar` (`ServerMain`) starts a server. `VertexClient.jar`, the program a player actually runs, has no "host a server" feature in it at all *(the in-app "Start Hosting" button and `HostServerDialog` were removed 2026-09-25 — nobody should be able to spin up a server just by clicking something in the regular client)*.
 - **One server, one account store** — no cross-server syncing to reason about. Whichever server you connect to is the full source of truth for its own accounts, matches, and progress.
 - **Multi-server sync** *(historical note — the "main server" + synced "satellite servers" system this section used to describe was removed; kept here for the record of what existed. Each server now just stands on its own, which also simplifies hosting one always-on, e.g. on a cloud VM.)*
 

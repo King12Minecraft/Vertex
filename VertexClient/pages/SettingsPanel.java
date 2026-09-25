@@ -9,7 +9,6 @@ import admin.FeedbackListDialog;
 import account.Session;
 import account.PermissionManager;
 import admin.FeedbackDialog;
-import games.HostServerDialog;
 import net.NetworkConfig;
 import games.ServerBrowserDialog;
 import ui.ThemedButton;
@@ -80,8 +79,6 @@ public class SettingsPanel extends RoundedPanel
         content.add(section("FUN", createPartyModeSection()));
         content.add(Box.createVerticalStrut(20));
         content.add(section("CONNECTION", createConnectionSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("HOSTING SERVER", createHostingSection()));
         content.add(Box.createVerticalStrut(20));
         content.add(section("FEEDBACK", createFeedbackSection()));
         content.add(Box.createVerticalStrut(20));
@@ -377,39 +374,6 @@ public class SettingsPanel extends RoundedPanel
         sb.append("Connection state: ").append(NetworkManager.getState()).append("\n");
         sb.append("Performance Mode: ").append(PerformanceMode.isEnabled() ? "On" : "Off").append("\n");
         return sb.toString();
-    }
-
-    /**
-     * Hosting used to be the very first thing the app asked - before you
-     * could even log in, via a plain JOptionPane prompt (HostOrConnectDialog)
-     * that didn't match the rest of the UI at all. It now lives here instead:
-     * something you turn on once you're already in, from a themed dialog
-     * that fits the rest of the app (see HostServerDialog).
-     */
-    private JPanel createHostingSection()
-    {
-        JPanel col = new JPanel();
-        col.setOpaque(false);
-        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
-        col.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel note = new ThemedLabel("<html><body style='width:420px'>Run a Vertex server on this computer so others can join.</body></html>", ThemeColor.TEXT_SECONDARY);
-        note.setFont(UITheme.FONT_BODY);
-        note.setAlignmentX(Component.LEFT_ALIGNMENT);
-        note.setBorder(new EmptyBorder(0, 0, 14, 0));
-        col.add(note);
-
-        final ThemedButton hostButton = new ThemedButton("Start Hosting", false);
-        hostButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        hostButton.setMaximumSize(new Dimension(220, 38));
-        hostButton.setPreferredSize(new Dimension(220, 38));
-        hostButton.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e) { HostServerDialog.show(hostButton); }
-        });
-        col.add(hostButton);
-
-        return col;
     }
 
     /** Bug reports and suggestions about Vertex itself - see FeedbackDialog/FeedbackListDialog/FeedbackManager. Separate from reporting another player (Friends/Chat -> Report). */

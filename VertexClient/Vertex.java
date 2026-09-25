@@ -17,9 +17,10 @@ import javax.swing.SwingUtilities;
  * AuthWindow connects to whatever server NetworkConfig already points at
  * (localhost:7777 by default) in the background and shows a live
  * ConnectionIndicator either way, with "Play Offline" if nothing answers
- * - so there's no dead end if nothing's listening yet. Hosting is still
- * available, just moved to Settings -> Hosting Server, reachable once
- * you're actually in (see HostServerDialog) instead of blocking the door.
+ * - so there's no dead end if nothing's listening yet. Hosting a server
+ * from the ordinary client is no longer a feature at all (removed
+ * 2026-09-25, see ROADMAP.md) - running a server means running
+ * VertexServer.jar specifically, never this jar.
  *
  * Also installs a last-resort uncaught exception handler, so that if
  * something throws an exception that isn't already caught closer to

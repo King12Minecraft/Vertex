@@ -1,14 +1,25 @@
-# Vertex Server — README
+# Vertex Server — Development Log
 
-> **This folder is a partial synced copy, not where edits happen.**
-> `VertexClient/` is the source of truth for anything genuinely shared
-> (networking, game rule engines, account/economy/social data). If
-> you're changing one of those, edit it in `VertexClient/` first, then
-> copy the changed file here too. If you're changing UI-only code (a
-> page, a dialog, a theme, a game's Window class), it only exists in
-> `VertexClient/` - there's nothing to copy here. See the root
-> `README.md`'s "Repo structure" section for the full explanation and
-> exactly which packages exist in this folder.
+> **This is a historical, append-only changelog, not the current documentation.**
+> It was originally this folder's `README.md`, kept as a running log of "what got
+> built each round" going back to the very start of the project. Renamed to make
+> room for a real, current `README.md` - for what's actually true *today*, see
+> (in order of how detailed you want to go): the root [`README.md`](../README.md),
+> [`HOW_VERTEX_WORKS.md`](../HOW_VERTEX_WORKS.md) (no coding knowledge needed),
+> [`FEATURES.md`](../FEATURES.md), [`PROGRAM_STRUCTURE.md`](../PROGRAM_STRUCTURE.md),
+> and [`ROADMAP.md`](../ROADMAP.md). Kept around because the reasoning behind old
+> decisions (why a feature was scoped down, what was tried and abandoned) has real
+> value that a snapshot-in-time README would lose - nothing below has been edited,
+> only this notice was added on top.
+
+---
+
+> **Original heading, preserved as-is below:** "This folder is a partial synced
+> copy, not where edits happen. `VertexClient/` is the source of truth for
+> anything genuinely shared (networking, game rule engines, account/economy/social
+> data). If you're changing one of those, edit it in `VertexClient/` first, then
+> copy the changed file here too." This is still true today - see the current
+> `README.md` files for the up-to-date explanation.
 
 This is the **GameHubServer** BlueJ project - headless, no GUI. It
 used to also embed a full copy of the client's UI so it could open a

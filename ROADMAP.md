@@ -519,8 +519,21 @@ recorded below as they're confirmed.
   rejection tests proving a disallowed class sent directly (`HashMap`, `File`) gets
   rejected with `InvalidClassException` instead of silently succeeding. Mirrored
   into `VertexClient/` (this needed the same `PROGRAM_STRUCTURE.md` sync-discipline
-  fix above - `ClientHandler.java`'s copy there is what the in-app "Host a Server"
-  feature actually runs).
+  fix above - `ClientHandler.java`'s copy there was, until the next entry, what the
+  in-app "Host a Server" feature actually ran).
+- **Removed the in-app "Host a Server" feature entirely, per explicit request.**
+  Deleted `VertexClient/games/HostServerDialog.java` and the "Start Hosting" button/
+  section it was wired to in `SettingsPanel`. Hosting is now exclusively a
+  `VertexServer.jar` thing - the ordinary client a player runs has no way to spin up
+  a server from inside the app anymore. `VertexClient/` still carries the full
+  server-side packages and `ServerMain.java` (needed as the edit-source-of-truth
+  copy that gets synced into `VertexServer/`, and because `VertexServer.jar`'s own
+  manifest points at that exact class) - that's a developer/build-time thing, not a
+  player-facing feature, so it stays. Updated every doc that described "anyone can
+  host" as a feature (root `README.md`, `FEATURES.md`, `PROGRAM_STRUCTURE.md`, both
+  project `README.md` files) to reflect this. Verified: `VertexClient/` compiles
+  clean with `HostServerDialog` gone (1323 classes vs. 1330 before - the removed
+  class and its inner classes).
 
 ## 🔧 In Progress
 

@@ -1,12 +1,25 @@
-# Vertex Client — README
+# Vertex Client — Development Log
 
-> **This folder is the edit source of truth.** Change code here first.
-> `VertexServer/` only carries a copy of whatever's genuinely shared
-> (networking, game rule engines, account/economy/social data) - copy
-> a changed file there too if it's one of those. UI-only code (a page,
-> a dialog, a theme, a game's Window class) only ever lives here. See
-> the root `README.md`'s "Repo structure" section for the full
-> explanation of which packages exist where and why.
+> **This is a historical, append-only changelog, not the current documentation.**
+> It was originally this folder's `README.md`, kept as a running log of "what got
+> built each round" going back to the very start of the project. Renamed to make
+> room for a real, current `README.md` - for what's actually true *today*, see
+> (in order of how detailed you want to go): the root [`README.md`](../README.md),
+> [`HOW_VERTEX_WORKS.md`](../HOW_VERTEX_WORKS.md) (no coding knowledge needed),
+> [`FEATURES.md`](../FEATURES.md), [`PROGRAM_STRUCTURE.md`](../PROGRAM_STRUCTURE.md),
+> and [`ROADMAP.md`](../ROADMAP.md). Kept around because the reasoning behind old
+> decisions (why a feature was scoped down, what was tried and abandoned) has real
+> value that a snapshot-in-time README would lose - nothing below has been edited,
+> only this notice was added on top.
+
+---
+
+> **Original heading, preserved as-is below:** "This folder is the edit source of
+> truth. Change code here first. `VertexServer/` only carries a copy of whatever's
+> genuinely shared (networking, game rule engines, account/economy/social data) -
+> copy a changed file there too if it's one of those. UI-only code (a page, a
+> dialog, a theme, a game's Window class) only ever lives here." This is still true
+> today - see the current `README.md` files for the up-to-date explanation.
 
 This is the **GameHubClient** BlueJ project. It's built alongside a
 separate **GameHubServer** project (created in Phase 5). See

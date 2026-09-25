@@ -1,6 +1,11 @@
 # Vertex
 
-A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 47+ playable games, ELO ratings, a party system, tournaments, and the ability for anyone to host their own server.
+A full multiplayer gaming platform built in Java, using BlueJ, as a school project.
+50+ playable games, ELO ratings, a party system, tournaments, and a self-hosted
+server anyone can run on their own machine.
+
+**New here, or not a programmer?** [`HOW_VERTEX_WORKS.md`](HOW_VERTEX_WORKS.md)
+explains the whole project in plain language, no code-reading required.
 
 **See [`FEATURES.md`](FEATURES.md) for the complete, current feature list, and
 [`ROADMAP.md`](ROADMAP.md) for what's planned next.** The summaries below are kept short on purpose.
@@ -35,8 +40,8 @@ Swap `VertexClient.jar`/`Vertex` for `VertexServer.jar`/`ServerMain` to package 
 
 ## Hosting and connecting
 
-- **Anyone can host.** Both `VertexClient` and `VertexServer` carry the full server engine, so starting a server doesn't require the separate server project — the ordinary client can do it too, from Settings → Start Hosting.
-- **One server, one account store.** Whichever server you connect to is the source of truth for its own accounts, matches, and progress — there's no cross-server syncing to reason about, and no "main" vs. "satellite" distinction. Simple to run, and simple to eventually host somewhere always-on (e.g. a single cloud VM) without any of that machinery to keep alive alongside it.
+- **Hosting is a dedicated-server thing, not a client feature.** Only `java -jar VertexServer.jar` starts a server. The ordinary `VertexClient.jar` a player runs has no "host a server" option anywhere in it (removed 2026-09-25) — running a server means running the actual server program, deliberately, not something any player can casually switch on from Settings.
+- **One server, one account store.** Whichever server you connect to is the source of truth for its own accounts, matches, and progress — there's no cross-server syncing to reason about, and no "main" vs. "satellite" distinction. Simple to run, and simple to host somewhere always-on (e.g. a single cloud VM).
 - **Switching servers is still easy.** The in-app server switcher (Settings → Switch Server) lets you save addresses and jump between servers without editing any code, and re-authenticates you automatically if that server already knows your account.
 
 Default port is **7777**, but this is fully configurable via the same switcher.

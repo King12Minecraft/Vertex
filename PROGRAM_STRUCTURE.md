@@ -22,12 +22,23 @@ bug** (a practice-reward fix that only landed in `VertexServer/` and silently mi
 `net`/`account`/`social`/`admin`/`economy`/`games` (the same packages `ServerMain`
 needs, minus each game's Window/Dialog classes) needs to stay byte-identical between
 the two trees, not just the handful with the javadoc tag - because
-`VertexClient/games/HostServerDialog.java` spins up a real, full `net.GameServer` in
-the client process (the in-app "Host a Server" feature), running that exact server
-logic live. Any server-side bug fix or behavior change in those packages must be
-copied to the same path under `VertexClient/` too, checked with a diff, not just
-assumed. `ClientHandler.java` is the biggest example that isn't in the `(shared)` tag
-list despite needing to be.
+`VertexClient/ServerMain.java` is the edit-source-of-truth copy of the same class
+`VertexServer.jar`'s manifest actually runs, and (until 2026-09-25) a
+now-removed in-app "Host a Server" feature also ran this exact server logic live
+from inside the ordinary client. Any server-side bug fix or behavior change in
+those packages must be copied to the same path under `VertexClient/` too, checked
+with a diff, not just assumed. `ClientHandler.java` is the biggest example that
+isn't in the `(shared)` tag list despite needing to be.
+
+**The client itself can no longer host a server (removed 2026-09-25).** The
+in-app "Start Hosting" button (`SettingsPanel`) and `HostServerDialog.java` are
+gone - hosting is exclusively a `VertexServer.jar` thing now, never something a
+player can switch on from the regular client. `VertexClient/` still carries the
+full server-side packages (`net`/`account`/`social`/`admin`/`economy`/`games`)
+because it remains the edit-source-of-truth copy that gets synced into
+`VertexServer/`, and because `VertexClient/ServerMain.java` exists as that same
+copy of the dedicated-server entry point - neither of those is a player-facing
+hosting feature.
 
 ## Entry points
 
@@ -254,8 +265,9 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   check. **`GameRules.java`**/`GameRulesDialog.java` — static per-game "how to play"
   text + popup.
 - Shared dialog chrome reused across many games: `GamePickerDialog`, `GameDetailDialog`,
-  `ConnectDialog`, `HostServerDialog`, `ServerBrowserDialog`, `SpectateDialog`
-  (Chess-only), `RematchOfferDialog`, `ReplayBrowserDialog`.
+  `ConnectDialog`, `ServerBrowserDialog`, `SpectateDialog`
+  (Chess-only), `RematchOfferDialog`, `ReplayBrowserDialog`. (`HostServerDialog` was
+  removed 2026-09-25 along with the in-app hosting feature - see above.)
 - **`TriviaLiveLookups.java`** — plain holder bundling the 5 `ai.knowledge`
   `CachingFactLookup` instances `GameServer` builds once, threaded through
   `TriviaMatchManager` into every `TriviaMatch`.
