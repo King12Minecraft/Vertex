@@ -224,8 +224,7 @@ public class GameLauncher
             }
             else if ("fusion-grid".equals(game.getGameId()))
             {
-                FusionGridWindow window = new FusionGridWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new FusionGridWindow());
             }
             else if ("typing-duel".equals(game.getGameId()))
             {

@@ -267,6 +267,17 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   (`boardsCenterer`) for true 2D centering rather than replacing the FlowLayout, since
   FlowLayout's own horizontal centering of the two boards is still exactly what's
   wanted.
+- **Fusion Grid converted to the embedded pattern** — 46 games embedded total now.
+  Second multi-entry-shape game after Rock Paper Scissors/Battleship, but the simpler
+  variant: online + offline Practice mode (`ai.AiKernel`-backed bot), no spectating/
+  rematch-wait factories, so no `rematchRequested` guard needed - "Play Again" in
+  both modes just restarts within the same window (`startPracticeMatch()`/
+  `findMatch()`), never opening a new embedded one. Same recipe otherwise:
+  unconditional `requestLeave()` (skips `leaveMatch()` in practice mode, matching the
+  original `windowClosing` exactly), mode-select/searching screens wrapped in
+  `GridBagLayout` centerers, and the board screen's bare `BoardPanel` given its own
+  `GridBagLayout` centerer (`boardCenterer`) - same bare-board fix as the other
+  online-multiplayer conversions.
 
 ## 🔧 In Progress
 
