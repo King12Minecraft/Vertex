@@ -96,8 +96,7 @@ public class GameLauncher
             }
             else if ("among-us".equals(game.getGameId()))
             {
-                AmongUsWindow window = new AmongUsWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new AmongUsWindow());
             }
             else if ("fight-arena".equals(game.getGameId()))
             {

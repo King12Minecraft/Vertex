@@ -10,13 +10,11 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -28,10 +26,10 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.List;
 
 /**
@@ -44,7 +42,7 @@ import java.util.List;
  * players can use Vertex's Chat page to discuss during a meeting if
  * they want to.
  */
-public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
+public class AmongUsWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String SEARCHING = "SEARCHING";
     private static final String GAME = "GAME";
@@ -75,46 +73,43 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
 
     public AmongUsWindow()
     {
-        super("Vertex - Among Us");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createGameScreen(), GAME);
         cards.add(createMeetingScreen(), MEETING);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, SEARCHING);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
         findMatch();
+    }
 
-        addWindowListener(new WindowAdapter()
+    @Override
+    public boolean requestLeave()
+    {
+        if (matchId == null)
         {
-            public void windowClosing(WindowEvent e)
-            {
-                if (matchId == null)
-                {
-                    leaveQueue();
-                }
-                NetworkManager.removePushListener(AmongUsWindow.this);
-            }
-        });
+            leaveQueue();
+        }
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     // ==================== Searching ====================
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(400, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Among Us");
         title.setFont(UITheme.FONT_HEADING);
@@ -137,12 +132,12 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
             public void actionPerformed(ActionEvent e)
             {
                 leaveQueue();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private void findMatch()
@@ -166,7 +161,7 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
 
     // ==================== Game (tasks + kill) ====================
 
-    private JScrollPane createGameScreen()
+    private JPanel createGameScreen()
     {
         JPanel content = new JPanel();
         content.setOpaque(false);
@@ -225,7 +220,11 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
         scroll.getViewport().setOpaque(false);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         ThemedScrollBarUI.apply(scroll);
-        return scroll;
+
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+        wrapper.add(scroll, new GridBagConstraints());
+        return wrapper;
     }
 
     private JLabel sectionLabel(String text)
@@ -377,11 +376,15 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
 
     private JPanel createMeetingScreen()
     {
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(24, 24, 24, 24));
         panel.setPreferredSize(new Dimension(400, 460));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Emergency Meeting");
         title.setFont(UITheme.FONT_HEADING);
@@ -410,7 +413,7 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
         voteStatusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(voteStatusLabel);
 
-        return panel;
+        return wrapper;
     }
 
     private void showMeeting(String reason, String deadUsername, List<String> alive)
@@ -563,8 +566,6 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
             rebuildTaskList();
             rebuildAliveList();
             cardLayout.show(cards, GAME);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (message.getType() == MessageType.AMONG_STATE_UPDATE)
         {
@@ -596,7 +597,7 @@ public class AmongUsWindow extends JFrame implements NetworkManager.PushListener
                 : "Impostors win!";
             recordPlayed();
             GameHubDialog.show(this, "Game Over", text);
-            dispose();
+            MainMenu.getInstance().returnToGames();
         }
     }
 

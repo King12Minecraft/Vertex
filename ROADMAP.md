@@ -188,6 +188,14 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   fixed-size custom-painted canvas) is added straight to the `CardLayout`, rebuilt on
   every restart via `startRace(...)`, so the centering wrapper is rebuilt alongside
   it each time rather than created once in the constructor.
+- **Among Us converted to the embedded pattern** — 39 games embedded total now. Same
+  recipe: unconditional `requestLeave()` (leaves the queue only if still searching,
+  matching the original's `windowClosing` exactly), all three screens (searching,
+  task/kill screen, meeting) wrapped in `GridBagLayout` centerers. New wrinkle: the
+  task/kill screen was originally built as a `JScrollPane` (its task list can scroll)
+  returned directly to `CardLayout` rather than a plain `JPanel` - same stretch bug
+  applies to a scroll pane as to any other direct `CardLayout` child, so it also got
+  wrapped, changing `createGameScreen()`'s return type from `JScrollPane` to `JPanel`.
 
 ## 🔧 In Progress
 

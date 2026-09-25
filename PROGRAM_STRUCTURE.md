@@ -134,7 +134,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. 38 games so far are the exceptions
+  gate since there's nothing to preview yet. 39 games so far are the exceptions
   to `new XxxWindow().setVisible(true)` - they call
   `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
   conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`): Chess,
@@ -143,10 +143,10 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping Pong,
   Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy
   Bird, Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble
-  Shooter, Battleship, Memory Match, Word Duel, Dice Duel, Typing Duel, and
-  Racing - every offline/single-player game in the whole catalog, both games
-  with `SpectateDialog`/tournament support, and the first converted
-  online-multiplayer game. The remaining online-multiplayer games still open
+  Shooter, Battleship, Memory Match, Word Duel, Dice Duel, Typing Duel, Racing,
+  and Among Us - every offline/single-player game in the whole catalog, both
+  games with `SpectateDialog`/tournament support, and two converted
+  online-multiplayer games. The remaining online-multiplayer games still open
   their own window until
   it's converted the same way. A game reachable from more than one place
   (Chess, Rock Paper Scissors, and Battleship each have a `SpectateDialog`
