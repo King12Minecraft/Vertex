@@ -1,13 +1,12 @@
 # Vertex Client — README
 
-> **This folder is a synced build copy, not where edits happen.**
-> `Vertex/` (the repo root's sibling folder) is the source of truth -
-> every file here is an exact copy of one there. If you're changing
-> code, edit it in `Vertex/` first, then copy the changed file into
-> both `VertexClient/` and `VertexServer/` before committing. See the
-> root `README.md`'s "Repo structure" section for why the three
-> folders exist and why they're kept identical rather than trimmed
-> down to a "real" client/server split.
+> **This folder is the edit source of truth.** Change code here first.
+> `VertexServer/` only carries a copy of whatever's genuinely shared
+> (networking, game rule engines, account/economy/social data) - copy
+> a changed file there too if it's one of those. UI-only code (a page,
+> a dialog, a theme, a game's Window class) only ever lives here. See
+> the root `README.md`'s "Repo structure" section for the full
+> explanation of which packages exist where and why.
 
 This is the **GameHubClient** BlueJ project. It's built alongside a
 separate **GameHubServer** project (created in Phase 5). See

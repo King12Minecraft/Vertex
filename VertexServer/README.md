@@ -1,39 +1,47 @@
 # Vertex Server — README
 
-> **This folder is a synced build copy, not where edits happen.**
-> `Vertex/` (the repo root's sibling folder) is the source of truth -
-> every file here is an exact copy of one there. If you're changing
-> code, edit it in `Vertex/` first, then copy the changed file into
-> both `VertexClient/` and `VertexServer/` before committing. See the
-> root `README.md`'s "Repo structure" section for why the three
-> folders exist and why they're kept identical rather than trimmed
-> down to a "real" client/server split.
+> **This folder is a partial synced copy, not where edits happen.**
+> `VertexClient/` is the source of truth for anything genuinely shared
+> (networking, game rule engines, account/economy/social data). If
+> you're changing one of those, edit it in `VertexClient/` first, then
+> copy the changed file here too. If you're changing UI-only code (a
+> page, a dialog, a theme, a game's Window class), it only exists in
+> `VertexClient/` - there's nothing to copy here. See the root
+> `README.md`'s "Repo structure" section for the full explanation and
+> exactly which packages exist in this folder.
 
-This is the **GameHubServer** BlueJ project. It contains BOTH the
-server logic and a full copy of the client's UI classes, so it can run
-as one combined program: start the server AND open a login screen in
-the same process.
+This is the **GameHubServer** BlueJ project - headless, no GUI. It
+used to also embed a full copy of the client's UI so it could open a
+login window in the same process; that's gone now; this folder only
+contains what `ServerMain` actually needs to run the server, found by
+compiling `ServerMain` against the full source tree and keeping
+whatever the compiler pulled in.
 
 ## How to run it
 
 1. Open this folder as a BlueJ project, compile all classes.
 2. Right-click `ServerMain` → `void main(String[] args)` → leave
    blank.
-3. The server starts, then an animated splash screen appears (~1.4s),
-   then the login window opens - all in the same process. Log in (or
-   create your account) and play immediately.
+3. The server starts and prints `Vertex server listening on port
+   7777` to BlueJ's terminal - no window opens. Connect to it from a
+   separate `GameHubClient` project (or `VertexClient.jar`) to
+   actually log in and play.
 
-If no admin exists yet on this server, the account you create *from
-this loopback connection* automatically becomes admin. Other players
-can still connect from a separate `GameHubClient` project on the LAN.
+If no admin exists yet on this server, the first account created from
+a loopback (localhost) connection automatically becomes admin.
 
-## Why this project has ~145 files now
+## Why this project only has ~100 files now
 
-`ServerMain.main()` calls `AuthWindow` directly, so every client UI
-class it depends on - effectively the whole client - has an identical
-copy here too. **If you change any GameHubClient UI file, copy it into
-this project too**, or the two will drift out of sync. The only client
-file deliberately NOT copied here is `Vertex.java`.
+`ServerMain` no longer opens any client UI - it just starts
+`GameServer` and blocks. Its real dependency set (networking, game
+rule engines and match managers, and the account/economy/social data
+layer - no `ui`, `theme`, or `pages` package, no game Window/Dialog
+classes, no practice-mode AI) was found mechanically: compile just
+`ServerMain.java` with `-sourcepath` pointing at the full client tree
+and see what the compiler actually needs, rather than guessing. If
+you change one of the shared classes still here, copy it over from
+`VertexClient/` the same way as always; anything client-UI-only was
+never here and doesn't need to be.
 
 ## New this round: mode-select redesign + invites + Chess
 

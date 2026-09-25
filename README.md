@@ -20,9 +20,11 @@ The server has to be running before a client can connect. On a weaker machine, u
 
 **Pin it to your taskbar:** Windows won't let you pin a `.bat` file directly (that option is greyed out for script files) — run `Create-Desktop-Shortcut.bat` once instead. It creates proper Windows shortcuts on your Desktop (with the Vertex icon) for both the client and the server; right-click either one and choose "Pin to taskbar."
 
-**With BlueJ:** open `VertexServer` and `VertexClient` as separate projects, compile the server first, run `ServerMain`, then run `Vertex` from one or more client instances.
+**With BlueJ:** open `VertexServer` and `VertexClient` as separate projects, compile the server first, run `ServerMain` (headless - no window opens, just a console log line once it's listening), then run `Vertex` from one or more client instances.
 
-Either way, the first screen asks whether you want to **host a server** or **connect to one** — see below.
+**Building fresh jars from source (no BlueJ):** run `build.sh` (Mac/Linux) or `build.bat` (Windows) from the repo root. Compiles both projects and overwrites `VertexClient.jar`/`VertexServer.jar` in place, stamped with the version from the `VERSION` file. This is what actually produces the jars above - BlueJ's own "Create Application" export still works too, this is just a one-command alternative that doesn't need BlueJ installed at all.
+
+Either way, the client's first screen asks whether you want to **host a server** or **connect to one** — see below.
 
 **Want a real double-click `.exe` with its own icon, no `java` command at all?** `jpackage` (ships with the JDK, 14+) builds one, bundling a private copy of the JRE so players don't need Java installed at all. It has to run *on Windows* with a Windows JDK — it can't cross-build a Windows app from another OS — so this is a step to run yourself, not something already built into the repo. From the folder with `VertexClient.jar` and `vertex_icon.ico`:
 ```
@@ -77,14 +79,18 @@ Full details on all of the above: [`FEATURES.md`](FEATURES.md).
 
 ## Repo structure
 
-There are two source folders. "Client" and "server" aren't separate modules, just separate entry points (`Vertex.java` vs `ServerMain.java`) into the same set of classes - both folders carry the full engine and are intentionally identical in content:
+Two source folders, but they're **not** identical copies of each other anymore:
 
-- **`VertexClient/`** — built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs, and is the edit source of truth: make changes here first.
-- **`VertexServer/`** — a synced copy of `VertexClient/`, built and shipped as `VertexServer.jar` (`Main-Class: ServerMain`). This is what someone hosting runs — starting it brings up the server *and* opens the same game window `VertexClient` would, already connected, so the host can play too.
+- **`VertexClient/`** — built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs, and it's the edit source of truth for anything shared between the two: make changes here first.
+- **`VertexServer/`** — built and shipped as `VertexServer.jar` (`Main-Class: ServerMain`). Headless: no GUI, no client code at all. Runs unattended on a real machine (a cloud VM with no display included) rather than opening a login window the way earlier versions did.
 
-There used to be a third `Vertex/` master folder that both of these synced from; it's gone now so the repo only ever shows the two folders someone would actually run.
+**Why they're different now.** Earlier, `ServerMain` also opened a full client login window in-process the moment hosting started, so the server needed almost the entire client UI just to do that - both folders carried the same ~350 files. That's gone: `ServerMain` now only starts `GameServer` and blocks, nothing else. Every class it actually needs was found by compiling just that one entry point against the full source tree and keeping only what the compiler pulled in - not guesswork - which turned out to be about 100 files: `net`, `account`, `social`, `admin`, `economy`, `games` (the rule engines and match managers, not any Window/Dialog class), and `ai.knowledge` (the live Trivia Blitz lookups - the *only* part of the `ai` package the server needs, since practice-mode bots run entirely on the client and never touch the server at all). The entire `ui`, `theme`, and `pages` packages are gone from `VertexServer/`, along with every game's own Window/Dialog class and the `ai.search`/`ai.grid`/`ai.steering` bot engine.
 
-**Packages.** Both folders are organized into 9 Java packages by category, rather than one flat pile of 240 files in the default package:
+**Only genuinely shared files get mirrored now.** Changing a network message type, a game's rule engine, or an account/economy class → edit it in `VertexClient/`, then copy it into `VertexServer/` too, same as before. Changing UI-only code (a page, a dialog, a theme, a game's Window class) → it only exists in `VertexClient/`, there's nothing to copy.
+
+Someone who wants the old "start a server and get a playable window in the same process" behavior back runs `VertexServer.jar` and `VertexClient.jar` side by side instead - two processes on the same machine, same practical effect, without `VertexServer/` needing to carry a full copy of the client's UI to do it.
+
+**Packages** (in `VertexClient/`; `VertexServer/` only has the ones actually needed - see above):
 
 - `net` — networking core: `Message`, `MessageType`, `NetworkManager`, `ClientHandler`, `GameServer`, connection state
 - `account` — accounts, auth, sessions, profile viewing
@@ -95,12 +101,11 @@ There used to be a third `Vertex/` master folder that both of these synced from;
 - `social` — chat, friends, party, moderation-facing dialogs
 - `admin` — admin log, feedback, game suggestions
 - `games` — every game's logic/window/match classes, plus the shared game-launching/registry/tournament/replay infrastructure
+- `ai` — bot AI: `ai.search`/`ai.grid`/`ai.steering` power practice mode entirely offline on the client; `ai.knowledge` (live Trivia Blitz lookups) is the one part that's also needed server-side
 
-Only `Vertex.java` and `ServerMain.java` — the two actual entry points `java -jar` runs — stay in the default (unpackaged) package; everything else lives in one of the 9 packages above. If you're adding a new class, put it in the package that matches what it's for, and add `package <name>;` as its first line.
+Only `Vertex.java` and `ServerMain.java` — the two actual entry points `java -jar` runs — stay in the default (unpackaged) package; everything else lives in one of the packages above. If you're adding a new class, put it in the package that matches what it's for, and add `package <name>;` as its first line.
 
-Why not trim these down to only the files each one strictly needs? Because `ServerMain` opens the full game client in-process the moment hosting starts (see above) - so the server side ends up needing almost the entire client UI anyway. Splitting them for real would mean the server launches the client as a *separate process* instead of embedding it - a real architecture change (and one that would break "host from BlueJ and get a playable window immediately," since finding a client jar to launch as a subprocess doesn't work the same way when running compiled classes straight out of BlueJ rather than a built jar). Noted as a possible future improvement, not done here.
-
-Practical effect of the sync-copy setup: if you're fixing a bug or adding a feature, edit the file in `VertexClient/`, then copy it into `VertexServer/` before committing - the two folders should never drift apart.
-
-- `VertexClient.jar` / `VertexServer.jar` — pre-built runnable JARs, rebuilt fresh with every push
+- `VertexClient.jar` / `VertexServer.jar` — pre-built runnable JARs; rebuild with `build.sh`/`build.bat`
+- `VERSION` — the current release number (semver), read by the build script and shown in-app
 - `Run-*-LowEnd.*` — launcher scripts tuned for weaker hardware
+- `Sync-Feedback.sh`/`.bat` — pushes bug reports/suggestions the server has collected back to this repo (see `.gitignore`'s comments for why only those two files, not the rest of the server's data)

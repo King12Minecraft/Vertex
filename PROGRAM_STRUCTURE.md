@@ -1,31 +1,45 @@
 # Vertex — Program Structure
 
 Onboarding doc for the codebase: what each package does and how the pieces connect.
-`VertexClient/` and `VertexServer/` are byte-identical except `README.md` — everything
-below describes `VertexClient/`; read it once for both. A handful of protocol/data
-classes are marked **(shared)** below: they carry a "SHARED (Common)" javadoc tag and
-are the literal same file copied into both trees (`net/Message.java`,
+`VertexClient/` and `VertexServer/` are **no longer byte-identical** — `VertexServer/`
+now only carries the ~100 files `ServerMain` actually needs (found by compiling just
+that entry point against the full tree and keeping whatever the compiler pulled in,
+not guesswork): `net`, `account`, `social`, `admin`, `economy`, `games` (rule
+engines/match managers, no Window/Dialog classes), and `ai.knowledge` only. The entire
+`ui`, `theme`, and `pages` packages, every game's Window/Dialog class, and the whole
+`ai.search`/`ai.grid`/`ai.steering` practice-mode bot engine exist only in
+`VertexClient/`. Everything below describes `VertexClient/` (the fuller codebase);
+where a package/class also exists in `VertexServer/`, it's noted inline. A handful of
+protocol/data classes are marked **(shared)** below: they carry a "SHARED (Common)"
+javadoc tag and are the literal same file copied into both trees (`net/Message.java`,
 `net/MessageType.java`, `net/NetworkConfig.java`, `games/GameInfo.java`,
 `games/FileHash.java`, `account/Account.java`, `economy/ShopItemInfo.java`,
 `economy/ChallengeProgressInfo.java`).
 
 ## Entry points
 
-- **`Vertex.java`** — client entry point. Shows `ui/SplashScreen`, then
-  `account/AuthWindow` (login), installs a last-resort uncaught-exception handler (plain
-  `JOptionPane`, so it works even if theming itself is broken), and kicks off
-  `net/ClientUpdateChecker` in the background.
-- **`ServerMain.java`** — starts `net/GameServer` (the real multiplayer server socket)
-  **and** simultaneously opens its own `AuthWindow`/client UI in the same process — a
-  "server" is also a playable client pointed at itself, not a headless process.
+- **`Vertex.java`** — client entry point (`VertexClient/` only). Shows
+  `ui/SplashScreen`, then `account/AuthWindow` (login), installs a last-resort
+  uncaught-exception handler (plain `JOptionPane`, so it works even if theming itself
+  is broken), and kicks off `net/ClientUpdateChecker` in the background.
+- **`ServerMain.java`** — server entry point, in both trees but not identical between
+  them (see above). Starts `net/GameServer` (the real multiplayer server socket) and
+  blocks the main thread forever (`GameServer`'s accept loop is a daemon thread, so
+  something non-daemon has to keep the JVM alive) — headless, no GUI, no window,
+  logs to the console. Earlier versions also opened an `AuthWindow`/client UI in the
+  same process ("a server is also a playable client pointed at itself"); that's gone
+  now that `VertexServer/` is meant to run unattended on a real machine, where opening
+  a Swing window would throw `HeadlessException`. The old combined behavior is still
+  available by running `VertexServer.jar` and `VertexClient.jar` side by side.
 
 ## Architecture at a glance
 
 ```
 net (protocol + dispatch)
   -> games (plugin-style match framework + ~30 online-game triples + ~20 offline games)
-       -> economy / social / ai   (services the match layer calls into)
-  -> pages / ui / theme            (Swing client shell)
+       -> economy / social / ai   (services the match layer calls into - ai.knowledge
+                                    only for the server; the rest is client-only)
+  -> pages / ui / theme            (Swing client shell - VertexClient/ only)
 account / admin                    (identity + role gating, cross-cutting client & server)
 ```
 
