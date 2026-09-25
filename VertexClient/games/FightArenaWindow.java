@@ -194,10 +194,11 @@ public class FightArenaWindow extends JPanel implements NetworkManager.PushListe
         Message request = new Message();
         request.setType(MessageType.FIGHT_FIND_MATCH_REQUEST);
         request.setFightMode(chosenMode);
-        boolean sent = NetworkManager.sendAsync(request);
-        if (!sent)
+        NetworkManager.sendAsync(request);
+        String connectionIssue = NetworkManager.describeIfNotReady();
+        if (connectionIssue != null)
         {
-            searchingLabel.setText("Can't reach the server - is it running?");
+            searchingLabel.setText(connectionIssue);
         }
     }
 

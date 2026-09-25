@@ -76,6 +76,11 @@ the socket → dispatches by `MessageType` (e.g. `FIND_MATCH_REQUEST`) → the m
   disconnected, flushed on reconnect. The push-listener queue has no per-request
   correlation, so a few UI panels deliberately use blocking `send()` on a background
   thread instead of `sendAsync` + listen, to avoid one call stealing another's reply.
+  `sendAsync()` always returns `true` (queues rather than fails) - callers that need
+  to tell the player the server isn't reachable should call
+  `describeIfNotReady()` instead of checking `sendAsync`'s return value; it returns a
+  player-facing string for OFFLINE/CONNECTING/RECONNECTING and `null` when ONLINE. All
+  25 find-match screens across the games package use this pattern.
 - **`NetworkConfig.java`** *(shared)* — shared mutable host/port config, set at runtime.
 - **`ClientUpdateChecker.java`** / **`ClientUpdatePackage.java`** — auto-update: client
   hashes its running jar (`games/FileHash`) and asks the server if it's stale; server

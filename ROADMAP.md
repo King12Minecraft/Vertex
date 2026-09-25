@@ -402,6 +402,22 @@ recorded below as they're confirmed.
   (terrain bounds, distance/fuel/score behavior, idle vs. throttling, tick() being a
   no-op once over) plus an Xvfb/Swing screenshot harness confirming the terrain,
   car, and HUD render correctly both at rest and mid-drive.
+- **Dead connection-error message fixed across 25 game windows.** Every
+  practice/find-match screen used `if (!NetworkManager.sendAsync(request)) { ...set an
+  error label... }`, but `sendAsync()` is designed to always return `true` - it queues
+  offline instead of failing, on purpose, so `sendAsync`-based optimistic UI (like
+  chat) never has to check a return value. That made the error branch on all 25 files
+  dead code: a player with no server connection just saw "Searching..." spin forever
+  with no explanation. Fixed at the source instead of patching each call site
+  individually - added `NetworkManager.describeIfNotReady()`, which reads the
+  already-existing `ConnectionState` (OFFLINE/CONNECTING/RECONNECTING/ONLINE) and
+  returns a player-facing message for the first three and `null` when ONLINE, then
+  swapped all 25 files' dead `if (!sent)` checks for a call to it right after
+  `sendAsync()`. Verified with a reflection-based state test (all four states return
+  the right thing) and an Xvfb/Swing harness that drove real `TicTacToeWindow` and
+  `ChessWindow` instances to their searching screen (covering both the
+  `searchingLabel` and the one-off `statusLabel` variable-name variants used across
+  the 25 files) and confirmed the correct message renders.
 
 ## 🔧 In Progress
 

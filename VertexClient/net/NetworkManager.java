@@ -73,6 +73,25 @@ public class NetworkManager
         return state;
     }
 
+    /**
+     * A player-facing reason the connection isn't ready right now, or
+     * null if it's fully connected. sendAsync() always "succeeds" (it
+     * queues offline rather than failing - see the class javadoc), so
+     * this is the only way calling code can tell the difference between
+     * "request is on its way" and "request is sitting in a queue
+     * because there's no connection yet" - a real distinction for
+     * anything time-sensitive to show, like a matchmaking search screen
+     * that would otherwise say "Looking for an opponent..." while
+     * actually going nowhere.
+     */
+    public static String describeIfNotReady()
+    {
+        if (state == ConnectionState.OFFLINE) return "Can't reach the server - check your connection.";
+        if (state == ConnectionState.CONNECTING) return "Connecting to the server...";
+        if (state == ConnectionState.RECONNECTING) return "Reconnecting to the server...";
+        return null;
+    }
+
     /** Number of fire-and-forget messages still waiting to sync once reconnected. */
     public static synchronized int getPendingSyncCount()
     {

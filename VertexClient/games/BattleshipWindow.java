@@ -282,10 +282,11 @@ public class BattleshipWindow extends JPanel implements NetworkManager.PushListe
     {
         Message request = new Message();
         request.setType(MessageType.BATTLESHIP_FIND_MATCH_REQUEST);
-        boolean sent = NetworkManager.sendAsync(request);
-        if (!sent)
+        NetworkManager.sendAsync(request);
+        String connectionIssue = NetworkManager.describeIfNotReady();
+        if (connectionIssue != null)
         {
-            searchingLabel.setText("Can't reach the server - is it running?");
+            searchingLabel.setText(connectionIssue);
         }
     }
 
