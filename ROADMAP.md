@@ -381,6 +381,27 @@ recorded below as they're confirmed.
   0. One real gap surfaced by the same audit, left open rather than guessed at:
   Sudoku has no reward formula at all (not a wiring bug, a genuine missing design
   decision) - recorded in `BLOCKED_QUESTIONS.md`.
+- **New game: Hill Climb** — 50 games in the catalog now. An original "drive a simple
+  vehicle across procedurally rolling hills on a limited fuel tank" implementation
+  (`HillClimbGame`/`HillClimbWindow`), picked from the games backlog instead of the
+  also-listed Pac-Man concept once the audit noticed Maze Chase is already
+  functionally a from-scratch Pac-Man (maze, pellets, chasers, frightened mode) -
+  building a second one would have been pure duplication. The first game in this
+  codebase actually built on the `engine` package (`Vector2` for the slope/gravity
+  math, `GameLoop` for the tick loop) rather than just having it sit unused. Added
+  through every layer tonight's earlier refactors made a single-file change each:
+  one `GameWindowFactory` entry (no `GameLauncher` edit needed), one `GameRegistry`
+  entry (client + server), one `EconomyConfig.getPracticeReward` formula (no
+  `ClientHandler` edit needed, since the safe-default fallback from the economy fix
+  above already covers any new offline game automatically). Caught and fixed a real
+  balance problem during testing rather than shipping it: an early version also
+  flipped the car over past a steep-slope-at-speed threshold, but that triggered far
+  too readily during ordinary hard-throttle climbing (an unfair "gotcha" death, not
+  a reckless-driving penalty) - cut for a solid, fully-tested fuel-only version
+  instead of shipping a half-tuned mechanic. Verified with an 11-check logic test
+  (terrain bounds, distance/fuel/score behavior, idle vs. throttling, tick() being a
+  no-op once over) plus an Xvfb/Swing screenshot harness confirming the terrain,
+  car, and HUD render correctly both at rest and mid-drive.
 
 ## 🔧 In Progress
 

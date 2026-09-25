@@ -153,9 +153,11 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   that page) is now a single `GameWindowFactory.factoryFor(id)` lookup instead of a
   branch per game: `MainMenu.getInstance().showGame(factory.get())` when a factory
   exists, otherwise the same "not converted yet" notice `launch(...)` already shows
-  for `comingSoon` ids. **All 49 games in the catalog** go through this path - every
-  offline/single-player game, both games with `SpectateDialog`/tournament support
-  (Chess, Rock Paper Scissors, Battleship), and every online-multiplayer game.
+  for `comingSoon` ids. **All 50 games in the catalog** go through this path - every
+  offline/single-player game (including Hill Climb, the first new game added after
+  the embedded-games rollout - see the "Done" section of `ROADMAP.md` for what it
+  demonstrates), both games with `SpectateDialog`/tournament support (Chess, Rock
+  Paper Scissors, Battleship), and every online-multiplayer game.
   A game reachable from more than one place (those same three `SpectateDialog`
   "Watch" entry points, separate from `GameLauncher`) needs every one of those
   call sites updated, not just the main one - a real bug (Chess's spectate path silently doing nothing once
@@ -427,14 +429,17 @@ for it next.
   (`RayCasterVisualDemo.java`) rendered both a raycaster corridor view and an isometric
   tile grid to PNG and was eyeballed to confirm they actually look like the intended
   pseudo-3D style, not just "some pixel matched."
+- **First real adopter: `HillClimbGame`/`HillClimbWindow`** (see `ROADMAP.md`'s "Done"
+  section) uses `Vector2` (resolving gravity along the terrain's slope angle via
+  `.rotate`) and `GameLoop` for its tick loop — proof the design generalizes to an
+  actual game, the same validation step `ai/search` went through with
+  `ConnectFourGameModel` before being trusted more broadly.
 - **Not built yet** (still just `ROADMAP.md` ideas, not started): a particle system for
   effects (explosions, bursts) — skipped for this minimal-first pass since
   `ConfettiOverlay` already covers the one existing burst-effect need and a generic
-  particle system isn't yet justified by a second use case; and wiring any actual game
-  onto `engine` — this pass is infrastructure only, proven via the smoke test and visual
-  demo above rather than a real game adopting it yet (the same "prove it generalizes,
-  then let games opt in" approach `ai/search` took before `ConnectFourGameModel`/
-  `ReversiGameModel` existed).
+  particle system isn't yet justified by a second use case. `Sprite`/`SpriteSheet`/
+  `Animation` and `engine/pseudo3d` still have no adopter game yet - `HillClimbGame`
+  only needed `Vector2`/`GameLoop` so far.
 
 ## economy — coins, ratings, achievements, cosmetics
 

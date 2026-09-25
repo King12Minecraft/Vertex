@@ -78,6 +78,7 @@ public final class GameWindowFactory
         FACTORIES.put("connect-four", new Supplier<JComponent>() { public JComponent get() { return new ConnectFourWindow(); } });
         FACTORIES.put("zombie-survival", new Supplier<JComponent>() { public JComponent get() { return new ZombieSurvivalWindow(); } });
         FACTORIES.put("space-battle", new Supplier<JComponent>() { public JComponent get() { return new SpaceBattleWindow(); } });
+        FACTORIES.put("hill-climb", new Supplier<JComponent>() { public JComponent get() { return new HillClimbWindow(); } });
     }
 
     private GameWindowFactory()

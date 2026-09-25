@@ -63,6 +63,7 @@ public class GameRegistry
         games.add(new GameInfo("signal-grid", "Signal Grid", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("card-rush", "Card Rush", "Multiplayer", "Online", true, false, "1.0"));
         games.add(new GameInfo("space-battle", "Space Battle", "Multiplayer", "Online", true, false, "1.0"));
+        games.add(new GameInfo("hill-climb", "Hill Climb", "Single Player", "Practice Mode", false, false, "1.0"));
 
         markSpectatable("chess", "rock-paper-scissors", "battleship");
     }

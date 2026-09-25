@@ -75,6 +75,7 @@ public class EconomyConfig
         if ("klondike".equals(gameId))       return Math.min(40, score / 15);
         if ("yahtzee".equals(gameId))        return Math.min(35, score / 12);
         if ("mancala".equals(gameId))        return Math.min(35, score / 8);
+        if ("hill-climb".equals(gameId))     return Math.min(35, score / 20);
         return 0;
     }
 
