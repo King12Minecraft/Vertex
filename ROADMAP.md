@@ -492,6 +492,35 @@ recorded below as they're confirmed.
   as the single most severe risk in the platform strategy analysis) is recorded in
   `BLOCKED_QUESTIONS.md` rather than guessed at overnight - it's a real
   key-management/architecture decision, not a mechanical fix.
+- **Closed a real Java deserialization vulnerability - both `ClientHandler` (server)
+  and `NetworkManager` (client) called `ObjectInputStream.readObject()` directly on
+  a raw socket, with zero filtering.** This is the well-known Java deserialization
+  RCE bug class (see any major Java deserialization CVE, or the `ysoserial` tool,
+  for what an unfiltered `readObject()` on untrusted input enables) - arguably more
+  severe than the update-signing gap above, since it needs no MITM positioning and
+  no user choosing a malicious server: the server side hits this on a brand-new
+  socket's very first message, before login/authentication even happens, so any TCP
+  connection to a Vertex server could attempt it, and symmetrically a malicious or
+  compromised server could target any client that connects to it. Fixed with a new
+  `net.VertexSerializationFilter` (a `java.io.ObjectInputFilter`, JEP 290, standard
+  JDK since Java 9 - no new dependency), applied via `setObjectInputFilter()` right
+  after constructing both `ObjectInputStream`s. Built as a strict allow-list (only
+  `Message`/`MessageType`/`Account`/`Role`/`GameInfo`/`ChallengeProgressInfo`/
+  `ShopItemInfo`/`String`/`Enum`/`Object`/`ArrayList` - every concrete class that
+  actually flows through the protocol - then a trailing `!*` rejecting everything
+  else), deliberately not a deny-list of known-bad gadget classes: an allow-list is
+  safe against gadgets nobody has found yet too, a deny-list only ever covers ones
+  someone already has. Generous size limits (maxbytes/maxarray/maxdepth/maxrefs) are
+  a pure DoS backstop against a peer claiming an absurd size, not a tight bound on
+  real traffic - sized well above the largest legitimate payload (a whole Vertex.jar
+  on client auto-update). Verified with a round-trip test proving a realistic
+  `Message` populated with every field type (account, game list, challenges, shop
+  items, file bytes) still deserializes correctly through the filter, plus two
+  rejection tests proving a disallowed class sent directly (`HashMap`, `File`) gets
+  rejected with `InvalidClassException` instead of silently succeeding. Mirrored
+  into `VertexClient/` (this needed the same `PROGRAM_STRUCTURE.md` sync-discipline
+  fix above - `ClientHandler.java`'s copy there is what the in-app "Host a Server"
+  feature actually runs).
 
 ## 🔧 In Progress
 

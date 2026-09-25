@@ -170,6 +170,7 @@ public class NetworkManager
             socket = new Socket(NetworkConfig.getServerHost(), NetworkConfig.getServerPort());
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
+            in.setObjectInputFilter(VertexSerializationFilter.FILTER);
             setState(ConnectionState.ONLINE);
             startListenerThread();
             flushOfflineQueue();

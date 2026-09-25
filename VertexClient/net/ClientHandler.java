@@ -290,6 +290,7 @@ public class ClientHandler implements Runnable
         {
             out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+            in.setObjectInputFilter(VertexSerializationFilter.FILTER);
 
             while (true)
             {

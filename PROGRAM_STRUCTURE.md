@@ -83,6 +83,16 @@ the socket → dispatches by `MessageType` (e.g. `FIND_MATCH_REQUEST`) → the m
 - **`Message.java`** / **`MessageType.java`** *(shared)* — the wire protocol: one
   multi-field `Message` class carrying whichever optional fields a given `MessageType`
   needs, rather than one class per message type.
+- **`VertexSerializationFilter.java`** *(shared)* — a `java.io.ObjectInputFilter`
+  allow-list applied to every `ObjectInputStream` that reads a `Message` off a raw
+  socket (`ClientHandler` and `NetworkManager` both call
+  `in.setObjectInputFilter(VertexSerializationFilter.FILTER)` right after
+  constructing their stream). Closes the classic unfiltered-`readObject()` Java
+  deserialization RCE class of bug - without it, either side would deserialize
+  whatever class graph the other end sends, no matter what. Adding a new
+  custom-type field to `Message.java` (or to one of the types it already carries)
+  means adding it to the filter's allow-list too, or that field silently stops
+  deserializing.
 - **`NetworkManager.java`** — client-side counterpart, one persistent socket, three
   modes: blocking request/response `send()`; fire-and-forget `sendAsync()` +
   `PushListener` for server-initiated pushes; offline queueing for `sendAsync` while
