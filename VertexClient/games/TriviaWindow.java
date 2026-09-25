@@ -5,14 +5,12 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 import ui.ThemedButton;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -22,10 +20,10 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.List;
 
 /**
@@ -38,7 +36,7 @@ import java.util.List;
  * comes back). A round result screen briefly shows the correct answer
  * and everyone's scores before the next question appears.
  */
-public class TriviaWindow extends JFrame implements NetworkManager.PushListener
+public class TriviaWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -60,40 +58,37 @@ public class TriviaWindow extends JFrame implements NetworkManager.PushListener
 
     public TriviaWindow()
     {
-        super("Vertex - Trivia Blitz");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createRoundScreen(), ROUND);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                leaveMatch();
-                NetworkManager.removePushListener(TriviaWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
         panel.setPreferredSize(new Dimension(400, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Trivia Blitz");
         title.setFont(UITheme.FONT_HEADING);
@@ -116,22 +111,25 @@ public class TriviaWindow extends JFrame implements NetworkManager.PushListener
             public void actionPerformed(ActionEvent e)
             {
                 cardLayout.show(cards, SEARCHING);
-                pack();
-                setLocationRelativeTo(null);
                 findMatch();
             }
         });
         panel.add(playOnline);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Trivia Blitz");
         title.setFont(UITheme.FONT_HEADING);
@@ -154,20 +152,25 @@ public class TriviaWindow extends JFrame implements NetworkManager.PushListener
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createRoundScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BorderLayout(0, 16));
         panel.setBorder(new EmptyBorder(24, 28, 24, 28));
         panel.setPreferredSize(new Dimension(480, 420));
+        wrapper.add(panel, new GridBagConstraints());
 
         JPanel top = new JPanel();
         top.setOpaque(false);
@@ -207,9 +210,30 @@ public class TriviaWindow extends JFrame implements NetworkManager.PushListener
         scoresPanel = new JPanel();
         scoresPanel.setOpaque(false);
         scoresPanel.setLayout(new BoxLayout(scoresPanel, BoxLayout.Y_AXIS));
-        panel.add(scoresPanel, BorderLayout.SOUTH);
 
-        return panel;
+        JPanel south = new JPanel();
+        south.setOpaque(false);
+        south.setLayout(new BoxLayout(south, BoxLayout.Y_AXIS));
+        south.add(scoresPanel);
+
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        JPanel leaveRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        leaveRow.setOpaque(false);
+        leaveRow.setBorder(new EmptyBorder(10, 0, 0, 0));
+        leaveRow.add(leave);
+        south.add(leaveRow);
+
+        panel.add(south, BorderLayout.SOUTH);
+
+        return wrapper;
     }
 
     private void findMatch()
@@ -287,8 +311,6 @@ public class TriviaWindow extends JFrame implements NetworkManager.PushListener
         {
             matchId = message.getMatchId();
             cardLayout.show(cards, ROUND);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (type == MessageType.TRIVIA_ROUND_START)
         {
@@ -335,11 +357,9 @@ public class TriviaWindow extends JFrame implements NetworkManager.PushListener
                     gameOver = false;
                     matchId = null;
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { TriviaWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }

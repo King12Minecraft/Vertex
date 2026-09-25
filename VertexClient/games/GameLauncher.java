@@ -124,8 +124,7 @@ public class GameLauncher
             }
             else if ("trivia-blitz".equals(game.getGameId()))
             {
-                TriviaWindow window = new TriviaWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new TriviaWindow());
             }
             else if ("minesweeper".equals(game.getGameId()))
             {

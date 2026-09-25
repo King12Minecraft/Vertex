@@ -214,6 +214,12 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   centerer (`boardCenterer`) - the same bare-board fix used for Fight Arena's canvas.
   No rematch guard needed: "Play Again" re-shows the `SEARCHING` card within the same
   window instead of opening a new one.
+- **Trivia Blitz converted to the embedded pattern** — 42 games embedded total now.
+  Same recipe throughout: unconditional `requestLeave()`, all three screens
+  (mode-select, searching, round) wrapped in `GridBagLayout` centerers. The round
+  screen never had a Leave affordance before (only the 4 answer buttons and a scores
+  area) and now gets one appended below the scores panel, same as Word Duel and
+  Typing Duel's round screens.
 
 ## 🔧 In Progress
 
