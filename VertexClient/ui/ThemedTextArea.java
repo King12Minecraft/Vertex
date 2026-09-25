@@ -94,4 +94,11 @@ public class ThemedTextArea extends RoundedPanel
     {
         return isShowingPlaceholder() ? "" : area.getText().trim();
     }
+
+    /** Back to showing the placeholder, same as a fresh ThemedTextArea - see ThemedTextField.clear(). */
+    public void clear()
+    {
+        area.setText(placeholder);
+        area.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+    }
 }

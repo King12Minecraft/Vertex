@@ -713,4 +713,57 @@ public class Message implements Serializable
     /** Every current ban, newest first, "username|reason|bannedBy|epochMillis" per entry - ADMIN_BAN_LIST_RESPONSE. Reuses getTargetUsername() for who to ban/unban and getChatText() for the ban reason (ADMIN_BAN_REQUEST) rather than adding two more single-purpose fields. */
     public java.util.List<String> getBanRecords() { return banRecords; }
     public void setBanRecords(java.util.List<String> banRecords) { this.banRecords = banRecords; }
+
+    // ---- Telephone (Gartic-Phone-style draw/guess chain - see TelephoneMatch) ----
+    private int telephoneRound;
+    private int telephoneTotalRounds;
+    private boolean telephoneIsDrawingRound;
+    private String telephoneEntryText;
+    private int telephoneChainIndex;
+    private int telephoneChainCount;
+    private int telephoneEntryIndex;
+    private int telephoneEntryCount;
+    private String telephoneEntryAuthor;
+    private boolean telephoneEntryIsDrawing;
+    private boolean telephoneRevealDone;
+
+    /** 1-based current round number - TELEPHONE_ROUND_START. */
+    public int getTelephoneRound() { return telephoneRound; }
+    public void setTelephoneRound(int telephoneRound) { this.telephoneRound = telephoneRound; }
+
+    public int getTelephoneTotalRounds() { return telephoneTotalRounds; }
+    public void setTelephoneTotalRounds(int telephoneTotalRounds) { this.telephoneTotalRounds = telephoneTotalRounds; }
+
+    /** True = this round you draw (telephoneEntryText carries the phrase to illustrate); false = this round you write a phrase (getFileData() carries the drawing to guess, round 1 excepted - no prior content at all, just write a starting phrase) - TELEPHONE_ROUND_START. */
+    public boolean isTelephoneIsDrawingRound() { return telephoneIsDrawingRound; }
+    public void setTelephoneIsDrawingRound(boolean telephoneIsDrawingRound) { this.telephoneIsDrawingRound = telephoneIsDrawingRound; }
+
+    /** The phrase to illustrate (TELEPHONE_ROUND_START, drawing rounds), the phrase this player is submitting (TELEPHONE_SUBMIT_REQUEST, text rounds), or one chain entry's text (TELEPHONE_REVEAL_ENTRY, non-drawing entries). Drawings always travel via getFileData()/getFileName() instead - no dedicated image field needed. */
+    public String getTelephoneEntryText() { return telephoneEntryText; }
+    public void setTelephoneEntryText(String telephoneEntryText) { this.telephoneEntryText = telephoneEntryText; }
+
+    /** Which of the match's N parallel chains this entry belongs to - TELEPHONE_REVEAL_ENTRY. */
+    public int getTelephoneChainIndex() { return telephoneChainIndex; }
+    public void setTelephoneChainIndex(int telephoneChainIndex) { this.telephoneChainIndex = telephoneChainIndex; }
+
+    public int getTelephoneChainCount() { return telephoneChainCount; }
+    public void setTelephoneChainCount(int telephoneChainCount) { this.telephoneChainCount = telephoneChainCount; }
+
+    /** This entry's position within its chain (0 = the original starting phrase) - TELEPHONE_REVEAL_ENTRY. */
+    public int getTelephoneEntryIndex() { return telephoneEntryIndex; }
+    public void setTelephoneEntryIndex(int telephoneEntryIndex) { this.telephoneEntryIndex = telephoneEntryIndex; }
+
+    public int getTelephoneEntryCount() { return telephoneEntryCount; }
+    public void setTelephoneEntryCount(int telephoneEntryCount) { this.telephoneEntryCount = telephoneEntryCount; }
+
+    /** Who contributed this reveal entry - TELEPHONE_REVEAL_ENTRY. */
+    public String getTelephoneEntryAuthor() { return telephoneEntryAuthor; }
+    public void setTelephoneEntryAuthor(String telephoneEntryAuthor) { this.telephoneEntryAuthor = telephoneEntryAuthor; }
+
+    public boolean isTelephoneEntryIsDrawing() { return telephoneEntryIsDrawing; }
+    public void setTelephoneEntryIsDrawing(boolean telephoneEntryIsDrawing) { this.telephoneEntryIsDrawing = telephoneEntryIsDrawing; }
+
+    /** True on the very last TELEPHONE_REVEAL_ENTRY of the match, so the client knows the reveal stream is complete rather than waiting on a message that isn't coming. */
+    public boolean isTelephoneRevealDone() { return telephoneRevealDone; }
+    public void setTelephoneRevealDone(boolean telephoneRevealDone) { this.telephoneRevealDone = telephoneRevealDone; }
 }

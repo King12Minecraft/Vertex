@@ -534,6 +534,54 @@ recorded below as they're confirmed.
   project `README.md` files) to reflect this. Verified: `VertexClient/` compiles
   clean with `HostServerDialog` gone (1323 classes vs. 1330 before - the removed
   class and its inner classes).
+- **New game: Telephone** — 51 games in the catalog now. A Gartic-Phone-style
+  draw/guess chain, requested explicitly (twice) rather than picked from the
+  backlog. 4-8 players; `N` players means `N` parallel chains and exactly `N`
+  rounds - round 0 is everyone writing their chain's opening phrase, every odd
+  round is "draw the phrase you were just handed," every even round after 0 is
+  "guess the drawing you were just handed" - the standard rotation
+  `chain = (player - round) mod N` means every player visits every chain exactly
+  once, and chain k's round-0 entry always comes from player k (the chain
+  "owner"). Ends with a reveal: every chain replayed start to finish for
+  everyone, the actual point of the game. No scoring, no winner - a flat
+  participation coin reward via the existing `awardWin` path (same as Zombie
+  Survival's precedent for co-op games with no single winner), which also means
+  it correctly counts toward the generic win-count challenges via tonight's
+  earlier `recordOnlineWin` fix.
+  New server classes: `TelephoneMatchManager`/`TelephoneMatch` (same
+  `Timer`-auto-advances-regardless-of-answers shape as `TriviaMatch` - one slow
+  or disconnected player never stalls anyone else's chain, they just get an
+  auto-filled blank entry). New client class: `TelephoneWindow`, including a
+  small original `DrawingCanvas` (freehand mouse-drag painting onto a
+  `BufferedImage`, same technique as `AvatarEditorDialog`'s existing paint tab,
+  not shared code - scoped as its own copy since nothing else needs it yet).
+  `ThemedTextArea` gained a `clear()` method (it only had `getValue()` before) -
+  a real, small gap found while wiring the text-round screen, matching
+  `ThemedTextField`'s existing `clear()`.
+  Caught and fixed two real UI bugs during visual verification, not shipped
+  blind: (1) the drawing canvas was placed via `BorderLayout.CENTER`, which
+  stretches to fill all remaining space regardless of preferred/max size -
+  fixed by switching that row to `BoxLayout` (which respects a fixed max size)
+  instead. (2) three of the five screens returned a bare, non-opaque `JPanel`
+  straight to the card deck instead of wrapping it in a `RoundedPanel` the way
+  every other screen (including this same file's own searching/waiting
+  screens, and every other game's screens) does - without that wrapper nothing
+  ever paints the theme's dark background, so Swing's own default light-grey
+  `JPanel` background showed through everywhere. Root-caused by directly
+  diffing an working screen (`AmongUsWindow`'s GAME card) against a broken one
+  at the component-tree level (a small reflection dump of `isOpaque`/
+  `background`/`bounds` for every node) rather than guessing - the actual
+  culprit was a missing `RoundedPanel(ThemeColor.BG_APP, 0)` wrapper, present
+  on the working screen and absent on the broken ones. Verified with a rotation
+  logic test (every one of the N chains gets exactly one contributor per round,
+  every player visits every chain exactly once, chain k's opening phrase always
+  comes from player k) plus an Xvfb/Swing harness that drives a real
+  `TelephoneWindow` through synthetic round-start and reveal-entry pushes and
+  confirms every screen renders correctly (including the text-input and guess-
+  image-preview screen, which needed its preferred height increased and a
+  scroll-pane wrapper added after an early pass clipped the input box and
+  submit button off-screen once the guess-image preview was inserted above
+  them).
 
 ## 🔧 In Progress
 
@@ -672,14 +720,12 @@ persistent, whole-server nation-building game on a daily tick, not a quick match
 tracked separately, not folded into this list.
 
 ### The real remaining backlog - concrete concepts, not vague entries
-- **Gartic Phone-style telephone/drawing game** — round 1: everyone draws a secret
-  prompt; round 2: your drawing gets passed to the next player, who has to *guess*
-  what it is in one word/phrase, blind; round 3: that guess gets passed again and
-  drawn; repeat until it's back to the original artist, then everyone watches the
-  full chain unfold (usually hilariously mangled). Needs a **restricted chat
-  channel per match** (only that match's players, not open general chat) - the
-  one real new infrastructure piece this needs, reusable by any future game with
-  the same "small private channel for one match" shape.
+- ~~Gartic Phone-style telephone/drawing game~~ — **built, see "Done" above
+  (Telephone).** Turned out not to need a restricted chat channel at all - the
+  whole draw/guess/reveal loop is structured request/response (drawings and
+  guesses submitted as game moves, same pattern as every other game's move
+  submission), not free-form chat, so that infrastructure piece this entry
+  originally flagged was never actually needed.
 - **A Quiplash/Jackbox-style prompt-and-vote game (original concept, working title
   "Caption Chaos")** — the server shows a silly prompt ("The worst thing to say on
   a first date"), everyone privately submits an answer, then everyone votes
@@ -687,8 +733,9 @@ tracked separately, not folded into this list.
   round. Cheap to build (no real-time sync, no physics, just request/response like
   Trivia Blitz), and this exact genre (Jackbox's Quiplash, Drawful) is consistently
   one of the most replayed party-game formats that exists - genuinely fun, not
-  filler. A natural second phase once Gartic Phone's restricted-chat/match-channel
-  piece exists, since both games are "small private channel + round structure."
+  filler. Telephone's round-rotation/reveal-viewer patterns (a server Timer that
+  auto-advances regardless of who's answered, a client reveal stepper) are a
+  reasonable template to start from.
 - **Casino mini-games** (slots, a roulette-style wheel, a simple blackjack) —
   stakes and payouts computed server-side only, same rule as everything else in the
   economy. Confirmed still worth an `Admin`-level per-server toggle (default off)

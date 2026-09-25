@@ -7,7 +7,7 @@ lot of what's below and shouldn't be treated as current. This file is.
 
 ---
 
-## Games (50 playable)
+## Games (51 playable)
 
 ### Online multiplayer, ELO-rated
 - **Chess** — full rules including castling, en passant, checkmate/stalemate. Resign or offer a draw mid-game. Spectate live matches, replay finished ones move-by-move.
@@ -32,6 +32,9 @@ After any Chess, Battleship, or RPS match, challenge the same opponent again wit
 
 ### Online multiplayer, ELO-rated (added since the counts above were last updated)
 - **Square Wars**, **Dots and Boxes**, **Reversi/Othello**, **Memory Match**, **Air Hockey**, **Word Duel**, **Dice Duel**, **Snake Arena**, **Competitive Tetris**, **Fusion Grid**, **Typing Duel**, **Signal Grid**, **Card Rush** — original 1v1 implementations, each ELO-rated the same way Chess/Battleship/RPS are. See each game's in-app rules (or `GameRules.java`) for how it plays.
+
+### Online multiplayer, for fun (no scoring, no winner)
+- **Telephone** — 4–8 players, a Gartic-Phone-style draw/guess chain. Everyone writes a starting phrase, then the phrase gets passed player to player, alternating "draw what you were just handed" and "guess what this drawing shows" each round, until every chain has gone all the way around the table. Ends with a reveal - step through every chain from its original phrase to its final, usually-mangled result. Purely social - everyone gets a flat coin reward just for playing, no ranking involved.
 
 ### Single-player (no server required; wins/scores still tracked if logged in)
 Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Gem Match, Maze Chase, Brick Breaker, Flappy Bird, Galaxy Defender, Word Guess, Bubble Shooter, Lights Out, Peg Solitaire, Klondike Solitaire, Yahtzee, Mancala (vs. a built-in AI), and Rock Paper Scissors against a simple AI. Snake, Tetris, and Dino Dash support pausing (**P**). Every game — online or solo — now renders with a fixed color palette that ignores your app theme choice (see Customization below); only the previous 4 games (mostly the newest ones) had this problem before it was fixed platform-wide.

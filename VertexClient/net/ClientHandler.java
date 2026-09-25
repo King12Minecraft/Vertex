@@ -56,6 +56,8 @@ import games.SignalGridMatchManager;
 import games.SignalGridMatch;
 import games.CardRushMatchManager;
 import games.CardRushMatch;
+import games.TelephoneMatchManager;
+import games.TelephoneMatch;
 import games.SquareWarsMatchManager;
 import games.SquareWarsMatch;
 import games.CheckersMatchManager;
@@ -131,6 +133,8 @@ public class ClientHandler implements Runnable
     private SignalGridMatchManager signalGridMatchManager;
     private CardRushMatch currentCardRushMatch;
     private CardRushMatchManager cardRushMatchManager;
+    private TelephoneMatch currentTelephoneMatch;
+    private TelephoneMatchManager telephoneMatchManager;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -179,7 +183,7 @@ public class ClientHandler implements Runnable
                           DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
                           TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
                           TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager,
-                          CardRushMatchManager cardRushMatchManager)
+                          CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -225,6 +229,7 @@ public class ClientHandler implements Runnable
         this.typingDuelMatchManager = typingDuelMatchManager;
         this.signalGridMatchManager = signalGridMatchManager;
         this.cardRushMatchManager = cardRushMatchManager;
+        this.telephoneMatchManager = telephoneMatchManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -246,6 +251,7 @@ public class ClientHandler implements Runnable
     public void setCurrentTypingDuelMatch(TypingDuelMatch match) { this.currentTypingDuelMatch = match; }
     public void setCurrentSignalGridMatch(SignalGridMatch match) { this.currentSignalGridMatch = match; }
     public void setCurrentCardRushMatch(CardRushMatch match) { this.currentCardRushMatch = match; }
+    public void setCurrentTelephoneMatch(TelephoneMatch match) { this.currentTelephoneMatch = match; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -332,6 +338,7 @@ public class ClientHandler implements Runnable
             typingDuelMatchManager.cancelWaiting(this);
             signalGridMatchManager.cancelWaiting(this);
             cardRushMatchManager.cancelWaiting(this);
+            telephoneMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -361,6 +368,7 @@ public class ClientHandler implements Runnable
             if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
             if (currentSignalGridMatch != null) currentSignalGridMatch.handleDisconnect(this);
             if (currentCardRushMatch != null) currentCardRushMatch.handleDisconnect(this);
+            if (currentTelephoneMatch != null) currentTelephoneMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
 
@@ -530,6 +538,9 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.ADMIN_BAN_REQUEST) return handleAdminBan(request);
         if (request.getType() == MessageType.ADMIN_UNBAN_REQUEST) return handleAdminUnban(request);
         if (request.getType() == MessageType.ADMIN_BAN_LIST_REQUEST) return handleAdminBanList();
+        if (request.getType() == MessageType.TELEPHONE_FIND_MATCH_REQUEST) return handleTelephoneFindMatch();
+        if (request.getType() == MessageType.TELEPHONE_LEAVE_QUEUE_REQUEST) return handleTelephoneLeaveQueue();
+        if (request.getType() == MessageType.TELEPHONE_SUBMIT_REQUEST) return handleTelephoneSubmit(request);
 
         Message response = new Message();
         response.setSuccess(false);
@@ -2022,6 +2033,35 @@ public class ClientHandler implements Runnable
         if (currentAmongMatch != null)
         {
             currentAmongMatch.castVote(this, request.getToUsername());
+        }
+        return null;
+    }
+
+    // ==================== Telephone ====================
+
+    private Message handleTelephoneFindMatch()
+    {
+        if (loggedInUsername != null) telephoneMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleTelephoneLeaveQueue()
+    {
+        telephoneMatchManager.cancelWaiting(this);
+        if (currentTelephoneMatch != null)
+        {
+            currentTelephoneMatch.handleDisconnect(this);
+            currentTelephoneMatch = null;
+        }
+        return null;
+    }
+
+    /** Text guesses/prompts use getTelephoneEntryText(); drawings reuse getFileData() - same "images always travel via fileData" convention as everywhere else, no dedicated image field needed. */
+    private Message handleTelephoneSubmit(Message request)
+    {
+        if (currentTelephoneMatch != null)
+        {
+            currentTelephoneMatch.submitEntry(this, request.getTelephoneEntryText(), request.getFileData());
         }
         return null;
     }

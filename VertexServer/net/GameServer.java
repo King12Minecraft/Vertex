@@ -34,6 +34,7 @@ import games.ChessMatchManager;
 import games.ReplayManager;
 import games.FightArenaMatchManager;
 import games.AmongUsMatchManager;
+import games.TelephoneMatchManager;
 import games.RacingMatchManager;
 import admin.FeedbackManager;
 import social.ModerationManager;
@@ -72,6 +73,7 @@ public class GameServer
     private final FeedbackManager feedbackManager = new FeedbackManager();
     private final RacingMatchManager racingMatchManager = new RacingMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager);
     private final AmongUsMatchManager amongUsMatchManager = new AmongUsMatchManager(gameHistoryManager, chatManager, economyManager);
+    private final TelephoneMatchManager telephoneMatchManager = new TelephoneMatchManager(gameHistoryManager, chatManager, economyManager);
     private final FightArenaMatchManager fightArenaMatchManager = new FightArenaMatchManager(gameHistoryManager, chatManager, leaderboardManager, partyManager, economyManager);
     private final ReplayManager replayManager = new ReplayManager();
     private final ChessMatchManager chessMatchManager = new ChessMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
@@ -191,7 +193,7 @@ public class GameServer
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
                     airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager,
                     tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager, signalGridMatchManager,
-                    cardRushMatchManager);
+                    cardRushMatchManager, telephoneMatchManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

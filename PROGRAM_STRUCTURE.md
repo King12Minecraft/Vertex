@@ -198,11 +198,13 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   that page) is now a single `GameWindowFactory.factoryFor(id)` lookup instead of a
   branch per game: `MainMenu.getInstance().showGame(factory.get())` when a factory
   exists, otherwise the same "not converted yet" notice `launch(...)` already shows
-  for `comingSoon` ids. **All 50 games in the catalog** go through this path - every
+  for `comingSoon` ids. **All 51 games in the catalog** go through this path - every
   offline/single-player game (including Hill Climb, the first new game added after
   the embedded-games rollout - see the "Done" section of `ROADMAP.md` for what it
   demonstrates), both games with `SpectateDialog`/tournament support (Chess, Rock
-  Paper Scissors, Battleship), and every online-multiplayer game.
+  Paper Scissors, Battleship), and every online-multiplayer game (including
+  Telephone, `games/TelephoneWindow.java` - a Gartic-Phone-style draw/guess
+  chain, see `ROADMAP.md`'s "Done" section).
   A game reachable from more than one place (those same three `SpectateDialog`
   "Watch" entry points, separate from `GameLauncher`) needs every one of those
   call sites updated, not just the main one - a real bug (Chess's spectate path silently doing nothing once

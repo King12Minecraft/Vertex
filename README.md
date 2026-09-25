@@ -60,6 +60,7 @@ Default port is **7777**, but this is fully configurable via the same switcher.
 - **Fight Arena** — 1v1, 2v2, 3v3, or free-for-all. Queue solo or with a party (your party always ends up on the same team). 2v2/3v3 also support a lightweight team tournament: register your party, wait for an opposing party, winner takes it.
 - **Among Us** — round-based social deduction with a small group.
 - **Tic-Tac-Toe** — online ranked matches, or practice offline against a simple AI.
+- **Telephone** — 4 to 8 players, a Gartic-Phone-style draw/guess chain: write a phrase, pass it on, someone draws it, the drawing gets passed on, someone guesses it, and so on until every chain gets revealed start to finish. Purely for fun — no ranking, everyone earns a flat reward just for playing.
 
 **Solo tournaments (Battleship & Rock Paper Scissors only, since both games always produce a clear winner):** 4-player single-elimination brackets, browsable and joinable from the Tournaments page.
 

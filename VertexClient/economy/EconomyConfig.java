@@ -35,6 +35,7 @@ public class EconomyConfig
         if ("signal-grid".equals(gameId))      return 15;
         if ("card-rush".equals(gameId))        return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
+        if ("telephone".equals(gameId))        return 20;
         return 0;
     }
 
