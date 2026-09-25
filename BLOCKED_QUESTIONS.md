@@ -18,7 +18,16 @@ raised.
 
 ## Open
 
-*(none yet)*
+- **Sudoku has no practice-mode coin reward formula at all** in
+  `EconomyConfig.getPracticeReward` — every other offline/single-player game does
+  (20 games now have one after tonight's `handleGamePlayed` fix). This isn't the
+  wiring bug that fix addressed (those 14 games already had a formula, just weren't
+  reached); Sudoku genuinely has no formula defined, so completing it pays zero
+  coins by design-or-oversight, unclear which. Needs a real decision (a reward
+  value/formula, matching the "min(cap, score-based-scaling)" shape every other
+  entry uses) rather than an invented number — picking Sudoku's actual reward
+  economics isn't a mechanical fix. Raised 2026-09-25. No assumption made; left
+  exactly as found.
 
 ---
 

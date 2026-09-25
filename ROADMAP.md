@@ -362,6 +362,25 @@ recorded below as they're confirmed.
   justified; the others don't have a concrete consumer yet and building them
   speculatively ahead of one was explicitly flagged as an anti-pattern to avoid in
   the strategy doc's own "Things NOT to build" section.
+- **Fixed a real economy bug found during the audit: 14 offline games paid zero coins
+  on completion despite already having a reward formula defined.** `EconomyConfig
+  .getPracticeReward` has had formulas for Simon Says, Whack-a-Mole, Match Three,
+  Maze Chase, Brick Breaker, Flappy Bird, Galaxy Defender, Word Guess, Bubble
+  Shooter, Lights Out, Peg Solitaire, Klondike, Yahtzee, and Mancala for a while -
+  but `ClientHandler.handleGamePlayed`'s dispatch only ever called it for 6 games
+  (Pong/2048/Dino Dash/Tetris/Crossing Road/Aim Trainer), so those 14 games'
+  formulas were simply never reached. Fixed by replacing the hand-maintained 6-game
+  `OR` chain with a safe default fallback: any `gameId` not otherwise special-cased
+  now goes through `awardPracticeScore`, which itself already no-ops safely (via
+  `getPracticeReward` returning 0) for any id with no formula - meaning this also
+  can't accidentally reward an online game that sends `GAME_PLAYED_REQUEST` purely
+  for history tracking (Chess, Racing, etc. all correctly still get 0), and any
+  *future* offline game only needs a `getPracticeReward` entry, never a
+  `ClientHandler` edit. Verified with a coverage test confirming all 20 intended
+  games get a nonzero reward and every online/history-only game still gets exactly
+  0. One real gap surfaced by the same audit, left open rather than guessed at:
+  Sudoku has no reward formula at all (not a wiring bug, a genuine missing design
+  decision) - recorded in `BLOCKED_QUESTIONS.md`.
 
 ## 🔧 In Progress
 
