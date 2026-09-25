@@ -3,8 +3,7 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
@@ -14,9 +13,7 @@ import ui.ThemedTextField;
 import ui.GameModeCard;
 import ai.AiKernel;
 
-import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -27,10 +24,10 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * WordDuelWindow
@@ -41,8 +38,12 @@ import java.awt.event.WindowEvent;
  * WordDuelMatch's own javadoc on why). WordDuelMatch is the sole
  * authority on whether a submission is actually valid; this window
  * just sends whatever's typed and shows whatever comes back.
+ *
+ * Embedded in MainMenu's game-host slot (see ChessWindow's javadoc for
+ * the pattern). Never confirmed before leaving mid-match even as its
+ * own window, so requestLeave() here stays unconditional.
  */
-public class WordDuelWindow extends JFrame implements NetworkManager.PushListener
+public class WordDuelWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -80,41 +81,37 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
 
     public WordDuelWindow()
     {
-        super("Vertex - Word Duel");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createRoundScreen(), ROUND);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (!isPracticeMode) leaveMatch();
-                if (countdownTimer != null) countdownTimer.stop();
-                NetworkManager.removePushListener(WordDuelWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (!isPracticeMode) leaveMatch();
+        if (countdownTimer != null) countdownTimer.stop();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Word Duel");
         title.setFont(UITheme.FONT_HEADING);
@@ -148,7 +145,7 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -157,8 +154,6 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -169,10 +164,14 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Word Duel");
         title.setFont(UITheme.FONT_HEADING);
@@ -195,20 +194,24 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createRoundScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(28, 32, 28, 32));
-        panel.setPreferredSize(new Dimension(440, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         timeLabel = new JLabel("60s left");
         timeLabel.setFont(UITheme.FONT_SMALL);
@@ -255,8 +258,21 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         opponentBestLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         opponentBestLabel.setBorder(new EmptyBorder(4, 0, 0, 0));
         panel.add(opponentBestLabel);
+        panel.add(javax.swing.Box.createVerticalStrut(20));
 
-        return panel;
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setAlignmentX(Component.LEFT_ALIGNMENT);
+        leave.setMaximumSize(new Dimension(100, 36));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        panel.add(leave);
+
+        return wrapper;
     }
 
     private void findMatch()
@@ -343,8 +359,6 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         revealTimer.start();
 
         cardLayout.show(cards, ROUND);
-        pack();
-        setLocationRelativeTo(null);
     }
 
     private void submitPracticeWord(String word)
@@ -377,7 +391,7 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
         SnakeGameOverDialog.show(this, myLen, winnerText, shareText, new SnakeGameOverDialog.Choice()
         {
             public void onPlayAgain() { startPracticeMatch(); }
-            public void onClose() { WordDuelWindow.this.dispose(); }
+            public void onClose() { MainMenu.getInstance().returnToGames(); }
         });
     }
 
@@ -417,8 +431,6 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
             roundStartedAt = System.currentTimeMillis();
             startCountdown();
             cardLayout.show(cards, ROUND);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (type == MessageType.WORDDUEL_UPDATE)
         {
@@ -454,11 +466,9 @@ public class WordDuelWindow extends JFrame implements NetworkManager.PushListene
                     gameOver = false;
                     matchId = null;
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { WordDuelWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }

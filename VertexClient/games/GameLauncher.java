@@ -214,8 +214,7 @@ public class GameLauncher
             }
             else if ("word-duel".equals(game.getGameId()))
             {
-                WordDuelWindow window = new WordDuelWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new WordDuelWindow());
             }
             else if ("dice-duel".equals(game.getGameId()))
             {
