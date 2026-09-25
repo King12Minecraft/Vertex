@@ -389,7 +389,19 @@ Supporting: `GlobalSearchField`, `NotificationBell`/`NotificationCenter`,
 per-game icon glyphs, deliberately out of scope for the reskin below; no
 longer used by any shared shell component), `NavIcons`,
 `GameModeCard`/`HeroBanner`/`PageHeader`/`MarqueeBanner`/`HoverGlowAnimator`/
-`SidebarButton`/`SplashScreen`/`WinLineOverlay`.
+`SidebarButton`/`SplashScreen`/`WinLineOverlay`, and Party Mode's two purely
+cosmetic effects: `CursorTrailOverlay` (attached once, whole-app, from
+`MainMenu` - a global `AWTEventListener` on `Toolkit`, the correct way to
+observe mouse motion regardless of which component actually received it,
+rather than a listener on the frame itself which would only ever see events
+landing on the frame and never on any child component) and `ConfettiOverlay`
+(call `burst(anchor)` from any real "you won" moment - `MemoryMatchWindow` is
+the first hookup, other games can adopt the same one-liner later). Both use
+the same click-through trick (`contains(x, y)` always returns `false` on the
+painted panel - the standard lightweight way to make a Swing overlay
+non-interactive without manual mouse-event redispatching) and both are
+governed by `economy.PartyMode` (off by default, a `Preferences`-backed
+toggle in Settings, same pattern as `PerformanceMode`).
 
 **The "Aurora Glass" reskin** moves the shared app shell - not any individual
 game's own board/HUD screen - off the earlier flat, chamfered "Opera GX" look

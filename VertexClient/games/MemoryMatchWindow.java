@@ -11,6 +11,7 @@ import theme.UITheme;
 import ui.RoundedPanel;
 import ui.ThemedButton;
 import ui.GameModeCard;
+import ui.ConfettiOverlay;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
@@ -403,6 +404,11 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         String text = myScore == botScore ? "It's a draw."
             : myScore > botScore ? "You won with " + myScore + " pairs!" : "You lost - " + myScore + " pairs.";
         statusLabel.setText(text);
+
+        if (myScore > botScore)
+        {
+            ConfettiOverlay.burst(this);
+        }
 
         String shareText = myScore > botScore ? "I won a Memory Match practice game on Vertex!" : null;
         SnakeGameOverDialog.show(this, myScore, text, shareText, new SnakeGameOverDialog.Choice()

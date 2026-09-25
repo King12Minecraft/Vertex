@@ -3,6 +3,7 @@ import economy.AchievementToast;
 import games.RematchOfferDialog;
 import social.GameInviteDialog;
 import ui.GameHubDialog;
+import ui.CursorTrailOverlay;
 import net.MessageType;
 import net.NetworkManager;
 import account.PermissionManager;
@@ -211,6 +212,8 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         getContentPane().add(centerColumn, BorderLayout.CENTER);
 
         cardLayout.show(contentPanel, Pages.HOME);
+
+        CursorTrailOverlay.attach(this, transitionPane);
 
         NetworkManager.addPushListener(this);
     }

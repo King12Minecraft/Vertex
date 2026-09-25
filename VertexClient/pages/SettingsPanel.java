@@ -19,6 +19,7 @@ import net.ConnectionIndicator;
 import theme.ThemeDropdown;
 import economy.FpsCounterSetting;
 import economy.PerformanceMode;
+import economy.PartyMode;
 import economy.NotificationSoundSetting;
 import ui.ToggleSwitch;
 import theme.ThemeManager;
@@ -75,6 +76,8 @@ public class SettingsPanel extends RoundedPanel
         content.add(section("PERFORMANCE", createPerformanceSection()));
         content.add(Box.createVerticalStrut(20));
         content.add(section("APPEARANCE", createAppearanceSection()));
+        content.add(Box.createVerticalStrut(20));
+        content.add(section("FUN", createPartyModeSection()));
         content.add(Box.createVerticalStrut(20));
         content.add(section("CONNECTION", createConnectionSection()));
         content.add(Box.createVerticalStrut(20));
@@ -233,6 +236,43 @@ public class SettingsPanel extends RoundedPanel
         fpsDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
         fpsDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
         col.add(fpsDescription);
+
+        return col;
+    }
+
+    private JPanel createPartyModeSection()
+    {
+        JPanel col = new JPanel();
+        col.setOpaque(false);
+        col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
+
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel label = new ThemedLabel("Party Mode", ThemeColor.TEXT_PRIMARY);
+        label.setFont(UITheme.FONT_BODY);
+        row.add(label, BorderLayout.WEST);
+
+        final ToggleSwitch toggle = new ToggleSwitch(PartyMode.isEnabled());
+        toggle.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { PartyMode.setEnabled(toggle.isOn()); }
+        });
+        JPanel toggleWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        toggleWrap.setOpaque(false);
+        toggleWrap.add(toggle);
+        row.add(toggleWrap, BorderLayout.EAST);
+        col.add(row);
+
+        JLabel description = new ThemedLabel("<html><body style='width:420px'>A silly rainbow cursor trail "
+            + "everywhere in the app, plus confetti when you win a game. Purely cosmetic - doesn't touch scores, "
+            + "matchmaking, or anything else. Takes effect immediately, no restart needed.</body></html>",
+            ThemeColor.TEXT_MUTED);
+        description.setFont(UITheme.FONT_SMALL);
+        description.setAlignmentX(Component.LEFT_ALIGNMENT);
+        description.setBorder(new EmptyBorder(6, 0, 0, 0));
+        col.add(description);
 
         return col;
     }
