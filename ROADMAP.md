@@ -332,6 +332,21 @@ recorded below as they're confirmed.
   rebuilt alongside it). **Every game in the entire Vertex catalog is now embedded in
   MainMenu's game-host slot - the "fill the screen, no separate window" conversion
   that's been running throughout this session is complete.**
+- **`GameLauncher`'s 49-branch `if/else` replaced by `GameWindowFactory`** — the
+  strategy doc's Section 4/17 root-system fix, done as a purely mechanical extraction:
+  every branch had the exact same shape by the end of the embedded-games rollout
+  (`MainMenu.getInstance().showGame(new XxxWindow())`), so it collapsed cleanly into
+  one `Map<String, Supplier<JComponent>>` (`GameWindowFactory`, client-only - unlike
+  `GameInfo`/`GameRegistry`, which stay byte-identical on both client and server and
+  so can never reference a Swing class). `GameLauncher.openGame` is now a single
+  lookup instead of 49 branches. Verified with a smoke test constructing all 49
+  windows via the factory and confirming zero exceptions, the exact expected 49-id
+  set, and that an unknown id correctly returns `null` (falling through to the
+  existing "not converted yet" notice). Note found during the audit for this: a
+  `GameRegistry`/`GameInfo` catalog already existed server- and client-side (feeding
+  the games list UI) before this session started - it was never disconnected, just
+  never wired to the launch mechanism; that's genuinely the next step (capability
+  flags: offline-capable, spectatable, min/max players), not a from-scratch build.
 
 ## 🔧 In Progress
 

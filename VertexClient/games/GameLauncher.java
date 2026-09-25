@@ -2,8 +2,10 @@ package games;
 import pages.MainMenu;
 import ui.GameHubDialog;
 
+import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import java.awt.Component;
+import java.util.function.Supplier;
 
 /**
  * GameLauncher
@@ -23,6 +25,15 @@ import java.awt.Component;
  * once someone has actually seen that page - package-private on
  * purpose, since GameDetailDialog is the only caller meant to reach
  * it directly.
+ *
+ * openGame itself used to be a 49-branch if/else, one per converted
+ * game - by the time the embedded-games conversion finished, every
+ * single branch had the exact same shape
+ * (MainMenu.getInstance().showGame(new XxxWindow())), which is what
+ * GameWindowFactory's id-to-constructor map now replaces it with. A
+ * game with no factory entry (not yet converted, or a typo'd id)
+ * falls through to the same "not converted yet" notice launch(...)
+ * already shows for comingSoon games.
  */
 public class GameLauncher
 {
@@ -50,205 +61,10 @@ public class GameLauncher
     {
         try
         {
-            if ("snake".equals(game.getGameId()))
+            Supplier<JComponent> factory = GameWindowFactory.factoryFor(game.getGameId());
+            if (factory != null)
             {
-                MainMenu.getInstance().showGame(new SnakeWindow());
-            }
-            else if ("tictactoe-online".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new TicTacToeWindow());
-            }
-            else if ("racing".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new RacingWindow());
-            }
-            else if ("puzzle-quest".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new PuzzleQuestWindow());
-            }
-            else if ("rock-paper-scissors".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new RockPaperScissorsWindow());
-            }
-            else if ("pingpong".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new PongWindow());
-            }
-            else if ("2048".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new Merge2048Window());
-            }
-            else if ("dino-dash".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new DinoWindow());
-            }
-            else if ("tetris".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new TetrisWindow());
-            }
-            else if ("crossing-road".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new CrossingRoadWindow());
-            }
-            else if ("aim-trainer".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new AimTrainerWindow());
-            }
-            else if ("among-us".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new AmongUsWindow());
-            }
-            else if ("fight-arena".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new FightArenaWindow());
-            }
-            else if ("chess".equals(game.getGameId()))
-            {
-                // The embedded-games proof-of-concept: Chess joins MainMenu's
-                // game-host slot instead of opening its own JFrame. Every
-                // other game here still opens its own window until it's
-                // converted the same way.
-                MainMenu.getInstance().showGame(new ChessWindow());
-            }
-            else if ("battleship".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new BattleshipWindow());
-            }
-            else if ("checkers".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new CheckersWindow());
-            }
-            else if ("square-wars".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new SquareWarsWindow());
-            }
-            else if ("trivia-blitz".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new TriviaWindow());
-            }
-            else if ("minesweeper".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new MinesweeperWindow());
-            }
-            else if ("sudoku".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new SudokuWindow());
-            }
-            else if ("simon-says".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new SimonWindow());
-            }
-            else if ("whack-a-mole".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new WhackAMoleWindow());
-            }
-            else if ("match-three".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new MatchThreeWindow());
-            }
-            else if ("maze-chase".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new MazeChaseWindow());
-            }
-            else if ("brick-breaker".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new BrickBreakerWindow());
-            }
-            else if ("flappy-bird".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new FlappyBirdWindow());
-            }
-            else if ("galaxy-defender".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new GalaxyDefenderWindow());
-            }
-            else if ("word-guess".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new WordGuessWindow());
-            }
-            else if ("bubble-shooter".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new BubbleShooterWindow());
-            }
-            else if ("lights-out".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new LightsOutWindow());
-            }
-            else if ("peg-solitaire".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new PegSolitaireWindow());
-            }
-            else if ("klondike".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new KlondikeWindow());
-            }
-            else if ("yahtzee".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new YahtzeeWindow());
-            }
-            else if ("mancala".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new MancalaWindow());
-            }
-            else if ("dots-and-boxes".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new DotsAndBoxesWindow());
-            }
-            else if ("reversi".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new ReversiWindow());
-            }
-            else if ("memory-match".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new MemoryMatchWindow());
-            }
-            else if ("air-hockey".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new AirHockeyWindow());
-            }
-            else if ("word-duel".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new WordDuelWindow());
-            }
-            else if ("dice-duel".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new DiceDuelWindow());
-            }
-            else if ("snake-arena".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new SnakeArenaWindow());
-            }
-            else if ("tetris-duel".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new TetrisDuelWindow());
-            }
-            else if ("fusion-grid".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new FusionGridWindow());
-            }
-            else if ("typing-duel".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new TypingDuelWindow());
-            }
-            else if ("signal-grid".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new SignalGridWindow());
-            }
-            else if ("card-rush".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new CardRushWindow());
-            }
-            else if ("connect-four".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new ConnectFourWindow());
-            }
-            else if ("zombie-survival".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new ZombieSurvivalWindow());
-            }
-            else if ("space-battle".equals(game.getGameId()))
-            {
-                MainMenu.getInstance().showGame(new SpaceBattleWindow());
+                MainMenu.getInstance().showGame(factory.get());
             }
             else
             {

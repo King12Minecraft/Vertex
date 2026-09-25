@@ -121,39 +121,40 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   `start()`, `pause()`, `saveState()`/`loadState()`).
 - **`GameInfo.java`** *(shared)* — one catalog entry: id, name, category, mode label,
   online/comingSoon flags, version.
-- **`GameRegistry.java`** — the hardcoded master catalog (~47 `GameInfo` entries).
+- **`GameRegistry.java`** — the hardcoded master catalog (49 `GameInfo` entries,
+  byte-identical between `VertexClient` and `VertexServer` - never references Swing,
+  since the server compiles this file too with no UI classes available to it).
   `ClientHandler.handleGameList()` serves this, patching in live queue counts for a
-  few games.
+  few games. Currently just id/name/type/statusText/online/comingSoon/version - no
+  capability flags (offline-capable, spectatable, min/max players) yet; that's the
+  next natural extension once a concrete feature needs to read them (search/discovery
+  filters, an admin per-server catalog toggle), not built speculatively ahead of one.
 - **`GameManager.java`** — client-side cache of the fetched catalog.
+- **`GameWindowFactory.java`** — client-only (unlike `GameRegistry`/`GameInfo`,
+  since every entry here references a `*Window` constructor that only exists in
+  `VertexClient`): a `Map<String, Supplier<JComponent>>` from game id to "how to
+  build its embedded window." Replaces what used to be a 49-branch `if/else` in
+  `GameLauncher.openGame` - by the end of the embedded-games rollout, every single
+  branch had the exact same shape (`MainMenu.getInstance().showGame(new
+  XxxWindow())`), so it collapsed mechanically into one map. Verified with a smoke
+  test constructing all 49 windows through the factory and confirming the id set
+  matches exactly, nothing throws, and an unknown id returns `null`.
 - **`GameLauncher.java`** — the plugin **launch** dispatch, and the mandatory
   rules-page gate every "Play" entry point (games page, quick-play dropdown, global
   search, hero banner, game invites) already shares: `launch(Component, GameInfo)`,
   the only public method, shows `GameDetailDialog` (art, tags, difficulty, rules,
   a real Play button) instead of opening the game directly - there's no way to skip
-  straight to playing. The actual `new XxxWindow().setVisible(true)` mapping lives in
-  package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
-  button (same package), once someone has actually seen that page. `launch(...)`
-  still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. **All 49 games in the catalog** are now
-  the exceptions to `new XxxWindow().setVisible(true)` - every one of them calls
-  `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
-  conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`): Chess,
-  Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots and Boxes, Checkers,
-  Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Match Three,
-  Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping Pong,
-  Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy
-  Bird, Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble
-  Shooter, Battleship, Memory Match, Word Duel, Dice Duel, Typing Duel, Racing,
-  Among Us, Fight Arena, Square Wars, Trivia Blitz, Air Hockey, Snake Arena,
-  Tetris Duel, Fusion Grid, Card Rush, Zombie Survival, and Space Battle -
-  every offline/single-player game in the whole catalog, both games with
-  `SpectateDialog`/tournament support, and every online-multiplayer game.
-  `GameLauncher`'s `else` fallback ("not converted yet") is now dead code for
-  every real game id - it only still fires for a genuinely unknown/future id.
-  A game reachable from more than one place (Chess, Rock Paper Scissors, and
-  Battleship each have a `SpectateDialog` "Watch" entry point, separate from
-  `GameLauncher`) needs every one of those call sites updated, not just the
-  main one - a real bug (Chess's spectate path silently doing nothing once
+  straight to playing. Package-private `openGame(...)` (callable only from
+  `GameDetailDialog`'s own Play button, same package, once someone has actually seen
+  that page) is now a single `GameWindowFactory.factoryFor(id)` lookup instead of a
+  branch per game: `MainMenu.getInstance().showGame(factory.get())` when a factory
+  exists, otherwise the same "not converted yet" notice `launch(...)` already shows
+  for `comingSoon` ids. **All 49 games in the catalog** go through this path - every
+  offline/single-player game, both games with `SpectateDialog`/tournament support
+  (Chess, Rock Paper Scissors, Battleship), and every online-multiplayer game.
+  A game reachable from more than one place (those same three `SpectateDialog`
+  "Watch" entry points, separate from `GameLauncher`) needs every one of those
+  call sites updated, not just the main one - a real bug (Chess's spectate path silently doing nothing once
   `ChessWindow` became a `JPanel`) shipped from missing this the first time
   and had to be found and fixed separately; Rock Paper Scissors's and
   Battleship's own spectate lines were fixed proactively in the same
