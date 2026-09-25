@@ -151,7 +151,9 @@ public class ChangeUsernameDialog
                                 save.setEnabled(true);
                                 if (response == null)
                                 {
-                                    errorLabel.setText("Can't reach the server - is it running?");
+                                    String connectionIssue = NetworkManager.describeIfNotReady();
+                                    errorLabel.setText(connectionIssue != null
+                                        ? connectionIssue : "Couldn't reach the server - try again.");
                                 }
                                 else if (response.isSuccess())
                                 {

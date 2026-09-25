@@ -150,6 +150,12 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
                         {
                             GameHubDialog.show(FriendsPanel.this, "Add Friend", response.getErrorText());
                         }
+                        else
+                        {
+                            String connectionIssue = NetworkManager.describeIfNotReady();
+                            GameHubDialog.show(FriendsPanel.this, "Add Friend", connectionIssue != null
+                                ? connectionIssue : "Couldn't reach the server - try again.");
+                        }
                     }
                 });
             }
@@ -232,6 +238,18 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
                         {
                             renderRequests(response.getPendingIncomingUsernames());
                             renderFriends(response.getFriendUsernames(), response.getOnlineFriendUsernames());
+                        }
+                        else if (response == null)
+                        {
+                            String connectionIssue = NetworkManager.describeIfNotReady();
+                            requestsList.removeAll();
+                            requestsList.add(mutedLabel(connectionIssue != null ? connectionIssue
+                                : "Couldn't load friends - try again."));
+                            requestsList.revalidate();
+                            requestsList.repaint();
+                            friendsList.removeAll();
+                            friendsList.revalidate();
+                            friendsList.repaint();
                         }
                     }
                 });

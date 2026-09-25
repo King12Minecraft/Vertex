@@ -439,6 +439,29 @@ recorded below as they're confirmed.
   that drives the real `ChallengeManager` for all 4 previously-unreachable game IDs
   and confirms `daily-win-1` now completes, plus a control case proving an unrelated
   game-specific challenge (`tictactoe-win-5`) stays untouched.
+- **9 more silent/stale connection-error spots found beyond the 25-file sweep,
+  fixed the same way.** The earlier connection-status fix only grepped for the
+  `sendAsync`/`if (!sent)` dead-code pattern; a follow-up pass grepping for
+  `NetworkManager.send(` (the blocking variant, which genuinely returns `null` on
+  failure) and for the literal stale string `"Can't reach the server - is it
+  running?"` turned up two more categories of the same underlying problem: (1) two
+  more `sendAsync` dead-code spots in `ChatPanel` (send message, send file) that the
+  first sweep missed entirely, and (2) 7 spots (`GamesPanel` refresh,
+  `LeaderboardPanel`, `FriendsPanel` load + add-friend, `ShopPanel` load + select +
+  purchase, `NewGroupDialog`, `LoginPanel`, `ChangeUsernameDialog`,
+  `ChangePasswordDialog`) that already showed *some* error on a null `send()`
+  response, just the same generic hardcoded string instead of an accurate one, or
+  (worse, for `FriendsPanel.loadFriendData()` and `ShopPanel.loadShopItems()`)
+  showed nothing at all - a completely blank Friends/Shop page with no explanation
+  when offline. All 9 now use `NetworkManager.describeIfNotReady()` the same way the
+  25-file fix did. `ChatPanel`'s two spots now also always clear the input (matching
+  `sendAsync`'s documented queue-and-optimistically-proceed contract) and, only when
+  actually offline, add a reassuring "will send once reconnected" note rather than
+  looking like the message/file was silently dropped. Verified: clean compile, plus a
+  harness that constructs real `FriendsPanel`/`LeaderboardPanel`/`ShopPanel`
+  instances with nothing listening on the configured host:port and confirms each one
+  now shows the connection message instead of hanging on "Loading..." or staying
+  blank.
 
 ## 🔧 In Progress
 

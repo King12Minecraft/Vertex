@@ -172,7 +172,17 @@ public class LeaderboardPanel extends RoundedPanel
                 {
                     public void run()
                     {
-                        if (response == null || !response.isSuccess())
+                        if (response == null)
+                        {
+                            if (selectedGameId != null && selectedGameId.equals(gameId))
+                            {
+                                String connectionIssue = NetworkManager.describeIfNotReady();
+                                myRankLabel.setText(connectionIssue != null ? connectionIssue
+                                    : "Couldn't load the leaderboard - try again.");
+                            }
+                            return;
+                        }
+                        if (!response.isSuccess())
                         {
                             return;
                         }

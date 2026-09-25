@@ -1029,14 +1029,12 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             return;
         }
 
-        boolean sent = NetworkManager.sendAsync(request);
-        if (sent)
+        NetworkManager.sendAsync(request);
+        field.clear();
+        String connectionIssue = NetworkManager.describeIfNotReady();
+        if (connectionIssue != null)
         {
-            field.clear();
-        }
-        else
-        {
-            GameHubDialog.show(field, "Chat", "Can't reach the server - is it running?");
+            GameHubDialog.show(field, "Chat", connectionIssue + " Your message will send once reconnected.");
         }
     }
 
@@ -1086,10 +1084,11 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
             return;
         }
 
-        boolean sent = NetworkManager.sendAsync(request);
-        if (!sent)
+        NetworkManager.sendAsync(request);
+        String connectionIssue = NetworkManager.describeIfNotReady();
+        if (connectionIssue != null)
         {
-            GameHubDialog.show(this, "Chat", "Can't reach the server - is it running?");
+            GameHubDialog.show(this, "Chat", connectionIssue + " Your file will send once reconnected.");
         }
     }
 

@@ -357,8 +357,9 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
                         refreshButton.setText("Refresh");
                         if (!ok && showFeedback)
                         {
-                            GameHubDialog.show(refreshButton, "Refresh",
-                                "Can't reach the server - is it running?");
+                            String connectionIssue = NetworkManager.describeIfNotReady();
+                            GameHubDialog.show(refreshButton, "Refresh", connectionIssue != null
+                                ? connectionIssue : "Couldn't refresh the game list - try again.");
                         }
                     }
                 });

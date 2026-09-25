@@ -155,11 +155,27 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                             renderShopItems(itemsResponse.getShopItems());
                             PlayerColorRegistry.setItems(itemsResponse.getShopItems());
                         }
+                        else if (itemsResponse == null)
+                        {
+                            String connectionIssue = NetworkManager.describeIfNotReady();
+                            itemsGrid.removeAll();
+                            itemsGrid.add(mutedLabel(connectionIssue != null ? connectionIssue
+                                : "Couldn't load the shop - try again."));
+                            itemsGrid.revalidate();
+                            itemsGrid.repaint();
+                        }
                     }
                 });
             }
         });
         worker.start();
+    }
+
+    private JLabel mutedLabel(String text)
+    {
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_MUTED);
+        label.setFont(UITheme.FONT_SMALL);
+        return label;
     }
 
     private void renderShopItems(List<ShopItemInfo> items)
@@ -374,7 +390,16 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                         else
                         {
                             selectButton.setEnabled(true);
-                            String error = response != null ? response.getErrorText() : "Can't reach the server - is it running?";
+                            String error;
+                            if (response != null)
+                            {
+                                error = response.getErrorText();
+                            }
+                            else
+                            {
+                                String connectionIssue = NetworkManager.describeIfNotReady();
+                                error = connectionIssue != null ? connectionIssue : "Couldn't reach the server - try again.";
+                            }
                             GameHubDialog.show(selectButton, "Shop", error);
                         }
                     }
@@ -405,7 +430,9 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                         if (response == null)
                         {
                             buyButton.setEnabled(true);
-                            GameHubDialog.show(buyButton, "Shop", "Can't reach the server - is it running?");
+                            String connectionIssue = NetworkManager.describeIfNotReady();
+                            GameHubDialog.show(buyButton, "Shop", connectionIssue != null
+                                ? connectionIssue : "Couldn't reach the server - try again.");
                         }
                         else if (response.isSuccess())
                         {
