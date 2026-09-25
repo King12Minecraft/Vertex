@@ -134,12 +134,12 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. Chess, Reversi, Connect Four, and
-  Signal Grid's cases are the exceptions to `new XxxWindow().setVisible(true)`
-  so far - they call `MainMenu.getInstance().showGame(...)` instead, per the
-  embedded-games conversion (see `EmbeddedGamePanel` below and
-  `pages/MainMenu.java`); every other game still opens its own window until
-  it's converted the same way.
+  gate since there's nothing to preview yet. Chess, Reversi, Connect Four,
+  Signal Grid, and Tic-Tac-Toe's cases are the exceptions to
+  `new XxxWindow().setVisible(true)` so far - they call
+  `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
+  conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`); every
+  other game still opens its own window until it's converted the same way.
 - **`EmbeddedGamePanel.java`** - implemented by a game panel embedded in
   `MainMenu`'s game-host slot rather than opened as its own window (`ChessWindow` is
   the first). One method, `requestLeave()`: `MainMenu` calls it before navigating away
@@ -157,7 +157,14 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   around it - fixed the same way an over-small mode-select screen is fixed:
   wrap it in a `GridBagLayout` panel with no constraints (auto-centers) rather
   than trying to make the paint code itself size-aware, which would also risk
-  breaking its pixel-based mouse-click math.
+  breaking its pixel-based mouse-click math. Tic-Tac-Toe (fifth game
+  converted) turned up a variant of the same bug: its board was already
+  wrapped in a centering container, but that container used `FlowLayout`,
+  which only centers its children horizontally - vertically it always
+  top-aligns - so the board stayed pinned to the top with dead space below
+  once embedded. Same `GridBagLayout` fix applies; the lesson generalizes to
+  any pre-existing "centering" wrapper, not just ones that are missing
+  entirely.
 - **`GameMetadata.java`** — presentation-only (difficulty, tags) for game detail
   dialogs; has no effect on matchmaking or gameplay.
 - **`MatchManager.java`** — the original reference matchmaking manager (for

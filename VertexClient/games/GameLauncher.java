@@ -57,8 +57,7 @@ public class GameLauncher
             }
             else if ("tictactoe-online".equals(game.getGameId()))
             {
-                TicTacToeWindow window = new TicTacToeWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new TicTacToeWindow());
             }
             else if ("racing".equals(game.getGameId()))
             {

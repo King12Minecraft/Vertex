@@ -6,15 +6,13 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 import ui.ThemedButton;
 import ui.WinLineOverlay;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -25,13 +23,13 @@ import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * TicTacToeWindow
@@ -52,8 +50,16 @@ import java.awt.event.WindowEvent;
  * Both modes share the same board rendering and win display (real
  * strike-through line via WinLineOverlay, clear "X WINS"/"O WINS"
  * text) - only how moves get resolved differs.
+ *
+ * Embedded in MainMenu's game-host slot rather than its own window -
+ * see ChessWindow/ReversiWindow's javadoc for the pattern.
+ * requestLeave() preserves this window's original leave behavior
+ * exactly: only leaveMatch() (which itself unregisters the push
+ * listener) when not in practice mode - practice mode never
+ * unregistered its push listener even as its own window, and this
+ * conversion isn't the place to change that.
  */
-public class TicTacToeWindow extends JFrame implements NetworkManager.PushListener
+public class TicTacToeWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -80,40 +86,36 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
 
     public TicTacToeWindow()
     {
-        super("Vertex - Tic-Tac-Toe");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createPracticeRoundsScreen(), ROUNDS);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (!isPracticeMode) leaveMatch();
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (!isPracticeMode) leaveMatch();
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Tic-Tac-Toe");
         title.setFont(UITheme.FONT_HEADING);
@@ -147,7 +149,7 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -156,8 +158,6 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -165,17 +165,19 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
             mySymbol = "X";
             opponentUsername = "CPU";
             cardLayout.show(cards, ROUNDS);
-            pack();
-            setLocationRelativeTo(null);
         }
     }
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Tic-Tac-Toe");
         title.setFont(UITheme.FONT_HEADING);
@@ -198,21 +200,25 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     /** Practice Mode only now - online play has no round-selection step at all. */
     private JPanel createPracticeRoundsScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 50, 50, 50));
-        panel.setPreferredSize(new Dimension(380, 300));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Choose Match Length");
         title.setFont(UITheme.FONT_HEADING);
@@ -233,7 +239,7 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
         panel.add(Box.createVerticalStrut(10));
         panel.add(buildRoundsButton("Best of 5", 5));
 
-        return panel;
+        return wrapper;
     }
 
     private ThemedButton buildRoundsButton(String label, final int rounds)
@@ -292,23 +298,22 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
             }
         });
 
-        JPanel centerWrap = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        JPanel centerWrap = new JPanel(new GridBagLayout());
         centerWrap.setOpaque(false);
-        centerWrap.add(boardLayers);
+        centerWrap.add(boardLayers, new GridBagConstraints());
         panel.add(centerWrap, BorderLayout.CENTER);
 
         JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         bottomRow.setOpaque(false);
         bottomRow.setBorder(new EmptyBorder(14, 0, 0, 0));
 
-        ThemedButton close = new ThemedButton("Close", false);
+        ThemedButton close = new ThemedButton("Leave", false);
         close.setPreferredSize(new Dimension(100, 36));
         close.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
             {
-                if (!isPracticeMode) leaveMatch();
-                dispose();
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
             }
         });
         bottomRow.add(close);
@@ -344,8 +349,6 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
         bestOf = rounds;
         practiceMatch = new TicTacToePracticeMatch(rounds);
         cardLayout.show(cards, BOARD);
-        pack();
-        setLocationRelativeTo(null);
         refreshPracticeBoard();
         updateStatus("Your turn");
     }
@@ -517,8 +520,6 @@ public class TicTacToeWindow extends JFrame implements NetworkManager.PushListen
             updateStatus("You are " + mySymbol + " - vs " + opponentUsername
                 + (myTurn ? " (your turn)" : " (their turn)"));
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (message.getType() == MessageType.MATCH_UPDATE)
         {
