@@ -5,7 +5,6 @@ import net.NetworkManager;
 import net.MessageType;
 import net.Message;
 import ui.ThemedButton;
-import ui.ChamferShape;
 import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
@@ -29,9 +28,10 @@ import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.LinearGradientPaint;
 import java.awt.RadialGradientPaint;
+import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.GeneralPath;
+import java.awt.geom.RoundRectangle2D;
 import java.util.List;
 
 /**
@@ -89,7 +89,7 @@ public class ProfilePanel extends RoundedPanel
         });
     }
 
-    /** The gradient chamfered "player card" header - avatar, name, role, all on a launcher-style hero background. */
+    /** The gradient "player card" header - avatar, name, role, all on a launcher-style hero background - Aurora Glass: rounded, not chamfered, matching HeroBanner's treatment. */
     private class HeroCard extends JPanel
     {
         HeroCard()
@@ -143,9 +143,9 @@ public class ProfilePanel extends RoundedPanel
 
             int w = getWidth();
             int h = getHeight();
-            int cut = 20;
+            int radius = UITheme.RADIUS_PANEL + 6;
 
-            GeneralPath shape = ChamferShape.build(0, 0, w, h, cut);
+            Shape shape = new RoundRectangle2D.Float(0, 0, w, h, radius, radius);
             g2.setClip(shape);
 
             Color start = ThemeManager.getColor(ThemeColor.BG_PANEL);

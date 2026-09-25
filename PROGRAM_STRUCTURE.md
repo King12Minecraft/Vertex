@@ -362,19 +362,20 @@ Supporting: `GlobalSearchField`, `NotificationBell`/`NotificationCenter`,
 `RoundedPanel`, `ThemedButton`/`ThemedTextField`/`ThemedPasswordField`/
 `ThemedTextArea`/`ThemedScrollBarUI`/`ToggleSwitch`/`StatusDot`/`StatusPill`,
 `GameHubDialog` (themed replacement for raw `JOptionPane`), `DialogUtils`,
-`ChamferShape` (angular cut-corner geometry, still used by `GameCardArt`/
-`ProfilePanel`; no longer used by the shared shell components below - see next
-paragraph), `NavIcons`, `GameModeCard`/`HeroBanner`/`PageHeader`/`MarqueeBanner`/
-`HoverGlowAnimator`/`SidebarButton`/`SplashScreen`/`WinLineOverlay`.
+`ChamferShape` (angular cut-corner geometry - now used only by `GameCardArt`'s
+per-game icon glyphs, deliberately out of scope for the reskin below; no
+longer used by any shared shell component), `NavIcons`,
+`GameModeCard`/`HeroBanner`/`PageHeader`/`MarqueeBanner`/`HoverGlowAnimator`/
+`SidebarButton`/`SplashScreen`/`WinLineOverlay`.
 
-**The "Aurora Glass" reskin** (in progress) moves the shared app shell - not any
-individual game's own board/HUD screen - off that earlier flat, chamfered
-"Opera GX" look toward softer rounded shapes with an ambient accent glow.
-Concept direction was worked out as Gemini image-gen prompts, then as a real
-CSS/HTML design canvas (a Claude Artifact, not checked into this repo) before
-being translated into Swing code, so the Swing changes can be checked against
-an actual rendered reference rather than eyeballed from a description.
-Reskinned so far: `UITheme` (`RADIUS_PANEL` 14->18, `RADIUS_BUTTON` 10->14),
+**The "Aurora Glass" reskin** moves the shared app shell - not any individual
+game's own board/HUD screen - off the earlier flat, chamfered "Opera GX" look
+toward softer rounded shapes with an ambient accent glow. Concept direction
+was worked out as Gemini image-gen prompts, then as a real CSS/HTML design
+canvas (a Claude Artifact, not checked into this repo) before being
+translated into Swing code, so the Swing changes could be checked against an
+actual rendered reference rather than eyeballed from a description.
+Reskinned: `UITheme` (`RADIUS_PANEL` 14->18, `RADIUS_BUTTON` 10->14),
 `ThemedButton` (primary buttons are now a rounded outline-in-accent-color over
 a faint accent tint, with an ambient glow always present at rest and
 brightening on hover, instead of a solid gradient-filled chamfered shape -
@@ -382,12 +383,22 @@ brightening on hover, instead of a solid gradient-filled chamfered shape -
 the pill when on), `DarkNavyTheme` (richer near-black background, slightly
 lighter/visible border), `SidebarButton` (the selected nav item is now an
 inset glow ring around the whole pill instead of a solid accent bar down the
-left edge), and `HeroBanner` (rounded corners via `RoundRectangle2D` instead
-of `ChamferShape`; the old full-width solid CTA bar flush against the bottom
+left edge), `HeroBanner` (rounded corners via `RoundRectangle2D` instead of
+`ChamferShape`; the old full-width solid CTA bar flush against the bottom
 edge is now a `ThemedButton`-style rounded outline-glow pill sized to its own
-label, sitting under the title). Verified visually each time via a throwaway
-Swing harness rendering the changed components under Xvfb and capturing them
-with `Component.printAll()` into a PNG - not just a clean compile. Every
+label, sitting under the title), `TopBar` (the bottom divider is now a plain
+1px neutral border line instead of a solid accent-gradient bar),
+`GameModeCard` (its per-mode color band is now custom-painted with rounded
+top corners matching the card, instead of a square-cornered `JPanel` poking
+out past the card's now-larger radius; the redundant, already-hidden
+`enableTopAccent()` call was removed), and `ProfilePanel`'s `HeroCard` (same
+`ChamferShape` -> `RoundRectangle2D` swap as `HeroBanner`). `GameHubDialog` and
+`ShopPanel`'s cards needed no changes - both already built entirely from
+`RoundedPanel`/`ThemedButton`, so they picked up the reskin automatically,
+and their `enableTopAccent()` top stripes already correctly respect rounded
+corners. Verified visually at each step via a throwaway Swing harness
+rendering the changed components under Xvfb and capturing them with
+`Component.printAll()` into a PNG - not just a clean compile. Every
 individual game's own in-game screen is explicitly out of scope for this pass
 (per the user) except the flagship game ("Vertex: Dominion," a persistent
 nation-building strategy concept from the games backlog doc) once it's
