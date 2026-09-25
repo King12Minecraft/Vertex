@@ -1,0 +1,17 @@
+# Runtime data written by the running server (accounts, friends, bans,
+# reports, replays, achievements, transactions, ratings, feedback, admin
+# log, play history) - never meant to be in version control. Written with
+# relative paths, so these can appear at the repo root, or inside
+# VertexClient/ or VertexServer/ depending on where the jar/process is run
+# from - ignored everywhere via **/.
+**/gamehub_*.dat
+**/gamehub_*.txt
+
+# Compiled output, if ever built into the tree instead of a scratch dir.
+**/*.class
+build/
+out/
+
+# OS/editor cruft.
+.DS_Store
+Thumbs.db
