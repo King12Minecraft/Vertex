@@ -4,22 +4,22 @@ import net.MessageType;
 import net.Message;
 import economy.GuestPlayTracker;
 import account.Session;
+import pages.MainMenu;
 import ui.GameHubDialog;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
 import ui.ThemedButton;
 import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -27,12 +27,13 @@ import java.awt.event.ActionListener;
 /**
  * PuzzleQuestWindow
  * ------------------
- * Standalone window for Puzzle Quest - the classic 15-puzzle. Click
- * any tile adjacent to the blank space to slide it. Tracks moves,
- * shows a completion message when solved, and offers a fresh shuffle
- * without closing the window.
+ * Puzzle Quest - the classic 15-puzzle. Click any tile adjacent to
+ * the blank space to slide it. Tracks moves, shows a completion
+ * message when solved, and offers a fresh shuffle without leaving the
+ * game. Embedded in MainMenu's game-host slot (see ChessWindow's
+ * javadoc for the pattern); requestLeave() has nothing to confirm.
  */
-public class PuzzleQuestWindow extends JFrame
+public class PuzzleQuestWindow extends JPanel implements EmbeddedGamePanel
 {
     private final PuzzleQuestGame game = new PuzzleQuestGame();
     private final PuzzleTileButton[] tileButtons = new PuzzleTileButton[PuzzleQuestGame.SIZE * PuzzleQuestGame.SIZE];
@@ -40,10 +41,7 @@ public class PuzzleQuestWindow extends JFrame
 
     public PuzzleQuestWindow()
     {
-        super("Vertex - Puzzle Quest");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
         panel.setLayout(new BorderLayout());
@@ -93,7 +91,10 @@ public class PuzzleQuestWindow extends JFrame
             tileButtons[i] = tile;
             grid.add(tile);
         }
-        panel.add(grid, BorderLayout.CENTER);
+        JPanel gridCenterer = new JPanel(new GridBagLayout());
+        gridCenterer.setOpaque(false);
+        gridCenterer.add(grid, new GridBagConstraints());
+        panel.add(gridCenterer, BorderLayout.CENTER);
 
         JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         bottomRow.setOpaque(false);
@@ -110,24 +111,25 @@ public class PuzzleQuestWindow extends JFrame
             }
         });
 
-        ThemedButton close = new ThemedButton("Close", false);
+        ThemedButton close = new ThemedButton("Leave", false);
         close.setPreferredSize(new Dimension(100, 36));
         close.addActionListener(new ActionListener()
         {
-            public void actionPerformed(ActionEvent e) { dispose(); }
+            public void actionPerformed(ActionEvent e) { MainMenu.getInstance().returnToGames(); }
         });
 
         bottomRow.add(newPuzzle);
         bottomRow.add(close);
         panel.add(bottomRow, BorderLayout.SOUTH);
 
-        getContentPane().add(panel, BorderLayout.CENTER);
+        add(panel, BorderLayout.CENTER);
         refreshTiles();
+    }
 
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+    @Override
+    public boolean requestLeave()
+    {
+        return true;
     }
 
     private void makeMove(int index)

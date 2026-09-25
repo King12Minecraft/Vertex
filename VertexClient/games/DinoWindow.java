@@ -9,20 +9,23 @@ import net.MessageType;
 import net.Message;
 import economy.GuestPlayTracker;
 import account.Session;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
+import ui.ThemedButton;
 import economy.FpsTracker;
 
 import javax.swing.AbstractAction;
-import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 import javax.swing.Timer;
+import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
@@ -30,27 +33,30 @@ import java.util.List;
 /**
  * DinoWindow
  * ----------
- * Standalone window for the Chrome Dino runner. Spacebar (or Up) to
- * jump. Single-player, fully offline, same recordPlayed pattern as
- * Racing (no coin reward).
+ * The Chrome Dino runner, embedded in MainMenu's game-host slot (see
+ * ChessWindow's javadoc for the pattern). Spacebar (or Up) to jump.
+ * Single-player, fully offline, same recordPlayed pattern as Racing
+ * (no coin reward). requestLeave() just stops RunPanel's timer.
  */
-public class DinoWindow extends JFrame
+public class DinoWindow extends JPanel implements EmbeddedGamePanel
 {
     private RunPanel runPanel;
+    private JPanel playWrap;
 
     public DinoWindow()
     {
-        super("Vertex - Dino Dash");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
-
+        setLayout(new BorderLayout());
         startGame();
+    }
 
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+    @Override
+    public boolean requestLeave()
+    {
+        if (runPanel != null)
+        {
+            runPanel.stopTimer();
+        }
+        return true;
     }
 
     private void startGame()
@@ -60,7 +66,7 @@ public class DinoWindow extends JFrame
         if (runPanel != null)
         {
             runPanel.stopTimer();
-            getContentPane().remove(runPanel);
+            remove(playWrap);
         }
 
         Runnable onGameOver = new Runnable()
@@ -71,17 +77,38 @@ public class DinoWindow extends JFrame
                 SnakeGameOverDialog.show(runPanel, game.getScore(), new SnakeGameOverDialog.Choice()
                 {
                     public void onPlayAgain() { startGame(); }
-                    public void onClose() { DinoWindow.this.dispose(); }
+                    public void onClose() { MainMenu.getInstance().returnToGames(); }
                 });
             }
         };
 
         runPanel = new RunPanel(game, onGameOver);
 
-        getContentPane().setLayout(new BorderLayout());
-        getContentPane().add(runPanel, BorderLayout.CENTER);
-        pack();
-        setLocationRelativeTo(null);
+        playWrap = new JPanel(new BorderLayout());
+        playWrap.setOpaque(false);
+        JPanel centerer = new JPanel(new GridBagLayout());
+        centerer.setOpaque(false);
+        centerer.add(runPanel, new GridBagConstraints());
+        playWrap.add(centerer, BorderLayout.CENTER);
+
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(8, 0, 0, 0));
+        bottomRow.add(leave);
+        playWrap.add(bottomRow, BorderLayout.SOUTH);
+
+        add(playWrap, BorderLayout.CENTER);
+        revalidate();
+        repaint();
         runPanel.requestFocusInWindow();
         runPanel.startTimer();
     }

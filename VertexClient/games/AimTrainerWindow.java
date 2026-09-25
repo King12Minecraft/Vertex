@@ -4,29 +4,29 @@ import net.MessageType;
 import net.Message;
 import economy.GuestPlayTracker;
 import account.Session;
+import pages.MainMenu;
 import ui.GameHubDialog;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
 import theme.GameColors;
 import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
+import ui.ThemedButton;
 
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.Random;
 
 /**
@@ -35,9 +35,11 @@ import java.util.Random;
  * Click the target before it times out - 20 rounds, score = hits.
  * Single file, no separate Game/Panel classes needed (same reasoning
  * as RockPaperScissorsWindow): the round timer and click handling are
- * simple enough not to need a model/view split.
+ * simple enough not to need a model/view split. Embedded in MainMenu's
+ * game-host slot (see ChessWindow's javadoc for the pattern);
+ * requestLeave() just stops the round timer.
  */
-public class AimTrainerWindow extends JFrame
+public class AimTrainerWindow extends JPanel implements EmbeddedGamePanel
 {
     private static final int WIDTH = 520;
     private static final int HEIGHT = 400;
@@ -59,10 +61,7 @@ public class AimTrainerWindow extends JFrame
 
     public AimTrainerWindow()
     {
-        super("Vertex - Aim Trainer");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         RoundedPanel root = new RoundedPanel(ThemeColor.BG_APP, 0);
         root.setLayout(new BorderLayout());
@@ -107,20 +106,36 @@ public class AimTrainerWindow extends JFrame
         {
             public void mouseClicked(MouseEvent e) { handleClick(e.getX(), e.getY()); }
         });
-        root.add(playArea, BorderLayout.CENTER);
+        JPanel playAreaCenterer = new JPanel(new GridBagLayout());
+        playAreaCenterer.setOpaque(false);
+        playAreaCenterer.add(playArea, new GridBagConstraints());
+        root.add(playAreaCenterer, BorderLayout.CENTER);
 
-        setContentPane(root);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
-
-        addWindowListener(new WindowAdapter()
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
         {
-            public void windowClosing(WindowEvent e) { if (roundTimer != null) roundTimer.stop(); }
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
         });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(10, 0, 0, 0));
+        bottomRow.add(leave);
+        root.add(bottomRow, BorderLayout.SOUTH);
+
+        add(root, BorderLayout.CENTER);
 
         spawnTarget();
+    }
+
+    @Override
+    public boolean requestLeave()
+    {
+        if (roundTimer != null) { roundTimer.stop(); }
+        return true;
     }
 
     private void spawnTarget()

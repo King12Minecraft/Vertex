@@ -3,15 +3,13 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
 import ui.ThemedButton;
 
 import javax.swing.AbstractAction;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
@@ -23,6 +21,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -34,8 +34,10 @@ import java.awt.event.ActionListener;
  * own cooldown). A fixed-rate Swing Timer drives both the tick and the
  * repaint, ~60fps. Reports the final score once on game-over, same
  * GAME_PLAYED_REQUEST pattern as the other single-player games.
+ * Embedded in MainMenu's game-host slot (see ChessWindow's javadoc for
+ * the pattern); requestLeave() stops the game timer.
  */
-public class GalaxyDefenderWindow extends JFrame
+public class GalaxyDefenderWindow extends JPanel implements EmbeddedGamePanel
 {
     private static final int TICK_MS = 16;
 
@@ -47,10 +49,7 @@ public class GalaxyDefenderWindow extends JFrame
 
     public GalaxyDefenderWindow()
     {
-        super("Vertex - Galaxy Defender");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
@@ -71,22 +70,38 @@ public class GalaxyDefenderWindow extends JFrame
         {
             public void actionPerformed(ActionEvent e) { startNewGame(); }
         });
-        JPanel restartWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        JPanel restartWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         restartWrap.setOpaque(false);
         restartWrap.add(restart);
+        restartWrap.add(leave);
         topRow.add(restartWrap, BorderLayout.EAST);
 
         root.add(topRow, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        root.add(boardPanel, BorderLayout.CENTER);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(boardPanel, new GridBagConstraints());
+        root.add(boardCenterer, BorderLayout.CENTER);
 
-        getContentPane().add(root);
+        add(root, BorderLayout.CENTER);
         startNewGame();
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
+    }
+
+    @Override
+    public boolean requestLeave()
+    {
+        if (timer != null) { timer.stop(); }
+        return true;
     }
 
     private void startNewGame()
@@ -139,7 +154,7 @@ public class GalaxyDefenderWindow extends JFrame
             new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain() { startNewGame(); }
-                public void onClose() { GalaxyDefenderWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
     }
 

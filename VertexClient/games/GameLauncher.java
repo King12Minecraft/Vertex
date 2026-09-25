@@ -65,8 +65,7 @@ public class GameLauncher
             }
             else if ("puzzle-quest".equals(game.getGameId()))
             {
-                PuzzleQuestWindow window = new PuzzleQuestWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new PuzzleQuestWindow());
             }
             else if ("rock-paper-scissors".equals(game.getGameId()))
             {
@@ -75,8 +74,7 @@ public class GameLauncher
             }
             else if ("pingpong".equals(game.getGameId()))
             {
-                PongWindow window = new PongWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new PongWindow());
             }
             else if ("2048".equals(game.getGameId()))
             {
@@ -84,23 +82,19 @@ public class GameLauncher
             }
             else if ("dino-dash".equals(game.getGameId()))
             {
-                DinoWindow window = new DinoWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new DinoWindow());
             }
             else if ("tetris".equals(game.getGameId()))
             {
-                TetrisWindow window = new TetrisWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new TetrisWindow());
             }
             else if ("crossing-road".equals(game.getGameId()))
             {
-                CrossingRoadWindow window = new CrossingRoadWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new CrossingRoadWindow());
             }
             else if ("aim-trainer".equals(game.getGameId()))
             {
-                AimTrainerWindow window = new AimTrainerWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new AimTrainerWindow());
             }
             else if ("among-us".equals(game.getGameId()))
             {
@@ -166,18 +160,15 @@ public class GameLauncher
             }
             else if ("brick-breaker".equals(game.getGameId()))
             {
-                BrickBreakerWindow window = new BrickBreakerWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new BrickBreakerWindow());
             }
             else if ("flappy-bird".equals(game.getGameId()))
             {
-                FlappyBirdWindow window = new FlappyBirdWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new FlappyBirdWindow());
             }
             else if ("galaxy-defender".equals(game.getGameId()))
             {
-                GalaxyDefenderWindow window = new GalaxyDefenderWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new GalaxyDefenderWindow());
             }
             else if ("word-guess".equals(game.getGameId()))
             {
@@ -203,8 +194,7 @@ public class GameLauncher
             }
             else if ("yahtzee".equals(game.getGameId()))
             {
-                YahtzeeWindow window = new YahtzeeWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new YahtzeeWindow());
             }
             else if ("mancala".equals(game.getGameId()))
             {

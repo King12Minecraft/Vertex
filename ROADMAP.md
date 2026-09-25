@@ -113,18 +113,32 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   Reversi/Tic-Tac-Toe conversions, just discovered fresh in each of these since none
   had been embedded before), and a new "Leave" button added next to whatever
   restart/new-game button already existed. 18 games embedded total now.
+- **10 more offline single-player games converted in a second batch** — Dino Dash,
+  Tetris, Ping Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker,
+  Flappy Bird, and Galaxy Defender. Same recipe as the first offline batch throughout
+  (`GridBagLayout` centering wrapper, a new "Leave" button, `requestLeave()` stopping
+  whatever Swing `Timer` drives the game loop where one exists). Several of these
+  (Dino Dash, Tetris, Ping Pong) had no "Leave"/"Close" affordance at all before -
+  relied entirely on the OS window's close button, same gap Snake had - so this batch
+  is where that pattern (wrap the play panel, add a bottom row with just a Leave
+  button) got reused most. Yahtzee's center column (dice + Roll button) used
+  `BoxLayout` inside `BorderLayout.CENTER` - stretches to fill the region without
+  actually centering its content vertically, a `BoxLayout` cousin of the `FlowLayout`
+  top-alignment bug found during the Tic-Tac-Toe conversion - fixed the same way,
+  wrapped in a `GridBagLayout` centerer. 28 games embedded total now.
 
 ## 🔧 In Progress
 
-- **Rolling embedded games out past the `ai/search` games and the offline-game batch**
-  — the pattern is proven 18 times now (Chess, Reversi, Connect Four, Signal Grid,
-  Tic-Tac-Toe, Dots and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon Says,
-  Whack-a-Mole, Match Three, Lights Out, Peg Solitaire, Mancala, Klondike); the other
-  ~29 games (mostly online multiplayer with matchmaking, plus a few real-time arcade
-  games) still open their own `JFrame` and need the same conversion, one at a time.
-  Any future offline-capable game reachable from `OfflineHubWindow` needs the same
-  `setReturnAction`-style treatment Snake got, not just the standard MainMenu-only
-  conversion.
+- **Rolling embedded games out past the `ai/search` games and both offline-game
+  batches** — the pattern is proven 28 times now (Chess, Reversi, Connect Four, Signal
+  Grid, Tic-Tac-Toe, Dots and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon
+  Says, Whack-a-Mole, Match Three, Lights Out, Peg Solitaire, Mancala, Klondike, Dino
+  Dash, Tetris, Ping Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick
+  Breaker, Flappy Bird, Galaxy Defender); the other ~19 games (mostly online
+  multiplayer with matchmaking, plus a few real-time arcade games) still open their
+  own `JFrame` and need the same conversion, one at a time. Any future offline-capable
+  game reachable from `OfflineHubWindow` needs the same `setReturnAction`-style
+  treatment Snake got, not just the standard MainMenu-only conversion.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style
