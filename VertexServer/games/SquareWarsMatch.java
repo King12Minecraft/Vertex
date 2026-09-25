@@ -147,7 +147,7 @@ public class SquareWarsMatch
 
             if (isWinner && perWinnerReward > 0)
             {
-                economyManager.awardCoins(player, perWinnerReward, "Won a Square Wars match");
+                economyManager.awardMatchWinCoins(player, GAME_ID, perWinnerReward, "Won a Square Wars match");
             }
 
             if (player.getAccountId() != null)

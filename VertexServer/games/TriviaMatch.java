@@ -524,7 +524,7 @@ public class TriviaMatch
             int reward = 0;
             if (isWinner && perWinnerReward > 0)
             {
-                economyManager.awardCoins(player, perWinnerReward, "Won a Trivia Blitz match");
+                economyManager.awardMatchWinCoins(player, GAME_ID, perWinnerReward, "Won a Trivia Blitz match");
                 reward = perWinnerReward;
             }
             if (player.getAccountId() != null)

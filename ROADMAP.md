@@ -418,6 +418,27 @@ recorded below as they're confirmed.
   `ChessWindow` instances to their searching screen (covering both the
   `searchingLabel` and the one-off `statusLabel` variable-name variants used across
   the 25 files) and confirmed the correct message renders.
+- **4 online games' wins never counted toward the generic win-count challenges
+  (Win 1 Today / Win 3 Today / Champion).** Same shape of bug as the offline-rewards
+  fix above, found the same way: traced every caller of the economy layer rather than
+  assuming coverage. `challengeManager.recordWin()` - the only thing that advances
+  those challenges - was only ever called from `EconomyManager.awardWin()`. Racing,
+  Space Battle, Square Wars, and Trivia Blitz don't have a single
+  `EconomyConfig.getWinReward(gameId)`-driven winner the way a 2-player match does
+  (placement games, and games where ties split the prize among several winners), so
+  they route through `awardRacingPlacement`/`awardSpaceBattlePlacement`/`awardCoins`
+  instead - none of which touched `challengeManager` at all. A player who only ever
+  played those 4 games could never complete "Win any 1 online match", and since
+  `ChallengeManager.recordWin` grants its own coin bonus on completion (on top of the
+  match's own reward), this was a real missed-coins bug, not just a progress-bar
+  display issue. Fixed by extracting `awardWin`'s post-reward challenge/message logic
+  into a shared `recordOnlineWin()` and calling it from `awardRacingPlacement`/
+  `awardSpaceBattlePlacement` (only when `place == 1` - that's this race's "win"),
+  plus a new `awardMatchWinCoins()` for the tie-splitting games (Square Wars, Trivia
+  Blitz) to use instead of the generic `awardCoins`. Verified with a coverage test
+  that drives the real `ChallengeManager` for all 4 previously-unreachable game IDs
+  and confirms `daily-win-1` now completes, plus a control case proving an unrelated
+  game-specific challenge (`tictactoe-win-5`) stays untouched.
 
 ## 🔧 In Progress
 

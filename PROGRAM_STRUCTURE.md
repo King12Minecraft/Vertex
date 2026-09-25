@@ -456,9 +456,14 @@ already happen rather than needing their own call site in every match.
 
 - **`EconomyManager.java`** — the coin-award entry point:
   `awardWin(ClientHandler, gameId)` looks up the reward via `EconomyConfig`, credits the
-  account, logs via `TransactionManager`, records challenge progress. Also handles shop
-  purchases (always validated server-side — never trust a client-reported balance) and
-  daily login rewards.
+  account, logs via `TransactionManager`, records challenge progress. Placement games
+  (Racing, Space Battle) and tie-splitting games (Square Wars, Trivia Blitz) don't have
+  a single `awardWin`-shaped winner, so they go through `awardRacingPlacement`/
+  `awardSpaceBattlePlacement` (only 1st place)/`awardMatchWinCoins` instead — all three
+  funnel into the same shared `recordOnlineWin()` tail as `awardWin`, so every online
+  game's win reaches `ChallengeManager` the same way. Also handles shop purchases
+  (always validated server-side — never trust a client-reported balance) and daily
+  login rewards.
 - **`EconomyConfig.java`** — pure static config: per-game win-coin table, practice-mode
   score→coin formulas, placement rewards for Racing/Space Battle, the 7-day daily-login
   streak table, challenge definitions, shop catalog. The one place all economy numbers

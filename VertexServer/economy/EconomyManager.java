@@ -66,11 +66,25 @@ public class EconomyManager
             transactionManager.log(account.getAccountId(), reward, "Won a match");
         }
 
+        recordOnlineWin(account, winner, gameId, reward);
+    }
+
+    /**
+     * Shared tail of every "this player just won an online match" path - records
+     * progress on the generic win-count challenges (whose reward, on completion, is
+     * an *additional* coin grant on top of whatever the match itself paid) and sends
+     * the resulting wallet/challenge updates. Split out of awardWin so the games that
+     * don't route through awardWin (ties/multi-winner games via awardCoins, and
+     * placement games where only 1st counts as a win) still make challenge progress
+     * instead of that progress being silently unreachable for their players.
+     */
+    private void recordOnlineWin(Account account, ClientHandler winner, String gameId, int matchReward)
+    {
         List<ChallengeProgressInfo> changedChallenges = challengeManager.recordWin(account, gameId);
         accountStore.updateAccount(account);
         checkCoinAchievement(account);
 
-        if (reward > 0)
+        if (matchReward > 0)
         {
             Message walletUpdate = new Message();
             walletUpdate.setType(MessageType.WALLET_UPDATE);
@@ -85,7 +99,7 @@ public class EconomyManager
             challengeUpdate.setChallenges(changedChallenges);
             winner.sendMessage(challengeUpdate);
 
-            if (reward == 0 && account.getCoins() > 0)
+            if (matchReward == 0 && account.getCoins() > 0)
             {
                 Message walletUpdate = new Message();
                 walletUpdate.setType(MessageType.WALLET_UPDATE);
@@ -93,6 +107,25 @@ public class EconomyManager
                 winner.sendMessage(walletUpdate);
             }
         }
+    }
+
+    /**
+     * For online games where several players can win at once (ties) and there's no
+     * single EconomyConfig.getWinReward(gameId) lookup - the caller already computed
+     * a per-winner split. Otherwise identical to awardWin: pays the coins, then
+     * records the same generic win-count challenge progress.
+     */
+    public void awardMatchWinCoins(ClientHandler winner, String gameId, int amount, String reason)
+    {
+        String username = winner.getLoggedInUsername();
+        if (username == null || amount <= 0) return;
+        Account account = accountStore.findByUsername(username);
+        if (account == null) return;
+
+        account.setCoins(account.getCoins() + amount);
+        transactionManager.log(account.getAccountId(), amount, reason);
+
+        recordOnlineWin(account, winner, gameId, amount);
     }
 
     /**
@@ -116,13 +149,24 @@ public class EconomyManager
 
         account.setCoins(account.getCoins() + reward);
         transactionManager.log(account.getAccountId(), reward, "Finished " + placeOrdinal(place) + " in a race");
-        accountStore.updateAccount(account);
-        checkCoinAchievement(account);
 
-        Message walletUpdate = new Message();
-        walletUpdate.setType(MessageType.WALLET_UPDATE);
-        walletUpdate.setCoins(account.getCoins());
-        racer.sendMessage(walletUpdate);
+        if (place == 1)
+        {
+            // 1st place is this race's "win" for the generic win-count challenges -
+            // racing has no single ClientHandler "winner" the way a 2-player match
+            // does, so it's recorded here instead of through awardWin.
+            recordOnlineWin(account, racer, "racing", reward);
+        }
+        else
+        {
+            accountStore.updateAccount(account);
+            checkCoinAchievement(account);
+
+            Message walletUpdate = new Message();
+            walletUpdate.setType(MessageType.WALLET_UPDATE);
+            walletUpdate.setCoins(account.getCoins());
+            racer.sendMessage(walletUpdate);
+        }
 
         return reward;
     }
@@ -156,13 +200,21 @@ public class EconomyManager
 
         account.setCoins(account.getCoins() + reward);
         transactionManager.log(account.getAccountId(), reward, "Finished " + placeOrdinal(place) + " in a Space Battle");
-        accountStore.updateAccount(account);
-        checkCoinAchievement(account);
 
-        Message walletUpdate = new Message();
-        walletUpdate.setType(MessageType.WALLET_UPDATE);
-        walletUpdate.setCoins(account.getCoins());
-        pilot.sendMessage(walletUpdate);
+        if (place == 1)
+        {
+            recordOnlineWin(account, pilot, "space-battle", reward);
+        }
+        else
+        {
+            accountStore.updateAccount(account);
+            checkCoinAchievement(account);
+
+            Message walletUpdate = new Message();
+            walletUpdate.setType(MessageType.WALLET_UPDATE);
+            walletUpdate.setCoins(account.getCoins());
+            pilot.sendMessage(walletUpdate);
+        }
 
         return reward;
     }
