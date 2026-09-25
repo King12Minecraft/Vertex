@@ -3,8 +3,7 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import ui.RoundedPanel;
@@ -17,7 +16,6 @@ import ai.search.RandomMoveStrategy;
 import ai.search.PracticeMatch;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -31,12 +29,12 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * DotsAndBoxesWindow
@@ -46,8 +44,13 @@ import java.awt.event.WindowEvent;
  * are legal and whose turn it is; this window just forwards the
  * click (as a line index, found by proximity - see findNearestLine)
  * and redraws whatever board state comes back.
+ *
+ * Embedded in MainMenu's game-host slot rather than its own window -
+ * see ChessWindow/ReversiWindow's javadoc for the pattern. Never
+ * confirmed before leaving mid-match even as its own window, so
+ * requestLeave() here stays unconditional.
  */
-public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushListener
+public class DotsAndBoxesWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -85,10 +88,7 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
 
     public DotsAndBoxesWindow()
     {
-        super("Vertex - Dots and Boxes");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
         java.util.Arrays.fill(lines, '.');
         java.util.Arrays.fill(boxOwners, '.');
 
@@ -96,31 +96,30 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (!isPracticeMode) leaveMatch();
-                NetworkManager.removePushListener(DotsAndBoxesWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (!isPracticeMode) leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Dots and Boxes");
         title.setFont(UITheme.FONT_HEADING);
@@ -154,7 +153,7 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -163,8 +162,6 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -175,10 +172,14 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Dots and Boxes");
         title.setFont(UITheme.FONT_HEADING);
@@ -201,12 +202,12 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createBoardScreen()
@@ -222,7 +223,20 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
         wrap.add(statusLabel, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        wrap.add(boardPanel, BorderLayout.CENTER);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(boardPanel, new GridBagConstraints());
+        wrap.add(boardCenterer, BorderLayout.CENTER);
+
+        ThemedButton leaveButton = new ThemedButton("Leave", false);
+        leaveButton.setPreferredSize(new Dimension(90, 34));
+        leaveButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
 
         hintButton = new ThemedButton("Hint", false);
         hintButton.setPreferredSize(new Dimension(90, 34));
@@ -231,10 +245,11 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
         {
             public void actionPerformed(ActionEvent e) { showHint(); }
         });
-        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         bottomRow.setOpaque(false);
         bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
         bottomRow.add(hintButton);
+        bottomRow.add(leaveButton);
         wrap.add(bottomRow, BorderLayout.SOUTH);
 
         return wrap;
@@ -284,8 +299,6 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
         practiceMatch = new PracticeMatch<char[], Integer>(AI_MODEL, DotsAndBoxesGameModel.newBoard(), AI_GAME_ID,
             DotsAndBoxesGameModel.PLAYER_A, DotsAndBoxesGameModel.PLAYER_B, DotsAndBoxesGameModel.PLAYER_A);
         cardLayout.show(cards, BOARD);
-        pack();
-        setLocationRelativeTo(null);
         hintButton.setVisible(true);
         gameOver = false;
         refreshPracticeBoard();
@@ -376,7 +389,7 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
         SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
         {
             public void onPlayAgain() { startPracticeMatch(); }
-            public void onClose() { DotsAndBoxesWindow.this.dispose(); }
+            public void onClose() { MainMenu.getInstance().returnToGames(); }
         });
     }
 
@@ -422,8 +435,6 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
             applyBoardState(message.getBoardState());
             updateStatus(0);
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (type == MessageType.DOTS_UPDATE)
         {
@@ -454,11 +465,9 @@ public class DotsAndBoxesWindow extends JFrame implements NetworkManager.PushLis
                     java.util.Arrays.fill(lines, '.');
                     java.util.Arrays.fill(boxOwners, '.');
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { DotsAndBoxesWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }

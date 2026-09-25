@@ -82,11 +82,15 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   embedded space with dead space below it. Same fix as always - swapped for
   `GridBagLayout`, which centers on both axes.
 
+- **Dots and Boxes converted to the embedded pattern** — sixth game done this way, same
+  shape as Reversi/Connect Four/Signal Grid (no existing leave confirmation, fixed-pixel
+  board needing the centering fix), no new surprises.
+
 ## 🔧 In Progress
 
-- **Rolling embedded games out past Chess, Reversi, Connect Four, Signal Grid, and
-  Tic-Tac-Toe** — the pattern is proven five times now; the other ~42 games still open
-  their own `JFrame` and need the same conversion, one at a time.
+- **Rolling embedded games out past Chess, Reversi, Connect Four, Signal Grid,
+  Tic-Tac-Toe, and Dots and Boxes** — the pattern is proven six times now; the other
+  ~41 games still open their own `JFrame` and need the same conversion, one at a time.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style

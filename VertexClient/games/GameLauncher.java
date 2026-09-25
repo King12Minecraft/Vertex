@@ -224,8 +224,7 @@ public class GameLauncher
             }
             else if ("dots-and-boxes".equals(game.getGameId()))
             {
-                DotsAndBoxesWindow window = new DotsAndBoxesWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new DotsAndBoxesWindow());
             }
             else if ("reversi".equals(game.getGameId()))
             {
