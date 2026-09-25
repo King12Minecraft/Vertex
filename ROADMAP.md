@@ -196,6 +196,15 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   returned directly to `CardLayout` rather than a plain `JPanel` - same stretch bug
   applies to a scroll pane as to any other direct `CardLayout` child, so it also got
   wrapped, changing `createGameScreen()`'s return type from `JScrollPane` to `JPanel`.
+- **Fight Arena converted to the embedded pattern** — 40 games embedded total now.
+  Same recipe: unconditional `requestLeave()` (leaves the queue only if still
+  searching, matching the original's `windowClosing` exactly), mode-select and
+  searching screens wrapped in `GridBagLayout` centerers. The live match screen was
+  the bare-board variant: `FightArenaPanel`, a fixed-size (760px wide) custom-painted
+  canvas fed by a server tick loop, was added directly to `BorderLayout.CENTER`
+  inside the game screen's outer panel - needed its own small `GridBagLayout`
+  centerer wrapper (`fightCenterer`) so it centers instead of stretching to fill the
+  available area, same fix as every other bare game-board panel converted so far.
 
 ## 🔧 In Progress
 

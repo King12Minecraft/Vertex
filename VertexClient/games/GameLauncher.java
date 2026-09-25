@@ -100,8 +100,7 @@ public class GameLauncher
             }
             else if ("fight-arena".equals(game.getGameId()))
             {
-                FightArenaWindow window = new FightArenaWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new FightArenaWindow());
             }
             else if ("chess".equals(game.getGameId()))
             {

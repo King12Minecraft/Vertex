@@ -10,13 +10,11 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -26,12 +24,12 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.util.List;
 
 /**
@@ -43,7 +41,7 @@ import java.util.List;
  * this is the one game whose "board" screen is continuously fed by a
  * server tick loop rather than event-driven updates.
  */
-public class FightArenaWindow extends JFrame implements NetworkManager.PushListener
+public class FightArenaWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -61,45 +59,42 @@ public class FightArenaWindow extends JFrame implements NetworkManager.PushListe
 
     public FightArenaWindow()
     {
-        super("Vertex - Fight Arena");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createGameScreen(), GAME);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
+    @Override
+    public boolean requestLeave()
+    {
+        if (matchId == null && chosenMode != null)
         {
-            public void windowClosing(WindowEvent e)
-            {
-                if (matchId == null && chosenMode != null)
-                {
-                    leaveQueue();
-                }
-                NetworkManager.removePushListener(FightArenaWindow.this);
-            }
-        });
+            leaveQueue();
+        }
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     // ==================== Mode select ====================
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(40, 50, 40, 50));
         panel.setPreferredSize(new Dimension(440, 420));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Fight Arena");
         title.setFont(UITheme.FONT_HEADING);
@@ -141,15 +136,13 @@ public class FightArenaWindow extends JFrame implements NetworkManager.PushListe
 
         panel.add(grid);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(String mode)
     {
         chosenMode = mode;
         cardLayout.show(cards, SEARCHING);
-        pack();
-        setLocationRelativeTo(null);
         findMatch();
     }
 
@@ -157,10 +150,15 @@ public class FightArenaWindow extends JFrame implements NetworkManager.PushListe
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Fight Arena");
         title.setFont(UITheme.FONT_HEADING);
@@ -183,12 +181,12 @@ public class FightArenaWindow extends JFrame implements NetworkManager.PushListe
             public void actionPerformed(ActionEvent e)
             {
                 leaveQueue();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private void findMatch()
@@ -231,7 +229,11 @@ public class FightArenaWindow extends JFrame implements NetworkManager.PushListe
                 sendInput(left, right, attack);
             }
         });
-        panel.add(fightPanel, BorderLayout.CENTER);
+
+        JPanel fightCenterer = new JPanel(new GridBagLayout());
+        fightCenterer.setOpaque(false);
+        fightCenterer.add(fightPanel, new GridBagConstraints());
+        panel.add(fightCenterer, BorderLayout.CENTER);
 
         return panel;
     }
@@ -296,8 +298,6 @@ public class FightArenaWindow extends JFrame implements NetworkManager.PushListe
             fightPanel.setTeamAssignments(message.getFightTeamAssignments());
 
             cardLayout.show(cards, GAME);
-            pack();
-            setLocationRelativeTo(null);
             fightPanel.requestFocusInWindow();
         }
         else if (message.getType() == MessageType.FIGHT_TICK_UPDATE)
@@ -309,7 +309,7 @@ public class FightArenaWindow extends JFrame implements NetworkManager.PushListe
         {
             recordPlayed();
             GameHubDialog.show(this, "Match Over", message.getFightResultText());
-            dispose();
+            MainMenu.getInstance().returnToGames();
         }
     }
 
