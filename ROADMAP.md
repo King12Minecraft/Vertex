@@ -294,24 +294,26 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   (`gameWrapper`) is rebuilt alongside it each time, tracked via a new field so the
   old one can be removed from the `CardLayout` before a fresh one is added, same
   pattern as Racing's `raceWrapper`.
+- **Space Battle converted to the embedded pattern** — 49 games embedded total now.
+  The last remaining game: same exact shape as Racing/Zombie Survival (online +
+  Practice mode, independent-simulation scoring, a fixed-size game canvas rebuilt on
+  every restart via `startGame(...)` with its centering wrapper - `gameWrapper` -
+  rebuilt alongside it). **Every game in the entire Vertex catalog is now embedded in
+  MainMenu's game-host slot - the "fill the screen, no separate window" conversion
+  that's been running throughout this session is complete.**
 
 ## 🔧 In Progress
 
-- **Rolling embedded games out past every offline/single-player game** — the pattern
-  is proven 36 times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
-  and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole,
-  Match Three, Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping
-  Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy Bird,
-  Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble Shooter,
-  Battleship, Memory Match, Word Duel, Dice Duel). Every offline/single-player game in
-  the whole catalog is now embedded, plus both spectate/tournament-capable games - the
-  other ~11 games left are all online-multiplayer (matchmaking, some with real-time
-  tick loops) or bot-fill games, and need the same conversion one at a time. Any
-  future offline-capable game reachable from `OfflineHubWindow` needs the same
-  `setReturnAction`-style treatment Snake got, not just the standard MainMenu-only
-  conversion. **Standing check for every remaining conversion**: grep for every
-  external construction site of that game's window (not just `GameLauncher.java`)
-  before considering it done - Chess's
+- **Embedded-games rollout: complete.** All 49 games in the catalog now open inside
+  MainMenu's game-host slot instead of their own JFrame - every offline/single-player
+  game, both spectate/tournament-capable games (Chess, Rock Paper Scissors,
+  Battleship), and all twelve online-multiplayer games (Racing, Among Us, Fight
+  Arena, Square Wars, Trivia Blitz, Air Hockey, Snake Arena, Tetris Duel, Fusion
+  Grid, Card Rush, Zombie Survival, Space Battle). Any future offline-capable game
+  reachable from `OfflineHubWindow` needs the same `setReturnAction`-style treatment
+  Snake got, not just the standard MainMenu-only conversion. **Standing check for any
+  future game/window**: grep for every external construction site of that game's
+  window (not just `GameLauncher.java`) before considering it done - Chess's
   spectate-path bug is exactly the kind of thing that slips through otherwise.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat

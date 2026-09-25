@@ -134,8 +134,8 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. 48 games so far are the exceptions
-  to `new XxxWindow().setVisible(true)` - they call
+  gate since there's nothing to preview yet. **All 49 games in the catalog** are now
+  the exceptions to `new XxxWindow().setVisible(true)` - every one of them calls
   `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
   conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`): Chess,
   Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots and Boxes, Checkers,
@@ -145,18 +145,19 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   Bird, Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble
   Shooter, Battleship, Memory Match, Word Duel, Dice Duel, Typing Duel, Racing,
   Among Us, Fight Arena, Square Wars, Trivia Blitz, Air Hockey, Snake Arena,
-  Tetris Duel, Fusion Grid, Card Rush, and Zombie Survival - every offline/
-  single-player game in the whole catalog, both games with `SpectateDialog`/
-  tournament support, and eleven converted online-multiplayer games. The
-  remaining online-multiplayer games still open their own window until
-  it's converted the same way. A game reachable from more than one place
-  (Chess, Rock Paper Scissors, and Battleship each have a `SpectateDialog`
-  "Watch" entry point, separate from `GameLauncher`) needs every one of those
-  call sites updated, not just the main one - a real bug (Chess's spectate
-  path silently doing nothing once `ChessWindow` became a `JPanel`) shipped
-  from missing this the first time and had to be found and fixed separately;
-  Rock Paper Scissors's and Battleship's own spectate lines were fixed
-  proactively in the same conversion instead.
+  Tetris Duel, Fusion Grid, Card Rush, Zombie Survival, and Space Battle -
+  every offline/single-player game in the whole catalog, both games with
+  `SpectateDialog`/tournament support, and every online-multiplayer game.
+  `GameLauncher`'s `else` fallback ("not converted yet") is now dead code for
+  every real game id - it only still fires for a genuinely unknown/future id.
+  A game reachable from more than one place (Chess, Rock Paper Scissors, and
+  Battleship each have a `SpectateDialog` "Watch" entry point, separate from
+  `GameLauncher`) needs every one of those call sites updated, not just the
+  main one - a real bug (Chess's spectate path silently doing nothing once
+  `ChessWindow` became a `JPanel`) shipped from missing this the first time
+  and had to be found and fixed separately; Rock Paper Scissors's and
+  Battleship's own spectate lines were fixed proactively in the same
+  conversion instead.
   Snake is also reachable pre-login from `pages/OfflineHubWindow.java`
   ("Play Offline" on the login screen), which has no `MainMenu` to hand off
   to - see `SnakeWindow.setReturnAction(...)` below.

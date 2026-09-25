@@ -248,8 +248,7 @@ public class GameLauncher
             }
             else if ("space-battle".equals(game.getGameId()))
             {
-                SpaceBattleWindow window = new SpaceBattleWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new SpaceBattleWindow());
             }
             else
             {

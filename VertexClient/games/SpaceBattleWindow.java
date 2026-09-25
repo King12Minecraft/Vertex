@@ -9,12 +9,10 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -23,10 +21,10 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * SpaceBattleWindow
@@ -42,7 +40,7 @@ import java.awt.event.WindowEvent;
  *   - Practice Mode: the same dogfight, but solo and fully offline -
  *     no ranking, no reward, just "how high can you score."
  */
-public class SpaceBattleWindow extends JFrame implements NetworkManager.PushListener
+public class SpaceBattleWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -55,6 +53,7 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
     private JLabel searchingLabel;
     private JLabel waitingLabel;
     private SpaceBattlePanel gamePanel;
+    private JPanel gameWrapper;
 
     private boolean isOnlineMode = false;
     private String matchId;
@@ -62,40 +61,37 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
 
     public SpaceBattleWindow()
     {
-        super("Vertex - Space Battle");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createWaitingScreen(), WAITING);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (isOnlineMode) leaveMatch();
-                NetworkManager.removePushListener(SpaceBattleWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (isOnlineMode) leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
         panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Space Battle");
         title.setFont(UITheme.FONT_HEADING);
@@ -129,7 +125,7 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -138,8 +134,6 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -150,10 +144,15 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Space Battle");
         title.setFont(UITheme.FONT_HEADING);
@@ -176,20 +175,25 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createWaitingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Space Battle");
         title.setFont(UITheme.FONT_HEADING);
@@ -204,7 +208,7 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
         waitingLabel.setBorder(new EmptyBorder(10, 0, 0, 0));
         panel.add(waitingLabel);
 
-        return panel;
+        return wrapper;
     }
 
     private void findMatch()
@@ -231,7 +235,7 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
         if (gamePanel != null)
         {
             gamePanel.stopTimer();
-            cards.remove(gamePanel);
+            cards.remove(gameWrapper);
         }
 
         final SpaceBattleGame activeGame = game;
@@ -242,11 +246,12 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
         };
 
         gamePanel = new SpaceBattlePanel(game, onGameOver);
-        cards.add(gamePanel, GAME);
+        gameWrapper = new JPanel(new GridBagLayout());
+        gameWrapper.setOpaque(false);
+        gameWrapper.add(gamePanel, new GridBagConstraints());
+        cards.add(gameWrapper, GAME);
 
         cardLayout.show(cards, GAME);
-        pack();
-        setLocationRelativeTo(null);
         gamePanel.requestFocusInWindow();
         gamePanel.startTimer();
     }
@@ -262,7 +267,7 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
             SnakeGameOverDialog.show(gamePanel, score, null, shareText, new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain() { startGame(new SpaceBattleGame()); }
-                public void onClose() { SpaceBattleWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
             return;
         }
@@ -342,10 +347,8 @@ public class SpaceBattleWindow extends JFrame implements NetworkManager.PushList
                     matchId = null;
                     roster = null;
                     cardLayout.show(cards, MODE_SELECT);
-                    pack();
-                    setLocationRelativeTo(null);
                 }
-                public void onClose() { SpaceBattleWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }
