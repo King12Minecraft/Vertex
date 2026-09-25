@@ -55,11 +55,21 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   visible as a jarring flicker back to the games list, since both actions now touch
   the same single game-host slot; fixed by only calling `returnToGames()` when no
   rematch was requested.
+- **Reversi converted to the embedded pattern** — second game done this way, proving
+  the pattern generalizes to a game with real differences from Chess (no existing
+  leave-confirmation dialog to preserve/adapt, no existing Leave button on its board
+  screen, its "Play Again" reuses the same panel instead of creating a new one).
+  Found and fixed a new wrinkle Chess didn't have: Reversi's board is one
+  custom-painted `JPanel` at a hardcoded pixel size (unlike Chess's plain
+  `GridLayout(8,8)`), so it stayed pinned in a corner with dead space around it once
+  embedded — fixed with the same `GridBagLayout` auto-centering wrapper already used
+  for mode-select screens, applied to the board too.
 
 ## 🔧 In Progress
 
-- **Rolling embedded games out past Chess** — the pattern is proven; the other ~46
-  games still open their own `JFrame` and need the same conversion, one at a time.
+- **Rolling embedded games out past Chess and Reversi** — the pattern is proven twice;
+  the other ~45 games still open their own `JFrame` and need the same conversion, one
+  at a time.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style

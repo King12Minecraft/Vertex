@@ -134,11 +134,11 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. Chess's case is the one exception to
-  `new XxxWindow().setVisible(true)` - it calls `MainMenu.getInstance().showGame(...)`
-  instead, the embedded-games proof-of-concept (see `EmbeddedGamePanel` below and
-  `pages/MainMenu.java`); every other game still opens its own window until it's
-  converted the same way.
+  gate since there's nothing to preview yet. Chess and Reversi's cases are the
+  exceptions to `new XxxWindow().setVisible(true)` so far - they call
+  `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
+  conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`); every
+  other game still opens its own window until it's converted the same way.
 - **`EmbeddedGamePanel.java`** - implemented by a game panel embedded in
   `MainMenu`'s game-host slot rather than opened as its own window (`ChessWindow` is
   the first). One method, `requestLeave()`: `MainMenu` calls it before navigating away
@@ -146,7 +146,17 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   the old per-window `windowClosing` confirmation, since there's no window-close event
   once a game isn't its own window. Return `false` to intercept (show a confirm
   dialog, then call `MainMenu.getInstance().returnToGames()` yourself if confirmed)
-  rather than letting navigation proceed silently mid-match.
+  rather than letting navigation proceed silently mid-match. A conversion gotcha
+  found while converting Reversi (the second game done this way, after Chess):
+  a board that fills its space automatically because it's laid out with a real
+  layout manager (Chess's is a plain `GridLayout(8,8)` of cell components) needs
+  no extra work, but a board that's one custom-painted `JPanel` drawing itself at
+  a hardcoded pixel size (Reversi's is) keeps that same size once embedded and
+  just sits pinned in a corner of the much bigger game-host slot with dead space
+  around it - fixed the same way an over-small mode-select screen is fixed:
+  wrap it in a `GridBagLayout` panel with no constraints (auto-centers) rather
+  than trying to make the paint code itself size-aware, which would also risk
+  breaking its pixel-based mouse-click math.
 - **`GameMetadata.java`** — presentation-only (difficulty, tags) for game detail
   dialogs; has no effect on matchmaking or gameplay.
 - **`MatchManager.java`** — the original reference matchmaking manager (for

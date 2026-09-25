@@ -230,8 +230,7 @@ public class GameLauncher
             }
             else if ("reversi".equals(game.getGameId()))
             {
-                ReversiWindow window = new ReversiWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new ReversiWindow());
             }
             else if ("memory-match".equals(game.getGameId()))
             {
