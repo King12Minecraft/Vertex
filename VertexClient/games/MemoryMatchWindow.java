@@ -3,8 +3,7 @@ package games;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
@@ -14,7 +13,6 @@ import ui.GameModeCard;
 import ui.ConfettiOverlay;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -25,16 +23,17 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * MemoryMatchWindow
@@ -45,8 +44,12 @@ import java.awt.event.WindowEvent;
  * click and redraws whatever board state comes back (a '.' means
  * still face-down, any other character is that card's revealed
  * symbol - either permanently matched or the current turn's flip).
+ *
+ * Embedded in MainMenu's game-host slot (see ChessWindow's javadoc for
+ * the pattern). Never confirmed before leaving mid-match even as its
+ * own window, so requestLeave() here stays unconditional.
  */
-public class MemoryMatchWindow extends JFrame implements NetworkManager.PushListener
+public class MemoryMatchWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -77,41 +80,37 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
 
     public MemoryMatchWindow()
     {
-        super("Vertex - Memory Match");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
         java.util.Arrays.fill(board, '.');
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (!isPracticeMode) leaveMatch();
-                NetworkManager.removePushListener(MemoryMatchWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (!isPracticeMode) leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Memory Match");
         title.setFont(UITheme.FONT_HEADING);
@@ -145,7 +144,7 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -154,8 +153,6 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -166,10 +163,14 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Memory Match");
         title.setFont(UITheme.FONT_HEADING);
@@ -192,12 +193,12 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createBoardScreen()
@@ -224,7 +225,25 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         wrap.add(top, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        wrap.add(boardPanel, BorderLayout.CENTER);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(boardPanel, new GridBagConstraints());
+        wrap.add(boardCenterer, BorderLayout.CENTER);
+
+        ThemedButton leave = new ThemedButton("Leave", false);
+        leave.setPreferredSize(new Dimension(90, 34));
+        leave.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottomRow.setOpaque(false);
+        bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
+        bottomRow.add(leave);
+        wrap.add(bottomRow, BorderLayout.SOUTH);
 
         return wrap;
     }
@@ -277,8 +296,6 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         myTurn = true;
 
         cardLayout.show(cards, BOARD);
-        pack();
-        setLocationRelativeTo(null);
 
         scoreLabel.setText("You: 0   Opponent: 0");
         statusLabel.setText("Your turn - flip two cards");
@@ -414,7 +431,7 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
         SnakeGameOverDialog.show(this, myScore, text, shareText, new SnakeGameOverDialog.Choice()
         {
             public void onPlayAgain() { startPracticeMatch(); }
-            public void onClose() { MemoryMatchWindow.this.dispose(); }
+            public void onClose() { MainMenu.getInstance().returnToGames(); }
         });
     }
 
@@ -452,8 +469,6 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
             myTurn = mySymbol == 0;
             updateStatus();
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (type == MessageType.MEMORY_UPDATE)
         {
@@ -485,11 +500,9 @@ public class MemoryMatchWindow extends JFrame implements NetworkManager.PushList
                     matchId = null;
                     java.util.Arrays.fill(board, '.');
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { MemoryMatchWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }

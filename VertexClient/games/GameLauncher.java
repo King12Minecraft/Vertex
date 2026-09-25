@@ -205,8 +205,7 @@ public class GameLauncher
             }
             else if ("memory-match".equals(game.getGameId()))
             {
-                MemoryMatchWindow window = new MemoryMatchWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new MemoryMatchWindow());
             }
             else if ("air-hockey".equals(game.getGameId()))
             {
