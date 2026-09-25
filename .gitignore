@@ -1,11 +1,20 @@
-# Runtime data written by the running server (accounts, friends, bans,
-# reports, replays, achievements, transactions, ratings, feedback, admin
-# log, play history) - never meant to be in version control. Written with
-# relative paths, so these can appear at the repo root, or inside
-# VertexClient/ or VertexServer/ depending on where the jar/process is run
-# from - ignored everywhere via **/.
+# Runtime data written by the running server. Written with relative
+# paths, so these can appear at the repo root, or inside VertexClient/
+# or VertexServer/ depending on where the jar/process is run from -
+# ignored everywhere via **/.
+#
+# Player accounts, social data, and match history are private and stay
+# local-only, never committed.
 **/gamehub_*.dat
+
+# Bug reports, general suggestions, and game suggestions are the
+# exception: these are meant to flow back to the developer, so they're
+# NOT ignored - commit and push these two specifically (e.g. before
+# asking for a bug fix) so a fresh session can read them directly
+# instead of you re-explaining each one by hand.
 **/gamehub_*.txt
+!**/gamehub_feedback.txt
+!**/gamehub_gamesuggestions.txt
 
 # Compiled output, if ever built into the tree instead of a scratch dir.
 **/*.class
