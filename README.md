@@ -2,7 +2,8 @@
 
 A full multiplayer gaming platform built in Java, using BlueJ, as a school project. 47+ playable games, ELO ratings, a party system, tournaments, and the ability for anyone to host their own server.
 
-**See [`FEATURES.md`](FEATURES.md) for the complete, current feature list.** The summaries below are kept short on purpose.
+**See [`FEATURES.md`](FEATURES.md) for the complete, current feature list, and
+[`ROADMAP.md`](ROADMAP.md) for what's planned next.** The summaries below are kept short on purpose.
 
 ## Running it
 
