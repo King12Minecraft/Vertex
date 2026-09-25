@@ -256,6 +256,17 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   (a fixed-size custom-painted grid, both snakes/food redrawn from server state)
   given its own `GridBagLayout` centerer (`arenaCenterer`) - same bare-board fix as
   Fight Arena, Square Wars, and Air Hockey.
+- **Tetris Duel converted to the embedded pattern** — 45 games embedded total now.
+  Same recipe: unconditional `requestLeave()`, mode-select and searching screens
+  wrapped in `GridBagLayout` centerers. New variant: the board screen puts both
+  players' boards side by side in a `FlowLayout.CENTER` row (`boardsRow`) - FlowLayout
+  already centers its children horizontally, but added directly to
+  `BorderLayout.CENTER` it stays top-aligned vertically once the host area is taller
+  than the row needs (the same `FlowLayout` top-alignment bug found during Tic-Tac-Toe's
+  conversion) - fixed by wrapping `boardsRow` itself in a `GridBagLayout` centerer
+  (`boardsCenterer`) for true 2D centering rather than replacing the FlowLayout, since
+  FlowLayout's own horizontal centering of the two boards is still exactly what's
+  wanted.
 
 ## 🔧 In Progress
 

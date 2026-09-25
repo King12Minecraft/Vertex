@@ -220,8 +220,7 @@ public class GameLauncher
             }
             else if ("tetris-duel".equals(game.getGameId()))
             {
-                TetrisDuelWindow window = new TetrisDuelWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new TetrisDuelWindow());
             }
             else if ("fusion-grid".equals(game.getGameId()))
             {
