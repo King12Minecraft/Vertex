@@ -1,4 +1,5 @@
 package pages;
+import social.ModChatDialog;
 import ui.GameHubDialog;
 import ui.ThemedLabel;
 import net.NetworkManager;
@@ -39,6 +40,8 @@ import java.util.List;
  *     fetched via ADMIN_PLAYER_LIST_REQUEST.
  *   - REPORTS: the unresolved player-report queue, each with a Resolve
  *     button - fetched via REPORT_LIST_REQUEST.
+ *   - MOD CHAT: a live staff-only channel (see ModChatDialog), opened
+ *     from the button at the top of this page.
  *
  * All moderation actions are server-verified role checks
  * (ClientHandler.isModeratorOrAdmin) - never trusts the client's own
@@ -67,6 +70,8 @@ public class ModeratorPanel extends RoundedPanel
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
+        content.add(createModChatRow());
+        content.add(Box.createVerticalStrut(20));
         content.add(createPlayersSection());
         content.add(Box.createVerticalStrut(20));
         content.add(createReportsSection());
@@ -89,6 +94,27 @@ public class ModeratorPanel extends RoundedPanel
         label.setFont(UITheme.FONT_NAV_BOLD);
         label.setBorder(new EmptyBorder(0, 0, 14, 0));
         return label;
+    }
+
+    // ==================== Mod Chat ====================
+
+    private JPanel createModChatRow()
+    {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+
+        final ThemedButton modChatButton = new ThemedButton("Open Mod Chat", true);
+        modChatButton.setPreferredSize(new Dimension(160, 38));
+        modChatButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                new ModChatDialog(modChatButton).setVisible(true);
+            }
+        });
+        row.add(modChatButton, BorderLayout.WEST);
+
+        return row;
     }
 
     // ==================== Players ====================

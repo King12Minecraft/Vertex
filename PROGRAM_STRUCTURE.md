@@ -342,7 +342,10 @@ shown on other players' profiles).
 feeding `TeamTournamentManager`), `ModerationManager.java` (mute/kick/ban, keyed by
 username not accountId to catch renamers, plus a report queue), and dialogs
 (`FriendPickerDialog`, `NewDirectMessageDialog`, `NewGroupDialog`, `GameInviteDialog`,
-`ReportPlayerDialog`, `ScoreShareDialog`, `PartyDialog`).
+`ReportPlayerDialog`, `ScoreShareDialog`, `PartyDialog`, `ModChatDialog` - a staff-only
+channel reachable from `ModeratorPanel`, gated server-side by
+`ClientHandler.isModeratorOrAdmin()` for both sending and who a `MOD_CHAT_MESSAGE`
+gets broadcast to; no message history yet, only what's sent while it's open).
 
 ## admin — moderation tooling, gated by Role
 

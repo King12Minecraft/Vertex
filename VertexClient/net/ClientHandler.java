@@ -389,6 +389,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.PRIVATE_MESSAGE) return handlePrivateMessage(request);
         if (request.getType() == MessageType.GROUP_CREATE_REQUEST) return handleGroupCreate(request);
         if (request.getType() == MessageType.GROUP_MESSAGE) return handleGroupMessage(request);
+        if (request.getType() == MessageType.MOD_CHAT_MESSAGE) return handleModChatMessage(request);
         if (request.getType() == MessageType.TYPING_INDICATOR) return handleTypingIndicator(request);
         if (request.getType() == MessageType.MESSAGE_REACTION) return handleMessageReaction(request);
         if (request.getType() == MessageType.SHOP_ITEMS_REQUEST) return handleShopItems();
@@ -1168,6 +1169,56 @@ public class ClientHandler implements Runnable
             groupChatManager.sendGroupMessage(request.getGroupId(), loggedInUsername, colorId, badgeId, role,
                 request.getChatText(), request.getFileName(), request.getFileData());
         }
+        return null;
+    }
+
+    /** Staff-only broadcast: gated by isModeratorOrAdmin() (the real check - never trusts a client's own role claim, same as every other moderation action), and re-checked per recipient so it only ever reaches currently-connected moderator/admin accounts, not the sender's own belief about who's staff. */
+    private Message handleModChatMessage(Message request)
+    {
+        if (!isModeratorOrAdmin())
+        {
+            return null;
+        }
+        if (moderationManager.isMuted(loggedInUsername))
+        {
+            sendMuteNotice();
+            return null;
+        }
+
+        String trimmedText = ChatManager.trimText(request.getChatText());
+        if (trimmedText.isEmpty())
+        {
+            return null;
+        }
+
+        Account account = accountStore.findByUsername(loggedInUsername);
+        String colorId = account != null ? account.getPlayerColorName() : null;
+        String badgeId = account != null ? account.getEquippedBadgeId() : null;
+        String role = account != null ? account.getRole().name() : "PLAYER";
+
+        Message delivery = new Message();
+        delivery.setType(MessageType.MOD_CHAT_MESSAGE);
+        delivery.setUsername(loggedInUsername);
+        delivery.setSenderColorId(colorId);
+        delivery.setSenderBadgeId(badgeId);
+        delivery.setSenderRole(role);
+        delivery.setChatText(trimmedText);
+        delivery.setChatMessageId(java.util.UUID.randomUUID().toString());
+
+        for (String username : chatManager.getOnlineUsernames())
+        {
+            Account recipientAccount = accountStore.findByUsername(username);
+            if (recipientAccount != null
+                && (recipientAccount.getRole() == Role.ADMIN || recipientAccount.getRole() == Role.MODERATOR))
+            {
+                ClientHandler recipient = chatManager.findByUsername(username);
+                if (recipient != null)
+                {
+                    recipient.sendMessage(delivery);
+                }
+            }
+        }
+
         return null;
     }
 

@@ -40,6 +40,10 @@ public enum MessageType
     GROUP_MESSAGE,
     GROUP_ADDED,
 
+    // --- Staff-only chat (see ModChatDialog) - server-gated to moderator+admin,
+    // both for who can send and who it's broadcast to ---
+    MOD_CHAT_MESSAGE,
+
     // --- Economy: rewards, challenges, shop ---
     WALLET_UPDATE,
     SHOP_ITEMS_REQUEST,
