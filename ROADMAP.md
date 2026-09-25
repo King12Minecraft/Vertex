@@ -278,6 +278,14 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   `GridBagLayout` centerers, and the board screen's bare `BoardPanel` given its own
   `GridBagLayout` centerer (`boardCenterer`) - same bare-board fix as the other
   online-multiplayer conversions.
+- **Card Rush converted to the embedded pattern** — 47 games embedded total now.
+  Same recipe: unconditional `requestLeave()`, mode-select and searching screens
+  wrapped in `GridBagLayout` centerers. Board screen was another Dice Duel-style
+  variant: the outer `wrap` panel had its own hardcoded `setPreferredSize(460, 320)`
+  (removed - meaningless once `CardLayout` stretches `wrap` itself to fill the host
+  area regardless), and the actual `center` content column (the two piles plus the
+  hand row) needed the `GridBagLayout` centering wrapper (`centerCenterer`) to stop
+  it pinning to the top of the now-larger board area.
 
 ## 🔧 In Progress
 

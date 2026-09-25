@@ -236,8 +236,7 @@ public class GameLauncher
             }
             else if ("card-rush".equals(game.getGameId()))
             {
-                CardRushWindow window = new CardRushWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new CardRushWindow());
             }
             else if ("connect-four".equals(game.getGameId()))
             {
