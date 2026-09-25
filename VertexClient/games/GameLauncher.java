@@ -284,8 +284,7 @@ public class GameLauncher
             }
             else if ("connect-four".equals(game.getGameId()))
             {
-                ConnectFourWindow window = new ConnectFourWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new ConnectFourWindow());
             }
             else if ("zombie-survival".equals(game.getGameId()))
             {

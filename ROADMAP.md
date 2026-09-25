@@ -64,12 +64,15 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   `GridLayout(8,8)`), so it stayed pinned in a corner with dead space around it once
   embedded — fixed with the same `GridBagLayout` auto-centering wrapper already used
   for mode-select screens, applied to the board too.
+- **Connect Four converted to the embedded pattern** — third game done this way, same
+  shell shape as Reversi (no existing leave confirmation, fixed-pixel board needing
+  the same centering fix), converted with no new surprises.
 
 ## 🔧 In Progress
 
-- **Rolling embedded games out past Chess and Reversi** — the pattern is proven twice;
-  the other ~45 games still open their own `JFrame` and need the same conversion, one
-  at a time.
+- **Rolling embedded games out past Chess, Reversi, and Connect Four** — the pattern is
+  proven three times now; the other ~44 games still open their own `JFrame` and need
+  the same conversion, one at a time.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
   "popped out" alongside it while playing (with some games, like a Gartic-Phone-style

@@ -7,8 +7,7 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 import ai.AiKernel;
 import ai.search.GenericBotStrategy;
@@ -16,7 +15,6 @@ import ai.search.RandomMoveStrategy;
 import ai.search.PracticeMatch;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -30,12 +28,12 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.awt.geom.Ellipse2D;
 
 /**
@@ -44,8 +42,13 @@ import java.awt.geom.Ellipse2D;
  * Online ranked Connect Four, 1v1 - same mode-select/searching/board
  * shell shape as the other short 1v1 games (Tic-Tac-Toe, Chess). Click
  * a column to drop a disc into the lowest open row.
+ *
+ * Embedded in MainMenu's game-host slot rather than its own window -
+ * see ChessWindow/ReversiWindow's javadoc for the pattern. Never
+ * confirmed before leaving mid-match even as its own window, so
+ * requestLeave() here stays unconditional, same as Reversi.
  */
-public class ConnectFourWindow extends JFrame implements NetworkManager.PushListener
+public class ConnectFourWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -81,41 +84,37 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
 
     public ConnectFourWindow()
     {
-        super("Vertex - Connect Four");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
         java.util.Arrays.fill(board, '.');
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createBoardScreen(), BOARD);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (!isPracticeMode) leaveMatch();
-                NetworkManager.removePushListener(ConnectFourWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (!isPracticeMode) leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Connect Four");
         title.setFont(UITheme.FONT_HEADING);
@@ -149,7 +148,7 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -158,8 +157,6 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -170,10 +167,14 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        panel.setPreferredSize(new Dimension(360, 220));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Connect Four");
         title.setFont(UITheme.FONT_HEADING);
@@ -196,12 +197,12 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createBoardScreen()
@@ -217,7 +218,20 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         wrap.add(statusLabel, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        wrap.add(boardPanel, BorderLayout.CENTER);
+        JPanel boardCenterer = new JPanel(new GridBagLayout());
+        boardCenterer.setOpaque(false);
+        boardCenterer.add(boardPanel, new GridBagConstraints());
+        wrap.add(boardCenterer, BorderLayout.CENTER);
+
+        ThemedButton leaveButton = new ThemedButton("Leave", false);
+        leaveButton.setPreferredSize(new Dimension(90, 34));
+        leaveButton.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e)
+            {
+                if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
+            }
+        });
 
         hintButton = new ThemedButton("Hint", false);
         hintButton.setPreferredSize(new Dimension(90, 34));
@@ -226,10 +240,11 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         {
             public void actionPerformed(ActionEvent e) { showHint(); }
         });
-        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel bottomRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         bottomRow.setOpaque(false);
         bottomRow.setBorder(new EmptyBorder(12, 0, 0, 0));
         bottomRow.add(hintButton);
+        bottomRow.add(leaveButton);
         wrap.add(bottomRow, BorderLayout.SOUTH);
 
         return wrap;
@@ -282,8 +297,6 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         practiceMatch = new PracticeMatch<char[], Integer>(AI_MODEL, ConnectFourGameModel.newBoard(), AI_GAME_ID,
             ConnectFourGameModel.RED, ConnectFourGameModel.YELLOW, ConnectFourGameModel.RED);
         cardLayout.show(cards, BOARD);
-        pack();
-        setLocationRelativeTo(null);
         hintButton.setVisible(true);
         gameOver = false;
         refreshPracticeBoard();
@@ -363,7 +376,7 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
         SnakeGameOverDialog.show(this, 0, text, shareText, new SnakeGameOverDialog.Choice()
         {
             public void onPlayAgain() { startPracticeMatch(); }
-            public void onClose() { ConnectFourWindow.this.dispose(); }
+            public void onClose() { MainMenu.getInstance().returnToGames(); }
         });
     }
 
@@ -407,8 +420,6 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
             opponentUsername = message.getOpponentUsername();
             applyBoardState(message.getBoardState());
             cardLayout.show(cards, BOARD);
-            pack();
-            setLocationRelativeTo(null);
         }
         else if (type == MessageType.CONNECT4_UPDATE)
         {
@@ -446,11 +457,9 @@ public class ConnectFourWindow extends JFrame implements NetworkManager.PushList
                     matchId = null;
                     java.util.Arrays.fill(board, '.');
                     cardLayout.show(cards, SEARCHING);
-                    pack();
-                    setLocationRelativeTo(null);
                     findMatch();
                 }
-                public void onClose() { ConnectFourWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }
