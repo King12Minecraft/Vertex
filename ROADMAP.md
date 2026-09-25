@@ -505,15 +505,12 @@ recorded below as they're confirmed.
   (a webhook posting changelog/version updates, a bot) once the specific ask is
   clearer.
 
-## 📋 Planned — voice chat (v1 scope, not started)
+## ❌ Not planned — voice chat
 
-A genuinely large, from-scratch feature — no audio code exists in the codebase yet.
-Planned v1: raw/uncompressed PCM audio (`javax.sound.sampled`, built into the JDK) over
-a new channel, **party-scoped only** (you have to be invited to the party to be in its
-voice channel — the whole point being no random strangers can join), push-to-talk.
-Compression, jitter buffering, and general audio quality are v2+ once the basic
-pipeline is proven. Real-time audio wants UDP; the existing `NetworkManager` stack is
-all TCP today, so this likely needs a new transport, not just a new message type.
+Previously listed here as a planned v1 feature (party-scoped PCM audio over a new
+channel). The user has since said voice chat is being removed from scope - no audio
+code was ever built (this was plan-only), so there's nothing to remove from the
+codebase, just this section. Do not re-propose voice chat.
 
 ## 📋 Planned — the website (Python/Flask, hosted on the user's Oracle Cloud instance)
 
