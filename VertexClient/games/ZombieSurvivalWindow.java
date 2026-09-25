@@ -9,12 +9,10 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import net.NetworkManager;
-import theme.GlitchEffectOverlay;
-import theme.SignatureOverlay;
+import pages.MainMenu;
 import net.Message;
 
 import javax.swing.BoxLayout;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -23,10 +21,10 @@ import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * ZombieSurvivalWindow
@@ -43,7 +41,7 @@ import java.awt.event.WindowEvent;
  *   - Practice Mode: the same wave sequence, but solo and fully
  *     offline - no reward, just "how far can you get."
  */
-public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushListener
+public class ZombieSurvivalWindow extends JPanel implements NetworkManager.PushListener, EmbeddedGamePanel
 {
     private static final String MODE_SELECT = "MODE_SELECT";
     private static final String SEARCHING = "SEARCHING";
@@ -56,6 +54,7 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
     private JLabel searchingLabel;
     private JLabel waitingLabel;
     private ZombieSurvivalPanel gamePanel;
+    private JPanel gameWrapper;
 
     private boolean isOnlineMode = false;
     private String matchId;
@@ -63,40 +62,37 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
 
     public ZombieSurvivalWindow()
     {
-        super("Vertex - Zombie Survival");
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setResizable(false);
-        setIconImage(GameLogo.renderIcon(64));
+        setLayout(new BorderLayout());
 
         cards.add(createModeSelectScreen(), MODE_SELECT);
         cards.add(createSearchingScreen(), SEARCHING);
         cards.add(createWaitingScreen(), WAITING);
 
-        getContentPane().add(cards, BorderLayout.CENTER);
+        add(cards, BorderLayout.CENTER);
         cardLayout.show(cards, MODE_SELECT);
-        pack();
-        setLocationRelativeTo(null);
-        SignatureOverlay.attach(this);
-        GlitchEffectOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
 
-        addWindowListener(new WindowAdapter()
-        {
-            public void windowClosing(WindowEvent e)
-            {
-                if (isOnlineMode) leaveMatch();
-                NetworkManager.removePushListener(ZombieSurvivalWindow.this);
-            }
-        });
+    @Override
+    public boolean requestLeave()
+    {
+        if (isOnlineMode) leaveMatch();
+        NetworkManager.removePushListener(this);
+        return true;
     }
 
     private JPanel createModeSelectScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
         panel.setPreferredSize(new Dimension(460, 320));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Zombie Survival");
         title.setFont(UITheme.FONT_HEADING);
@@ -130,7 +126,7 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
 
         panel.add(tileRow);
 
-        return panel;
+        return wrapper;
     }
 
     private void chooseMode(boolean online)
@@ -139,8 +135,6 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
         if (online)
         {
             cardLayout.show(cards, SEARCHING);
-            pack();
-            setLocationRelativeTo(null);
             findMatch();
         }
         else
@@ -151,10 +145,15 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
 
     private JPanel createSearchingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Zombie Survival");
         title.setFont(UITheme.FONT_HEADING);
@@ -177,20 +176,25 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
             public void actionPerformed(ActionEvent e)
             {
                 leaveMatch();
-                dispose();
+                MainMenu.getInstance().returnToGames();
             }
         });
         panel.add(cancel);
 
-        return panel;
+        return wrapper;
     }
 
     private JPanel createWaitingScreen()
     {
-        RoundedPanel panel = new RoundedPanel(ThemeColor.BG_APP, 0);
+        RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
+        wrapper.setLayout(new GridBagLayout());
+
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
         panel.setPreferredSize(new Dimension(380, 240));
+        wrapper.add(panel, new GridBagConstraints());
 
         JLabel title = new JLabel("Zombie Survival");
         title.setFont(UITheme.FONT_HEADING);
@@ -205,7 +209,7 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
         waitingLabel.setBorder(new EmptyBorder(10, 0, 0, 0));
         panel.add(waitingLabel);
 
-        return panel;
+        return wrapper;
     }
 
     private void findMatch()
@@ -232,7 +236,7 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
         if (gamePanel != null)
         {
             gamePanel.stopTimer();
-            cards.remove(gamePanel);
+            cards.remove(gameWrapper);
         }
 
         final ZombieSurvivalGame activeGame = game;
@@ -243,11 +247,12 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
         };
 
         gamePanel = new ZombieSurvivalPanel(game, onGameOver);
-        cards.add(gamePanel, GAME);
+        gameWrapper = new JPanel(new GridBagLayout());
+        gameWrapper.setOpaque(false);
+        gameWrapper.add(gamePanel, new GridBagConstraints());
+        cards.add(gameWrapper, GAME);
 
         cardLayout.show(cards, GAME);
-        pack();
-        setLocationRelativeTo(null);
         gamePanel.requestFocusInWindow();
         gamePanel.startTimer();
     }
@@ -270,7 +275,7 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
             SnakeGameOverDialog.show(gamePanel, kills, message, shareText, new SnakeGameOverDialog.Choice()
             {
                 public void onPlayAgain() { startGame(new ZombieSurvivalGame()); }
-                public void onClose() { ZombieSurvivalWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
             return;
         }
@@ -356,10 +361,8 @@ public class ZombieSurvivalWindow extends JFrame implements NetworkManager.PushL
                     matchId = null;
                     roster = null;
                     cardLayout.show(cards, MODE_SELECT);
-                    pack();
-                    setLocationRelativeTo(null);
                 }
-                public void onClose() { ZombieSurvivalWindow.this.dispose(); }
+                public void onClose() { MainMenu.getInstance().returnToGames(); }
             });
         }
     }

@@ -286,6 +286,14 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   area regardless), and the actual `center` content column (the two piles plus the
   hand row) needed the `GridBagLayout` centering wrapper (`centerCenterer`) to stop
   it pinning to the top of the now-larger board area.
+- **Zombie Survival converted to the embedded pattern** — 48 games embedded total
+  now. Same shape as Racing: online + Practice mode, unconditional `requestLeave()`
+  (leaves the queue only if online), mode-select/searching/waiting screens wrapped in
+  `GridBagLayout` centerers, and the game screen's fixed-size `ZombieSurvivalPanel`
+  rebuilt from scratch on every restart via `startGame(...)` - the centering wrapper
+  (`gameWrapper`) is rebuilt alongside it each time, tracked via a new field so the
+  old one can be removed from the `CardLayout` before a fresh one is added, same
+  pattern as Racing's `raceWrapper`.
 
 ## 🔧 In Progress
 

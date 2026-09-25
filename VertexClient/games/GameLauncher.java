@@ -244,8 +244,7 @@ public class GameLauncher
             }
             else if ("zombie-survival".equals(game.getGameId()))
             {
-                ZombieSurvivalWindow window = new ZombieSurvivalWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new ZombieSurvivalWindow());
             }
             else if ("space-battle".equals(game.getGameId()))
             {
