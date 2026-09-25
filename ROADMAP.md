@@ -516,6 +516,15 @@ recorded below as they're confirmed.
 
 ## 📋 Planned — infrastructure & shared packages
 
+- **A real `ui` empty/loading/error placeholder component.** After fixing the
+  FriendsPanel/LeaderboardPanel/ShopPanel silent-failure bugs, all three now hand-roll
+  their own near-identical "clear this container and drop in a muted label" logic. Three
+  real call sites is enough repetition to justify a shared `ui` primitive (something
+  like a `PlaceholderPanel` a caller sets to loading/empty/error state) instead of a
+  fourth hand-rolled copy next time - not done now since the current fix isn't broken,
+  just slightly duplicated, and a refactor of working code carries real risk for no
+  user-facing benefit on its own. Worth doing the next time a panel needs the same
+  three states.
 - **`economy` package additions** — an `EconomyKernel` any game can call in one line
   to grant coins/XP/unlock cosmetics, instead of reimplementing reward logic per game.
 - **`achievements` kernel** — generic trigger-based unlock system, parallel to
