@@ -9,6 +9,37 @@ For what already exists and works today in detail, see [`FEATURES.md`](FEATURES.
 and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
 *next*, not a feature list.
 
+A senior-architect-level strategic analysis of the whole platform (biggest
+opportunities, 30+ new ideas beyond this roadmap, architecture breakthroughs,
+security/reliability/scaling considerations, a persistent-game architecture proposal,
+commercial analysis, and a dependency-ordered priority sequence) lives in a separate
+Claude Docs artifact the user requested and reviewed - not duplicated here since it's
+long-form analysis rather than a maintained plan, but its settled decisions get
+recorded below as they're confirmed.
+
+## 🏛️ Architecture Decisions
+
+- **`Vertex: Dominion` gets its own persistent navigation tab**, not the `MainMenu`
+  `CardLayout` game-host slot every other game uses. Confirmed by the user. Rationale
+  (from the strategy analysis above): Dominion is a standing, server-scheduled
+  daily-tick nation game with no "end" - it's checked in on repeatedly like a
+  management sim, not launched-and-left like a match, so it needs a permanent nav
+  destination (alongside Social/Settings) rather than being bent into the
+  launch-and-play pattern just standardized across all 49 games this session. It
+  should still share identity/social/friends with the rest of the platform, but keep
+  its own isolated world-state store, currency, and tick-scheduler - not the match
+  economy or `GameSession` lifecycle. Not yet implemented; recorded here as a settled
+  design constraint for whenever Dominion work begins.
+- **Nightly autonomous work sessions, 11:00 PM-5:00 AM IST, self-scheduled via a
+  recurring trigger.** Work order: Audit → Architecture → Core Systems → Games →
+  Multiplayer → Social → Progression/Economy → UI/UX → Security → Performance →
+  Reliability → Accessibility → Distribution → Documentation → Testing → Final
+  Polish, then repeat with a fresh refinement pass once the backlog is clear. Blocked
+  questions needing the user's input are recorded in
+  [`BLOCKED_QUESTIONS.md`](BLOCKED_QUESTIONS.md) rather than stopping the session;
+  everything else keeps moving. Every session ends at a clean, buildable, committed
+  checkpoint.
+
 ---
 
 ## ✅ Done
