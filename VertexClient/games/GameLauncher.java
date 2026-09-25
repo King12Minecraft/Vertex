@@ -154,8 +154,7 @@ public class GameLauncher
             }
             else if ("maze-chase".equals(game.getGameId()))
             {
-                MazeChaseWindow window = new MazeChaseWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new MazeChaseWindow());
             }
             else if ("brick-breaker".equals(game.getGameId()))
             {
@@ -171,13 +170,11 @@ public class GameLauncher
             }
             else if ("word-guess".equals(game.getGameId()))
             {
-                WordGuessWindow window = new WordGuessWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new WordGuessWindow());
             }
             else if ("bubble-shooter".equals(game.getGameId()))
             {
-                BubbleShooterWindow window = new BubbleShooterWindow();
-                window.setVisible(true);
+                MainMenu.getInstance().showGame(new BubbleShooterWindow());
             }
             else if ("lights-out".equals(game.getGameId()))
             {

@@ -134,7 +134,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   package-private `openGame(...)`, callable only from `GameDetailDialog`'s own Play
   button (same package), once someone has actually seen that page. `launch(...)`
   still falls back to a "not converted yet" dialog for coming-soon ids, skipping the
-  gate since there's nothing to preview yet. 29 games so far are the exceptions
+  gate since there's nothing to preview yet. 32 games so far are the exceptions
   to `new XxxWindow().setVisible(true)` - they call
   `MainMenu.getInstance().showGame(...)` instead, per the embedded-games
   conversion (see `EmbeddedGamePanel` below and `pages/MainMenu.java`): Chess,
@@ -142,8 +142,10 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Match Three,
   Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping Pong,
   Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy
-  Bird, Galaxy Defender, and Rock Paper Scissors. Every other game still opens
-  its own window until it's converted the same way. A game reachable from
+  Bird, Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, and
+  Bubble Shooter - every offline/single-player game in the whole catalog, at
+  this point. Every remaining game (all online-multiplayer) still opens its
+  own window until it's converted the same way. A game reachable from
   more than one place (Chess and Rock Paper Scissors both have a
   `SpectateDialog` "Watch" entry point, separate from `GameLauncher`) needs
   every one of those call sites updated, not just the main one - a real bug

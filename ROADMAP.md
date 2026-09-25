@@ -146,22 +146,28 @@ and [`PROGRAM_STRUCTURE.md`](PROGRAM_STRUCTURE.md). This file is about what's
   `SpectateDialog`'s RPS spectate line got the same `MainMenu.getInstance().showGame(...)`
   fix as the Chess bug above, fixed proactively this time instead of shipping broken
   first.
+- **3 more offline single-player games converted** — Maze Chase, Word Guess, and
+  Bubble Shooter, closing out the "offline/single-player" games package entirely
+  (every remaining game left to convert is online-multiplayer). Same recipe as the
+  rest of the offline batches, no new surprises. 32 games embedded total now.
 
 ## 🔧 In Progress
 
-- **Rolling embedded games out past the `ai/search` games and both offline-game
-  batches** — the pattern is proven 29 times now (Chess, Reversi, Connect Four, Signal
-  Grid, Tic-Tac-Toe, Dots and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon
-  Says, Whack-a-Mole, Match Three, Lights Out, Peg Solitaire, Mancala, Klondike, Dino
-  Dash, Tetris, Ping Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick
-  Breaker, Flappy Bird, Galaxy Defender, Rock Paper Scissors); the other ~18 games
-  (mostly online multiplayer with matchmaking, plus a few real-time arcade games and
-  Battleship's own spectate path in `SpectateDialog`) still open their own `JFrame`
-  and need the same conversion, one at a time. Any future offline-capable game
-  reachable from `OfflineHubWindow` needs the same `setReturnAction`-style treatment
-  Snake got, not just the standard MainMenu-only conversion. **Standing check for
-  every remaining conversion**: grep for every external construction site of that
-  game's window (not just `GameLauncher.java`) before considering it done - Chess's
+- **Rolling embedded games out past every offline/single-player game** — the pattern
+  is proven 32 times now (Chess, Reversi, Connect Four, Signal Grid, Tic-Tac-Toe, Dots
+  and Boxes, Checkers, Snake, 2048, Minesweeper, Sudoku, Simon Says, Whack-a-Mole,
+  Match Three, Lights Out, Peg Solitaire, Mancala, Klondike, Dino Dash, Tetris, Ping
+  Pong, Crossing Road, Aim Trainer, Puzzle Quest, Yahtzee, Brick Breaker, Flappy Bird,
+  Galaxy Defender, Rock Paper Scissors, Maze Chase, Word Guess, Bubble Shooter). Every
+  offline/single-player game in the whole catalog is now embedded - the other ~15
+  games left are all online-multiplayer (matchmaking, spectating, tournaments) or
+  real-time-tick games, closer in shape to Rock Paper Scissors/Chess than to the
+  offline batches, and need the same conversion one at a time, watching for the same
+  multi-entry-point trap RPS/Chess had. Any future offline-capable game reachable from
+  `OfflineHubWindow` needs the same `setReturnAction`-style treatment Snake got, not
+  just the standard MainMenu-only conversion. **Standing check for every remaining
+  conversion**: grep for every external construction site of that game's window (not
+  just `GameLauncher.java`) before considering it done - Chess's
   spectate-path bug is exactly the kind of thing that slips through otherwise.
 - Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
   screen instead of being a small popup, and a game should be able to have chat
