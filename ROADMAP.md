@@ -44,6 +44,47 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`GameDetailDialog` fills the owner window instead of floating as a small fixed-size
+  card** - the other half of the "Also still wanted" note under the embedded-games
+  rollout, alongside reconnection above. Now sizes itself to match the owner window
+  (falls back to a sane fixed size if there's no shown owner yet) with a centered
+  content card on a full backdrop, rather than a tiny 420x460 popup - genuinely feels
+  like a real step in the Discover -> Details -> Play flow now, not an afterthought
+  overlay. Used the extra room for real information `GameInfo` already tracks but this
+  screen never surfaced: a live queue-count badge ("3 players waiting") for online
+  games with players currently queued, and a "Spectatable" badge for the 3 games that
+  support it (Chess, Rock Paper Scissors, Battleship). Still a modal `JDialog`, not a
+  true embedded `CardLayout` step the way Mode/Lobby/Playing are for every game - doing
+  that would mean auditing and rewriting all 3 of this dialog's call sites to hand off
+  into `MainMenu`'s game-host slot instead, a separately-scoped, larger change recorded
+  below rather than folded into this pass.
+  Found and fixed two real layout bugs while verifying visually, not shipped guessed:
+  (1) the same stretch-not-center `BorderLayout.CENTER` bug this session has hit
+  repeatedly on game boards, here on a dialog - the content's `BoxLayout` block was far
+  shorter than the enlarged dialog's height, and since a plain `JLabel`/`JPanel`'s
+  default maximum size is unbounded, `BoxLayout` distributed the leftover space as a
+  gap in the *middle* of the content instead of leaving it at the bottom. A
+  `GridBagLayout`-with-`weighty` wrapper (the usual fix for this class of bug elsewhere
+  in the app) reliably undersized the content below its own reported preferred height
+  for reasons not worth chasing further - switched to the simpler, more predictable
+  `BorderLayout.NORTH` idiom instead (guarantees preferred height, stretches only
+  width), which had neither problem. (2) A genuine Swing quirk: an HTML `JLabel`'s CSS
+  `width` reliably constrains where the text *wraps*, but its own `getPreferredSize()`
+  can still report a wider value than that - the inflated width bubbled up through the
+  layout chain and, since the art banner was the only component with real
+  compressible slack, visibly squashed it to a sliver to compensate. Fixed at the
+  source by overriding just the label's reported preferred width (keeping Swing's own
+  correctly-wrapped height) rather than chasing the symptom through the layout tree.
+  Verified with an Xvfb/Swing harness (including a raw component-bounds dump used to
+  root-cause both bugs against real numbers rather than guessing from screenshots
+  alone) confirming: the dialog matches its owner's size, the art/name/tags/
+  description all render at their correct sizes with no gap or squashing, the queue-
+  count and spectatable badges appear correctly and only when applicable, and Chess's
+  "Hard" difficulty color and Tic-Tac-Toe's "Easy" both render correctly. Single
+  client-only file (`*Dialog` classes aren't part of the client/server sync
+  discipline); compiles clean. All 3 existing call sites (`GameLauncher`, two in
+  `GamesPanel`) untouched - this only changed what happens inside `GameDetailDialog
+  .show(...)` itself.
 - **Reconnection grace period - built and proven on Tic-Tac-Toe, the "prove it on one
   game first" step the audit deliberately deferred earlier this session.** Every
   online match previously ended the instant either socket dropped - a genuine quit and
@@ -820,11 +861,15 @@ recorded below as they're confirmed.
   future game/window**: grep for every external construction site of that game's
   window (not just `GameLauncher.java`) before considering it done - Chess's
   spectate-path bug is exactly the kind of thing that slips through otherwise.
-- Also still wanted: the rules/detail page (`GameDetailDialog`) should fill the
-  screen instead of being a small popup, and a game should be able to have chat
-  "popped out" alongside it while playing (with some games, like a Gartic-Phone-style
-  drawing game, needing chat *restricted* rather than open, since free chat would let
-  players just say the answer out loud).
+- Also still wanted: a true embedded `CardLayout` "Details" step (Discover -> Details
+  -> Mode -> ... -> Return, continuous with the rest of the flow) rather than
+  `GameDetailDialog`'s current modal popup (now full-screen-sized, see "Done" above,
+  but still a separate `JDialog` on top of the app rather than a step inside it) -
+  would mean auditing and rewriting all 3 of its call sites to hand off into
+  `MainMenu`'s game-host slot instead of `dialog.setVisible(true)`. Also still wanted:
+  a game should be able to have chat "popped out" alongside it while playing (with
+  some games, like a Gartic-Phone-style drawing game, needing chat *restricted* rather
+  than open, since free chat would let players just say the answer out loud).
 
 - **Reconnection rollout to the other ~29 match types.** Tic-Tac-Toe now proves the
   `ReconnectRegistry`/`ReconnectableMatch` pattern works end-to-end (see "Done" above)
