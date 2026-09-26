@@ -28,8 +28,10 @@ recorded below as they're confirmed.
   launch-and-play pattern just standardized across all 49 games this session. It
   should still share identity/social/friends with the rest of the platform, but keep
   its own isolated world-state store, currency, and tick-scheduler - not the match
-  economy or `GameSession` lifecycle. Not yet implemented; recorded here as a settled
-  design constraint for whenever Dominion work begins.
+  economy or `GameSession` lifecycle. **The full design (warfare, diplomacy, economy,
+  V1 scope, build order) is now decided - see `DOMINION_DESIGN.md`** (2026-09-26,
+  Bipin's steer: warfare and diplomacy, "basically real life"). Not yet implemented;
+  `DOMINION_DESIGN.md`'s build order is the plan for whenever that starts.
 - **Nightly autonomous work sessions, 11:00 PM-5:00 AM IST, self-scheduled via a
   recurring trigger.** Work order: Audit → Architecture → Core Systems → Games →
   Multiplayer → Social → Progression/Economy → UI/UX → Security → Performance →
@@ -1148,10 +1150,9 @@ recorded below as they're confirmed.
   costs money per message and needs an API key) — free and instant by design. A
   bring-your-own-API-key *option* for real chat later is a separate, explicitly
   opt-in idea, not the default.
-- **Discord**: not something built into Vertex itself, but the user is setting up an
-  actual Discord server for the project — possible follow-up integration ideas
-  (a webhook posting changelog/version updates, a bot) once the specific ask is
-  clearer.
+- ~~**Discord**~~ — **resolved 2026-09-26: no platform integration wanted.** Bipin is
+  running a Discord server for the project but will just share the invite link with
+  the group directly - no webhook, no bot, nothing to build here.
 
 ## ❌ Not planned — voice chat
 
@@ -1185,7 +1186,10 @@ Mario-style platformer, Pokémon-style creature collector/battler, Terraria-styl
 sandbox - each realistically a multi-year undertaking even approximated. **Vertex:
 Dominion** is its own flagship, categorically bigger than everything else (a
 persistent, whole-server nation-building game on a daily tick, not a quick match) -
-tracked separately, not folded into this list.
+tracked separately, not folded into this list. Design is now decided (see
+`DOMINION_DESIGN.md`, 2026-09-26) - warfare, diplomacy, economy, a genuinely
+small-and-honest V1 scope, and a build order are all written down; what's still
+missing is actual implementation time, not design input.
 
 ### The real remaining backlog - concrete concepts, not vague entries
 - ~~Gartic Phone-style telephone/drawing game~~ — **built, see "Done" above

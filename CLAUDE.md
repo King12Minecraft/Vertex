@@ -25,6 +25,7 @@ Full detail: [`FEATURES.md`](FEATURES.md), [`PROGRAM_STRUCTURE.md`](PROGRAM_STRU
 | Plain-language "how does this whole thing work" | `HOW_VERTEX_WORKS.md` |
 | Open questions that need Bipin's actual decision, not a guess | `BLOCKED_QUESTIONS.md` |
 | Historical changelog (what got built each round, and why, going back to the start) | `VertexClient/DEVELOPMENT_LOG.md`, `VertexServer/DEVELOPMENT_LOG.md` |
+| `Vertex: Dominion`'s design (warfare/diplomacy/economy/V1 scope/build order) | `DOMINION_DESIGN.md` |
 
 `ROADMAP.md` is the one to check first for "what should I work on" — it has a
 live "Done" section (most recent work first), an "In Progress" section, and
