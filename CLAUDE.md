@@ -101,11 +101,13 @@ every change; trust it over your own assumptions about project state.
 
 ## Standing schedule (if you're an autonomous/scheduled session)
 
-Bipin runs autonomous work sessions on Monday/Wednesday/Friday nights, roughly
-11 PM–5 AM IST (he's in India), self-scheduled via a recurring trigger -
-cut back from every night (2026-09-26) specifically to control weekly usage;
-don't unilaterally add more nights back without him asking. Standing
-instructions for those sessions: work continuously through `ROADMAP.md`'s
+Bipin runs autonomous work sessions nightly, roughly 11 PM–5 AM IST (he's in
+India), self-scheduled via a recurring trigger. Briefly cut back to Monday/
+Wednesday/Friday only (2026-09-26) to control weekly usage, then reverted to
+nightly the same day once that week's usage limit reset removed the pressure
+- don't unilaterally cut nights again without him asking; he'll say so if
+weekly usage becomes a problem again. Standing instructions for those
+sessions: work continuously through `ROADMAP.md`'s
 backlog and the games concept backlog; never stop for a blocked question
 (record it, make a reversible assumption if one exists, move to independent
 work); self-pace check-ins at roughly 45–60 minutes apart, not the tighter
