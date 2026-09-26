@@ -110,6 +110,65 @@ else on this project got built:
   first, then give the character system a real, working consumer to attach to.
 - One daily tick, server-configured time.
 
+## Future depth (post-V1) - what "basically real life" grows into
+
+Brainstormed with Bipin 2026-09-26, explicitly **not** part of V1 and not to be
+built until V1's core loop is actually playable and proven fun - this section
+exists so the ambition is written down and won't get lost, not as a queue to
+start working through immediately. Roughly ordered by what naturally unlocks
+what, not by build priority:
+
+- **Research & technology.** Nations invest treasury per tick into a tech tree -
+  military (better troops, armor), economic (production multipliers),
+  infrastructure (fortification, movement speed). This is also the natural gate
+  in front of nukes and advanced espionage below - those should be *unlocked*
+  through play, not available turn one.
+- **Espionage.** Send a spy into a rival's territory for a hidden action: steal
+  treasury, steal research progress, sabotage a building, gather intelligence
+  (reveal real army strength/position - see fog of war below), incite unrest, or
+  assassinate their ruler - a genuinely good tie-in to the procedural ruler/
+  succession system, giving it a *second* trigger besides war/old age.
+  Counter-espionage lets a nation catch spies; a caught spy is a real diplomatic
+  incident (a significant Honor hit, arguably treated as an act of war without
+  the usual one-tick warning, since the aggression already happened covertly).
+- **Nuclear weapons.** The top of the military tech tree - deliberately slow and
+  expensive to build (many ticks, large treasury cost), and visible once a
+  nation gets close to completion rather than a silent surprise (real nuclear
+  programs aren't secret forever, and that visibility is what makes deterrence
+  a real mechanic instead of "biggest number wins quietly"). Using one should be
+  catastrophic (a province wiped out for a long time, not just captured), carry
+  a severe Honor penalty, and strongly pull other nations into an alliance
+  against whoever used it - a "nuclear taboo," not a free-win button.
+  Retaliation-capable nations should be able to strike back automatically.
+- **Fog of war.** Possibly the single highest-leverage idea here: V1 as
+  designed has full visibility (every nation sees the whole map and every
+  army). Real geopolitics runs on uncertainty - making enemy army strength/
+  position genuinely hidden unless scouted or spied on is what makes
+  espionage *matter* rather than being a nice-to-have, and makes diplomacy
+  involve real risk (no certainty an ally actually holds when it counts).
+- **Government types.** Democracy/Autocracy/etc., each with real tradeoffs (a
+  democracy might need a delay or "war support" check before declaring war but
+  regrows Honor faster; an autocracy mobilizes instantly but Honor decays
+  faster under prolonged war). Ties into ruler traits - gives "basically real
+  life" its political-systems flavor, not just its military one.
+- **Rebellions & civil unrest.** Sustained low Honor/stability triggers a
+  revolt; a province (or several) can secede into a new breakaway nation, with
+  a rebel leader spawned by the procedural character system. This is what
+  makes losing wars and mismanaging a nation carry real stakes beyond "you
+  have less land now."
+- **Trade & economic warfare.** Trade agreements between allies boosting both
+  economies, and the flip side - sanctions/embargoes as a non-military way to
+  pressure a rival, which matters more once fog of war and Honor are real
+  systems rather than just tracked numbers.
+- **Multi-member nations.** Already flagged as a fast-follow above, but worth
+  restating here: real diplomacy gets much more interesting once a "nation" is
+  a council of several players who don't always agree, not just one person's
+  unilateral decisions.
+
+None of this contradicts V1's intentionally small scope - it's exactly the
+depth V1 exists to make room for once the core loop is proven, not a
+replacement for building V1 small first.
+
 ## Data model sketch (server-authoritative; client gets read-only DTOs to render)
 
 - `Province` - id, grid position, terrain type, owning nation id (nullable),

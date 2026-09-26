@@ -1224,7 +1224,13 @@ persistent, whole-server nation-building game on a daily tick, not a quick match
 tracked separately, not folded into this list. Design is now decided (see
 `DOMINION_DESIGN.md`, 2026-09-26) - warfare, diplomacy, economy, a genuinely
 small-and-honest V1 scope, and a build order are all written down; what's still
-missing is actual implementation time, not design input.
+missing is actual implementation time, not design input. V1's engine (core data
+model, tick resolution, persistence) is built and tested - see "Done" above.
+`DOMINION_DESIGN.md` also now has a "Future depth (post-V1)" section
+(research/tech, espionage, nuclear weapons, fog of war, government types,
+rebellions, trade/economic warfare, multi-member nations) - explicitly not for
+building yet, written down so the full ambition doesn't get lost before V1 is
+even playable.
 
 ### The real remaining backlog - concrete concepts, not vague entries
 - ~~Gartic Phone-style telephone/drawing game~~ — **built, see "Done" above
