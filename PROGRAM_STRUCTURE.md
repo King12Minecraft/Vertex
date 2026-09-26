@@ -190,6 +190,22 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   XxxWindow())`), so it collapsed mechanically into one map. Verified with a smoke
   test constructing all 49 windows through the factory and confirming the id set
   matches exactly, nothing throws, and an unknown id returns `null`.
+- **`GameWindowKernel.java`** — two static helpers for the Swing boilerplate every
+  embedded game window has hand-rolled at least once (many several times) since the
+  embedded-games conversion: `centered(JComponent)` wraps content in a non-opaque
+  `GridBagLayout` panel so it renders at its own preferred size instead of stretching
+  to fill a `CardLayout`/`BorderLayout.CENTER` slot (the exact bug this session hit
+  and fixed, in a slightly different disguise, on nearly every one of the 49 game
+  conversions); `center(Container, JComponent)` is the same fix for the other common
+  shape, where a screen's own outer panel should do the centering itself rather than
+  being wrapped by a new one. `leaveButton(Runnable)` builds the standard themed
+  "Leave" button, with the actual leave action left to the caller (most call
+  `MainMenu.getInstance().returnToGames()`; `SnakeWindow` routes through its own
+  `setReturnAction` callback instead). Deliberately a static helper, not a base class
+  every window must extend - the existing ~51 windows have too much individual shape
+  to retrofit onto one shared superclass safely in one pass; adopted opportunistically
+  so far by `ReversiWindow`/`BrickBreakerWindow` as the proof it generalizes (one
+  online-multiplayer game, one offline game), not yet rolled out further.
 - **`GameLauncher.java`** — the plugin **launch** dispatch, and the mandatory
   rules-page gate every "Play" entry point (games page, quick-play dropdown, global
   search, hero banner, game invites) already shares: `launch(Component, GameInfo)`,
@@ -523,17 +539,41 @@ already happen rather than needing their own call site in every match.
 - **`EconomyManager.java`** — the coin-award entry point:
   `awardWin(ClientHandler, gameId)` looks up the reward via `EconomyConfig`, credits the
   account, logs via `TransactionManager`, records challenge progress. Placement games
-  (Racing, Space Battle) and tie-splitting games (Square Wars, Trivia Blitz) don't have
-  a single `awardWin`-shaped winner, so they go through `awardRacingPlacement`/
-  `awardSpaceBattlePlacement` (only 1st place)/`awardMatchWinCoins` instead — all three
-  funnel into the same shared `recordOnlineWin()` tail as `awardWin`, so every online
-  game's win reaches `ChallengeManager` the same way. Also handles shop purchases
-  (always validated server-side — never trust a client-reported balance) and daily
-  login rewards.
+  (Racing, Space Battle) don't have a single `awardWin`-shaped winner, so they go through
+  `awardPlacement(player, gameId, place, activityLabel)` (only 1st place counts as a
+  win) instead — one method now, not two byte-identical copies (`awardRacingPlacement`/
+  `awardSpaceBattlePlacement` used to duplicate each other exactly; merged 2026-09-26,
+  see `EconomyKernel.java`). Tie-splitting games (Square Wars, Trivia Blitz) go through
+  `awardMatchWinCoins` instead, since their per-winner split is genuinely computed
+  per-game. All three funnel into the same shared `recordOnlineWin()` tail as `awardWin`,
+  so every online game's win reaches `ChallengeManager` the same way. Also handles shop
+  purchases (always validated server-side — never trust a client-reported balance) and
+  daily login rewards.
+- **`EconomyKernel.java`** — the one class a new game's server-side code should actually
+  read to answer "how do I pay this player?", added 2026-09-26 after finding several of
+  `EconomyManager`'s per-game methods (`awardSnakeScore`, `awardPuzzleQuestCompletion`,
+  `awardMinesweeperCompletion`) were near- or byte-identical copies of its own already-
+  generic `awardCoins`/`awardPracticeScore` — genuine duplication a new game's author
+  had no way to notice without reading all of them first. A static facade (same
+  "static utility over an existing manager" shape as `PerformanceMode`/`EconomyConfig`,
+  not an injected instance) exposing exactly four reward shapes: `awardCompletion`
+  (score-scaled offline game — add the formula to `EconomyConfig.getPracticeReward`
+  and nothing else needs an edit), `awardFlatCompletion` (solved-or-not games with no
+  meaningful score, like Sudoku/Minesweeper/Puzzle Quest), `awardMatchWin` (a standard
+  single-winner online match), and `awardPlacement` (race/FFA placement, top 3 only).
+  A fifth, rarer shape (several players tie and split a pool) has no wrapper yet — call
+  `EconomyManager.awardMatchWinCoins` directly, since only two games need it and the
+  split math is genuinely per-game. Existing `EconomyManager.awardWin(...)` call sites
+  across the ~30 match classes were deliberately left as direct calls rather than mass-
+  migrated to `EconomyKernel.awardMatchWin` — that method is already a clean, non-
+  duplicated single entry point, so routing it through the kernel too would be a large,
+  purely cosmetic rewrite with no bug to fix; new code goes through `EconomyKernel`,
+  existing direct `EconomyManager` calls remain equally correct underneath.
 - **`EconomyConfig.java`** — pure static config: per-game win-coin table, practice-mode
-  score→coin formulas, placement rewards for Racing/Space Battle, the 7-day daily-login
-  streak table, challenge definitions, shop catalog. The one place all economy numbers
-  live.
+  score→coin formulas (Snake folded in here 2026-09-26 — see `EconomyKernel.java`, it
+  used to be its own `getSnakeReward()` special case), one shared placement-reward table
+  for Racing/Space Battle, the 7-day daily-login streak table, challenge definitions,
+  shop catalog. The one place all economy numbers live.
 - **`LeaderboardManager.java`** — per-game ELO (K=32, start 1200) for symmetric 1v1
   games; a pairwise-ELO approximation for Fight Arena's N-player matches; separate
   best-score tracking for score-based games. Among Us is deliberately excluded from ELO

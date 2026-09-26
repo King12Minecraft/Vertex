@@ -44,6 +44,56 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Two shared "kernel" utilities, requested explicitly: `EconomyKernel` and
+  `GameWindowKernel`.** Both follow the same shape already established by
+  `PerformanceMode`/`EconomyConfig` in this codebase - a static facade over existing
+  managers/idioms, not a new instance to inject or a base class to extend.
+  **`economy/EconomyKernel.java`**: before this, "how do I pay this player?" had no
+  single answer - `EconomyManager` had grown a dozen similarly-shaped but separately-
+  named methods (`awardSnakeScore`, `awardPuzzleQuestCompletion`,
+  `awardMinesweeperCompletion`, `awardRacingPlacement`, `awardSpaceBattlePlacement`,
+  ...) and comparing them side by side turned up real duplication nobody had
+  noticed: `awardPuzzleQuestCompletion`/`awardMinesweeperCompletion` were both
+  byte-for-byte identical to the already-generic `awardCoins` (just a hardcoded
+  amount/reason baked in), and `awardRacingPlacement`/`awardSpaceBattlePlacement`
+  paid the exact same 50/30/15 values - two copies of one formula, not two games'
+  formulas that happened to agree. Removed all four, merged the placement pair into
+  one `EconomyManager.awardPlacement(player, gameId, place, activityLabel)`, folded
+  Snake's own `getSnakeReward()` formula into the generic `EconomyConfig
+  .getPracticeReward` table it was always shaped like, and built `EconomyKernel` as
+  the one class to read: four static methods (`awardCompletion`/`awardFlatCompletion`/
+  `awardMatchWin`/`awardPlacement`) covering the four reward shapes any future game
+  actually needs, each with a doc comment saying exactly when to use it. Deliberately
+  did NOT mass-migrate the ~30 match classes' existing `EconomyManager.awardWin(...)`
+  calls to route through the kernel too - that method was never duplicated, so
+  rewriting 30 files to call it through a thin wrapper would be pure churn with no
+  bug fixed; new code goes through `EconomyKernel`, old code stays exactly as correct
+  as it always was. Verified with a 9-check regression test proving every merged/
+  removed path (Snake's score cap, Puzzle Quest/Minesweeper's flat amounts, both
+  placement tiers) pays the identical coins it always did, through the new routing.
+  **`games/GameWindowKernel.java`**: the other half of the request - "a game window
+  is also like a package." Two static helpers for the two pieces of layout
+  boilerplate every one of the ~51 embedded game windows has hand-rolled, several
+  more than once: `centered(JComponent)`/`center(Container, JComponent)` (the
+  GridBagLayout-centering fix this session hit and re-fixed in disguise on nearly
+  every embedded-games conversion, now one line instead of three or four) and
+  `leaveButton(Runnable)` (the standard themed Leave button, same construction every
+  time, only the actual leave action varying per game). Not a base class every
+  window must extend - the existing windows have too much individual shape (mode-
+  select/searching/waiting/board screens in different combinations) to retrofit onto
+  one shared superclass safely in one pass. Adopted opportunistically on
+  `ReversiWindow` (online multiplayer, all three of its screens - mode-select,
+  searching, and the board+Leave button) and `BrickBreakerWindow` (offline) as the
+  proof this generalizes across both shapes, the same "prove it, don't roll out
+  everywhere at once" approach `ai/search`/`engine`/reconnection all took. The other
+  49 windows are unchanged and correct as they are; nothing requires migrating them,
+  it's just less code the next time one of them is touched or a new game is built.
+  Verified with an Xvfb/Swing harness confirming all three retrofitted screens
+  (BrickBreaker's board, Reversi's mode-select, and Reversi's practice-mode board
+  with a live AI move) render pixel-identical to their pre-retrofit screenshots
+  earlier this session. Mirrored byte-identical across both trees where shared
+  (`EconomyKernel`/`EconomyConfig`/`EconomyManager` changes; `GameWindowKernel` is
+  client-only, like every other `*Window` helper); both compile clean.
 - **Sudoku now pays a completion reward (30 coins flat)** - closes the open question
   in `BLOCKED_QUESTIONS.md` (see there for the full reasoning: the real root cause was
   one level deeper than a missing formula - `SudokuWindow` never reported a score at
@@ -901,10 +951,8 @@ recorded below as they're confirmed.
   just slightly duplicated, and a refactor of working code carries real risk for no
   user-facing benefit on its own. Worth doing the next time a panel needs the same
   three states.
-- **`economy` package additions** — an `EconomyKernel` any game can call in one line
-  to grant coins/XP/unlock cosmetics, instead of reimplementing reward logic per game.
 - **`achievements` kernel** — generic trigger-based unlock system, parallel to
-  `EconomyKernel`.
+  `EconomyKernel` (which is done - see "Done" below; this one isn't yet).
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
 - **`matchmaking` kernel** — shared ELO/queue logic any new competitive game can

@@ -22,8 +22,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -74,11 +72,9 @@ public class BrickBreakerWindow extends JPanel implements EmbeddedGamePanel
         {
             public void actionPerformed(ActionEvent e) { startNewGame(); }
         });
-        ThemedButton leave = new ThemedButton("Leave", false);
-        leave.setPreferredSize(new Dimension(90, 34));
-        leave.addActionListener(new ActionListener()
+        ThemedButton leave = GameWindowKernel.leaveButton(new Runnable()
         {
-            public void actionPerformed(ActionEvent e)
+            public void run()
             {
                 if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
             }
@@ -92,10 +88,7 @@ public class BrickBreakerWindow extends JPanel implements EmbeddedGamePanel
         root.add(topRow, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        JPanel boardCenterer = new JPanel(new GridBagLayout());
-        boardCenterer.setOpaque(false);
-        boardCenterer.add(boardPanel, new GridBagConstraints());
-        root.add(boardCenterer, BorderLayout.CENTER);
+        root.add(GameWindowKernel.centered(boardPanel), BorderLayout.CENTER);
 
         add(root, BorderLayout.CENTER);
         startNewGame();

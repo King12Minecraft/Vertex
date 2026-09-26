@@ -29,8 +29,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -113,13 +111,12 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
     private JPanel createModeSelectScreen()
     {
         RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
-        wrapper.setLayout(new GridBagLayout());
 
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(50, 60, 50, 60));
-        wrapper.add(panel, new GridBagConstraints());
+        GameWindowKernel.center(wrapper, panel);
 
         JLabel title = new JLabel("Reversi");
         title.setFont(UITheme.FONT_HEADING);
@@ -173,13 +170,12 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
     private JPanel createSearchingScreen()
     {
         RoundedPanel wrapper = new RoundedPanel(ThemeColor.BG_APP, 0);
-        wrapper.setLayout(new GridBagLayout());
 
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBorder(new EmptyBorder(60, 60, 60, 60));
-        wrapper.add(panel, new GridBagConstraints());
+        GameWindowKernel.center(wrapper, panel);
 
         JLabel title = new JLabel("Reversi");
         title.setFont(UITheme.FONT_HEADING);
@@ -223,16 +219,11 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
         wrap.add(statusLabel, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
-        JPanel boardCenterer = new JPanel(new GridBagLayout());
-        boardCenterer.setOpaque(false);
-        boardCenterer.add(boardPanel, new GridBagConstraints());
-        wrap.add(boardCenterer, BorderLayout.CENTER);
+        wrap.add(GameWindowKernel.centered(boardPanel), BorderLayout.CENTER);
 
-        ThemedButton leaveButton = new ThemedButton("Leave", false);
-        leaveButton.setPreferredSize(new Dimension(90, 34));
-        leaveButton.addActionListener(new ActionListener()
+        ThemedButton leaveButton = GameWindowKernel.leaveButton(new Runnable()
         {
-            public void actionPerformed(ActionEvent e)
+            public void run()
             {
                 if (requestLeave()) { MainMenu.getInstance().returnToGames(); }
             }

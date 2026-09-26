@@ -3,6 +3,7 @@ import net.MessageType;
 import net.Message;
 import economy.AchievementManager;
 import economy.EconomyManager;
+import economy.EconomyKernel;
 import net.ClientHandler;
 
 import java.util.ArrayList;
@@ -119,7 +120,7 @@ public class RacingMatch
         {
             int place = i + 1;
             ClientHandler racer = ranked.get(i);
-            int reward = economyManager.awardRacingPlacement(racer, place);
+            int reward = EconomyKernel.awardPlacement(economyManager, racer, "racing", place, "a race");
 
             if (achievementManager != null && racer.getAccountId() != null)
             {

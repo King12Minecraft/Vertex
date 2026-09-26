@@ -69,6 +69,8 @@ import social.ModerationManager;
 import social.FriendManager;
 import economy.GameHistoryManager;
 import economy.EconomyManager;
+import economy.EconomyKernel;
+import economy.EconomyConfig;
 import social.GroupChatManager;
 import social.ChatManager;
 import games.MatchManager;
@@ -1455,36 +1457,35 @@ public class ClientHandler implements Runnable
             gameHistoryManager.recordPlay(loggedInAccountId, request.getGameId());
 
             String gameId = request.getGameId();
-            if ("snake".equals(gameId))
-            {
-                economyManager.awardSnakeScore(this, request.getScore());
-            }
-            else if ("zombie-survival".equals(gameId) || "space-battle".equals(gameId))
+            if ("zombie-survival".equals(gameId) || "space-battle".equals(gameId))
             {
                 leaderboardManager.recordScore(gameId, loggedInAccountId, request.getScore());
             }
             else if ("puzzle-quest".equals(gameId))
             {
-                economyManager.awardPuzzleQuestCompletion(this);
+                // Shape 2 (EconomyKernel.awardFlatCompletion): neither of these reports
+                // a real score (nothing meaningful to score - solved-or-not), so a flat
+                // reward is the honest fit, not folded into the score-scaled table below.
+                EconomyKernel.awardFlatCompletion(economyManager, this, EconomyConfig.PUZZLE_QUEST_REWARD, "Solved a Puzzle Quest puzzle");
             }
             else if ("minesweeper".equals(gameId))
             {
-                economyManager.awardMinesweeperCompletion(this);
+                EconomyKernel.awardFlatCompletion(economyManager, this, EconomyConfig.MINESWEEPER_REWARD, "Cleared a Minesweeper board");
             }
             else
             {
-                // Covers every other offline/practice game via EconomyConfig.getPracticeReward's
-                // per-game formula table - a safe default rather than a hand-maintained id list
-                // that has to be kept in sync with that table by hand: getPracticeReward already
-                // returns 0 (a no-op in awardPracticeScore) for any gameId it has no formula for,
-                // so this never double-rewards an online game that also calls GAME_PLAYED_REQUEST
-                // for history tracking (zombie-survival/space-battle above, and every other
-                // online game, none of which appear in getPracticeReward's table).
-                // Previously only pingpong/2048/dino-dash/tetris/crossing-road/aim-trainer reached
-                // this path even though getPracticeReward already had formulas for 14 more games
-                // (Simon Says through Mancala) - those games paid zero coins on completion despite
-                // the reward being fully designed, just never wired up.
-                economyManager.awardPracticeScore(this, gameId, request.getScore());
+                // Shape 1 (EconomyKernel.awardCompletion): covers every other offline/
+                // practice game - including Snake, folded into this generic path rather
+                // than its own special case now that its formula lives in
+                // EconomyConfig.getPracticeReward like every other game's - via
+                // getPracticeReward's per-game formula table. A safe default rather
+                // than a hand-maintained id list that has to be kept in sync with that
+                // table by hand: getPracticeReward already returns 0 (a no-op) for any
+                // gameId it has no formula for, so this never double-rewards an online
+                // game that also calls GAME_PLAYED_REQUEST for history tracking
+                // (zombie-survival/space-battle above, and every other online game,
+                // none of which appear in getPracticeReward's table).
+                EconomyKernel.awardCompletion(economyManager, this, gameId, request.getScore());
             }
         }
         return null;

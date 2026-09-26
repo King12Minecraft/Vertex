@@ -4,6 +4,7 @@ import net.Message;
 import economy.LeaderboardManager;
 import economy.AchievementManager;
 import economy.EconomyManager;
+import economy.EconomyKernel;
 import net.ClientHandler;
 
 import java.util.ArrayList;
@@ -111,7 +112,7 @@ public class SpaceBattleMatch
             int place = i + 1;
             ClientHandler pilot = ranked.get(i);
             int score = scoreMap.get(pilot);
-            int reward = economyManager.awardSpaceBattlePlacement(pilot, place);
+            int reward = EconomyKernel.awardPlacement(economyManager, pilot, "space-battle", place, "a Space Battle");
 
             if (pilot.getAccountId() != null)
             {

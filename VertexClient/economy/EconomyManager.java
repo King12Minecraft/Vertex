@@ -129,33 +129,38 @@ public class EconomyManager
     }
 
     /**
-     * Racing placement reward - 1st/2nd/3rd only. Returns the coins
-     * awarded (0 if outside the top 3) so RacingMatch can include it
-     * directly in the RACE_RESULT sent to that player, without a
-     * second round-trip to find out what happened.
+     * Placement reward for a race/FFA-style game with no single 2-player "winner" -
+     * 1st/2nd/3rd only. Returns the coins awarded (0 if outside the top 3) so the
+     * caller (RacingMatch/SpaceBattleMatch) can include it directly in its own result
+     * message, without a second round-trip to find out what happened. activityLabel
+     * is the human-readable phrase for the transaction log ("a race", "a Space
+     * Battle") - everything else about the two games' placement rewards was
+     * byte-identical duplication (awardRacingPlacement/awardSpaceBattlePlacement),
+     * so this replaces both with one method instead of two copies that happen to
+     * agree.
      */
-    public int awardRacingPlacement(ClientHandler racer, int place)
+    public int awardPlacement(ClientHandler player, String gameId, int place, String activityLabel)
     {
-        String username = racer.getLoggedInUsername();
+        String username = player.getLoggedInUsername();
         if (username == null) return 0;
         Account account = accountStore.findByUsername(username);
         if (account == null) return 0;
 
-        int reward = EconomyConfig.getRacingPlacementReward(place);
+        int reward = EconomyConfig.getPlacementReward(place);
         if (reward <= 0)
         {
             return 0;
         }
 
         account.setCoins(account.getCoins() + reward);
-        transactionManager.log(account.getAccountId(), reward, "Finished " + placeOrdinal(place) + " in a race");
+        transactionManager.log(account.getAccountId(), reward, "Finished " + placeOrdinal(place) + " in " + activityLabel);
 
         if (place == 1)
         {
-            // 1st place is this race's "win" for the generic win-count challenges -
-            // racing has no single ClientHandler "winner" the way a 2-player match
-            // does, so it's recorded here instead of through awardWin.
-            recordOnlineWin(account, racer, "racing", reward);
+            // 1st place is this match's "win" for the generic win-count challenges -
+            // a placement game has no single ClientHandler "winner" the way a
+            // 2-player match does, so it's recorded here instead of through awardWin.
+            recordOnlineWin(account, player, gameId, reward);
         }
         else
         {
@@ -165,7 +170,7 @@ public class EconomyManager
             Message walletUpdate = new Message();
             walletUpdate.setType(MessageType.WALLET_UPDATE);
             walletUpdate.setCoins(account.getCoins());
-            racer.sendMessage(walletUpdate);
+            player.sendMessage(walletUpdate);
         }
 
         return reward;
@@ -177,46 +182,6 @@ public class EconomyManager
         if (place == 2) return "2nd";
         if (place == 3) return "3rd";
         return place + "th";
-    }
-
-    /**
-     * Space Battle placement reward - 1st/2nd/3rd only, same structure
-     * as awardRacingPlacement. Returns the coins awarded so
-     * SpaceBattleMatch can include it directly in the SPACE_RESULT
-     * sent to that player.
-     */
-    public int awardSpaceBattlePlacement(ClientHandler pilot, int place)
-    {
-        String username = pilot.getLoggedInUsername();
-        if (username == null) return 0;
-        Account account = accountStore.findByUsername(username);
-        if (account == null) return 0;
-
-        int reward = EconomyConfig.getSpaceBattlePlacementReward(place);
-        if (reward <= 0)
-        {
-            return 0;
-        }
-
-        account.setCoins(account.getCoins() + reward);
-        transactionManager.log(account.getAccountId(), reward, "Finished " + placeOrdinal(place) + " in a Space Battle");
-
-        if (place == 1)
-        {
-            recordOnlineWin(account, pilot, "space-battle", reward);
-        }
-        else
-        {
-            accountStore.updateAccount(account);
-            checkCoinAchievement(account);
-
-            Message walletUpdate = new Message();
-            walletUpdate.setType(MessageType.WALLET_UPDATE);
-            walletUpdate.setCoins(account.getCoins());
-            pilot.sendMessage(walletUpdate);
-        }
-
-        return reward;
     }
 
     /** Generic coin grant with an arbitrary amount and a plain-text reason for the transaction log - for games like Square Wars where the reward is a computed split (total prize / number of tied winners) rather than one of the fixed per-game formulas the other award* methods use. */
@@ -238,31 +203,7 @@ public class EconomyManager
         player.sendMessage(walletUpdate);
     }
 
-    public void awardSnakeScore(ClientHandler player, int score)
-    {
-        String username = player.getLoggedInUsername();
-        if (username == null) return;
-        Account account = accountStore.findByUsername(username);
-        if (account == null) return;
-
-        int reward = EconomyConfig.getSnakeReward(score);
-        if (reward <= 0)
-        {
-            return;
-        }
-
-        account.setCoins(account.getCoins() + reward);
-        transactionManager.log(account.getAccountId(), reward, "Snake score reward");
-        accountStore.updateAccount(account);
-        checkCoinAchievement(account);
-
-        Message walletUpdate = new Message();
-        walletUpdate.setType(MessageType.WALLET_UPDATE);
-        walletUpdate.setCoins(account.getCoins());
-        player.sendMessage(walletUpdate);
-    }
-
-    /** Generic score-based reward for the practice-mode games that previously paid nothing (Pong, 2048, Dino Dash, Tetris, Crossing Road, Aim Trainer) - same shape as awardSnakeScore, just driven by EconomyConfig.getPracticeReward's per-game formula instead of Snake's own. */
+    /** Generic score-based reward for any offline/practice game, driven entirely by EconomyConfig.getPracticeReward's per-game formula table (Snake included, folded in there - see EconomyKernel.awardCompletion, the one-line entry point every future practice-mode game should call). */
     public void awardPracticeScore(ClientHandler player, String gameId, int score)
     {
         String username = player.getLoggedInUsername();
@@ -287,44 +228,6 @@ public class EconomyManager
         player.sendMessage(walletUpdate);
     }
 
-    /** Flat reward for solving a Puzzle Quest puzzle - see EconomyConfig.PUZZLE_QUEST_REWARD for why this one isn't score-scaled. */
-    public void awardPuzzleQuestCompletion(ClientHandler player)
-    {
-        String username = player.getLoggedInUsername();
-        if (username == null) return;
-        Account account = accountStore.findByUsername(username);
-        if (account == null) return;
-
-        int reward = EconomyConfig.PUZZLE_QUEST_REWARD;
-        account.setCoins(account.getCoins() + reward);
-        transactionManager.log(account.getAccountId(), reward, "Solved a Puzzle Quest puzzle");
-        accountStore.updateAccount(account);
-        checkCoinAchievement(account);
-
-        Message walletUpdate = new Message();
-        walletUpdate.setType(MessageType.WALLET_UPDATE);
-        walletUpdate.setCoins(account.getCoins());
-        player.sendMessage(walletUpdate);
-    }
-
-    public void awardMinesweeperCompletion(ClientHandler player)
-    {
-        String username = player.getLoggedInUsername();
-        if (username == null) return;
-        Account account = accountStore.findByUsername(username);
-        if (account == null) return;
-
-        int reward = EconomyConfig.MINESWEEPER_REWARD;
-        account.setCoins(account.getCoins() + reward);
-        transactionManager.log(account.getAccountId(), reward, "Cleared a Minesweeper board");
-        accountStore.updateAccount(account);
-        checkCoinAchievement(account);
-
-        Message walletUpdate = new Message();
-        walletUpdate.setType(MessageType.WALLET_UPDATE);
-        walletUpdate.setCoins(account.getCoins());
-        player.sendMessage(walletUpdate);
-    }
 
     public synchronized PurchaseResult purchase(ClientHandler buyer, String itemId, int[] outNewBalance)
     {

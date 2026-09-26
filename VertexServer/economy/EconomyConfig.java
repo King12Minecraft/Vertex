@@ -77,6 +77,11 @@ public class EconomyConfig
         if ("yahtzee".equals(gameId))        return Math.min(35, score / 12);
         if ("mancala".equals(gameId))        return Math.min(35, score / 8);
         if ("hill-climb".equals(gameId))     return Math.min(35, score / 20);
+        // Folded in from the old standalone getSnakeReward()/awardSnakeScore() - same
+        // Math.min(cap, score/divisor) shape as every entry above, just previously
+        // kept as its own special case (Snake predates this generic table) instead of
+        // living in it. No behavior change: still 1 coin per 5 points, capped at 25.
+        if ("snake".equals(gameId))          return Math.min(25, score / 5);
         // Sudoku has no meaningful numeric score to scale from (SudokuGame tracks
         // nothing beyond solved-or-not - no time, mistakes, or hint count) - a flat
         // completion reward, not a formula, is the honest fit here. 30 matches the
@@ -89,35 +94,22 @@ public class EconomyConfig
         return 0;
     }
 
-    /** Racing's placement rewards - 1st/2nd/3rd only, matching "first second and third get coins". Everyone else in the race gets nothing (they still had a real race, just no reward). */
-    public static int getRacingPlacementReward(int place)
+    /**
+     * Placement reward - 1st/2nd/3rd only, matching "first second and third get
+     * coins". Everyone else in the race/battle gets nothing (they still had a real
+     * match, just no reward). Used to be two separate methods (getRacingPlacementReward/
+     * getSpaceBattlePlacementReward) with byte-identical 50/30/15 values - genuine
+     * copy-paste duplication, not two games that happen to agree, so folded into one.
+     * If a future placement-based game ever needs different values, split this back
+     * out by gameId then - don't speculatively add a parameter with only one value
+     * in use.
+     */
+    public static int getPlacementReward(int place)
     {
         if (place == 1) return 50;
         if (place == 2) return 30;
         if (place == 3) return 15;
         return 0;
-    }
-
-    /** Space Battle's placement rewards - same 1st/2nd/3rd-only structure as Racing. */
-    public static int getSpaceBattlePlacementReward(int place)
-    {
-        if (place == 1) return 50;
-        if (place == 2) return 30;
-        if (place == 3) return 15;
-        return 0;
-    }
-
-    private static final int SNAKE_COINS_PER_POINTS = 5;
-    private static final int SNAKE_MAX_REWARD = 25;
-
-    public static int getSnakeReward(int score)
-    {
-        if (score <= 0)
-        {
-            return 0;
-        }
-        int reward = score / SNAKE_COINS_PER_POINTS;
-        return Math.min(reward, SNAKE_MAX_REWARD);
     }
 
     /** Day 1-7 of a weekly cycle - wraps back to day 1's reward on day 8, 15, etc. */
