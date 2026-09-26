@@ -44,6 +44,53 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Reliability audit: 3 real fixes** — the methodology's Reliability pass, following
+  Security and Performance. An audit of exception-handling blast radius, resource
+  leaks, thread-safety of shared managers, and server startup/shutdown robustness
+  found the platform's error handling is mostly solid (every spot-checked match
+  handler already null/bounds-checks before use, and every heavily-shared manager's
+  mutators are already `synchronized` with no check-then-act races), but three
+  genuine bugs:
+  1. **`ChatManager.unregister()` had no identity check** - it deleted the
+     `username -> ClientHandler` mapping unconditionally. Nothing currently stops the
+     same account logging in twice concurrently (a separate, deliberately untouched
+     question - see below); if that happened, the second login's `register()` call
+     overwrites the first's mapping, and if the *first* (now-stale) session
+     disconnects afterward, its `unregister()` call would delete the *second*,
+     still-live session's mapping - silently making that connected player unreachable
+     by username (private messages, friend notices, mod ban/kick-by-username, party
+     invites all fail quietly) until they happened to re-register. Fixed by only
+     removing the mapping if it still points at the disconnecting client. Deliberately
+     did NOT add concurrent-login prevention itself - that's a real trust-model
+     question (does an account get kicked from its old session on a new login, or
+     could that break a future reconnect-after-a-flaky-connection flow the roadmap
+     already has drafted?) rather than something to guess at alongside a reliability
+     bugfix.
+  2. **`GameServer.acceptLoop()` died on the first transient accept() error.** Any
+     `IOException` from `serverSocket.accept()` - even a transient one like "too many
+     open files" under a connection burst - broke the accept loop forever, while the
+     server process itself keeps running indefinitely (`ServerMain` just sleeps) -
+     so the server would look alive from the outside while silently refusing every
+     new connection, needing a manual restart to notice and fix. Fixed to only break
+     when the socket is actually closed (today that never happens deliberately - no
+     shutdown hook exists yet - so this exclusively removes the crash-on-transient-
+     error behavior); any other IOException is logged and the loop keeps accepting,
+     with a brief pause to avoid a tight spin if the same error recurs immediately.
+  3. **`AvatarStore.save()`/`load()` leaked file handles on an I/O error mid-operation**
+     - `close()` was a plain sequential call after the read/write, so an exception
+     partway through skipped it. Fixed with try-with-resources on both methods.
+  Also confirmed real: server save methods (`ServerAccountStore`, `FriendManager`,
+  etc.) are synchronous write-through on every mutation with no batching/debounce, so
+  a hard kill was never a data-loss risk beyond the single in-flight write - no fix
+  needed there.
+  Verified: a throwaway test (`ChatManagerTest.java`, using `Unsafe.allocateInstance`
+  to get two distinct `ClientHandler` references without needing their full
+  ~40-dependency constructor) reproduces the exact double-login race and confirms the
+  second session's mapping survives the first session's stale `unregister()` call; a
+  second throwaway test (`AcceptLoopLogicTest.java`) replicates `acceptLoop`'s control
+  flow with a scriptable fake `accept()` and confirms the loop survives repeated
+  transient failures and only stops once the socket is actually closed. Mirrored
+  byte-identical across both trees; both compile clean.
 - **Performance Mode: closed the gap where 7 real-time games ignored the toggle** —
   audited earlier this session and deliberately deferred behind the security pass;
   picked back up now that the methodology reaches Performance/Reliability.

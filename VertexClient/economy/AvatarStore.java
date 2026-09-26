@@ -44,11 +44,9 @@ public class AvatarStore
             System.err.println("Refused to save an avatar for an invalid username: " + username);
             return false;
         }
-        try
+        try (FileOutputStream out = new FileOutputStream(fileFor(username)))
         {
-            FileOutputStream out = new FileOutputStream(fileFor(username));
             out.write(pngBytes);
-            out.close();
             return true;
         }
         catch (IOException e)
@@ -70,9 +68,8 @@ public class AvatarStore
         {
             return null;
         }
-        try
+        try (FileInputStream in = new FileInputStream(file))
         {
-            FileInputStream in = new FileInputStream(file);
             byte[] bytes = new byte[(int) file.length()];
             int read = 0;
             while (read < bytes.length)
@@ -81,7 +78,6 @@ public class AvatarStore
                 if (n < 0) break;
                 read += n;
             }
-            in.close();
             return bytes;
         }
         catch (IOException e)

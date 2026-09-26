@@ -175,7 +175,7 @@ public class GameServer
 
     private void acceptLoop()
     {
-        while (true)
+        while (!serverSocket.isClosed())
         {
             try
             {
@@ -199,8 +199,19 @@ public class GameServer
             }
             catch (IOException e)
             {
-                System.err.println("Accept loop stopped: " + e.getMessage());
-                break;
+                if (serverSocket.isClosed())
+                {
+                    System.out.println("Accept loop stopped: server socket closed.");
+                    break;
+                }
+                // A transient accept() failure (e.g. a temporary "too many open
+                // files" under a burst of connections) must not permanently kill
+                // the accept loop - the process keeps running forever either way
+                // (see ServerMain), so silently breaking here would turn a
+                // transient error into a full outage that looks like a live,
+                // healthy server from the outside. Log it and keep accepting.
+                System.err.println("Accept error, continuing: " + e.getMessage());
+                try { Thread.sleep(200); } catch (InterruptedException ignored) { }
             }
         }
     }

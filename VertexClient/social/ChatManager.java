@@ -24,7 +24,18 @@ public class ChatManager
     public synchronized void unregister(ClientHandler client, String username)
     {
         connectedClients.remove(client);
-        if (username != null) byUsername.remove(username.toLowerCase());
+        // Only remove the mapping if it still points at THIS client. If the same
+        // account logged in twice concurrently (nothing currently prevents that),
+        // both sessions call register() and the second overwrites the first's
+        // mapping - if the first session then disconnects, an unconditional
+        // remove() here would delete the still-live second session's mapping,
+        // silently making that reachable-by-username account unreachable (private
+        // messages, friend notices, mod ban/kick-by-username, party invites) until
+        // it happens to re-register.
+        if (username != null && client.equals(byUsername.get(username.toLowerCase())))
+        {
+            byUsername.remove(username.toLowerCase());
+        }
     }
 
     public synchronized ClientHandler findByUsername(String username)
