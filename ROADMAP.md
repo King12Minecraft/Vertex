@@ -582,6 +582,34 @@ recorded below as they're confirmed.
   scroll-pane wrapper added after an early pass clipped the input box and
   submit button off-screen once the guess-image preview was inserted above
   them).
+- **First version of the public website** (`website/`, Flask) - the "Planned"
+  entry for this is done. Pages: Home/Changelog, Download (the default landing
+  page), Credits, Features, and a "How It's Built" overview. The Features and
+  How-It's-Built pages render `FEATURES.md`/`HOW_VERTEX_WORKS.md` directly
+  (Markdown converted to HTML at request time) instead of duplicating their
+  content, so editing those two files - already the convention - keeps the
+  site current too. The Download page reads the repo's own `VERSION` file, so
+  the version shown can never drift from what the jars are stamped with.
+  **The server jar is deliberately not offered for download here** - per
+  explicit instruction, only `VertexClient.jar` is downloadable from the site;
+  `/downloads/<filename>` serves nothing else regardless of what's requested.
+  This matches the same reasoning as removing the in-app "Host a Server"
+  client feature above: hosting shouldn't be a casual one-click action,
+  whether that's a button in the client or a download link on the marketing
+  site - someone who wants to host reads the GitHub repo's setup instructions
+  instead. Not deployed anywhere yet (that needs the actual target machine,
+  e.g. the Oracle Cloud instance originally mentioned) - see `website/README.md`
+  for what's built, what's deliberately not, and deploy notes for whenever
+  that happens.
+  Verified locally: every route checked with `curl` (200s, and the removed
+  server-jar route confirmed 404), content spot-checked (live version number,
+  the Telephone changelog highlight, FEATURES.md's current game count all
+  render correctly), and real screenshots via headless Chromium at desktop and
+  down to 500px (the smallest width this environment's headless Chromium
+  build would actually honor - confirmed directly via `window.innerWidth`,
+  not a CSS bug; see `website/README.md`'s testing note for the full
+  diagnosis and why the CSS itself should still work correctly narrower than
+  that on a real device).
 
 ## 🔧 In Progress
 
@@ -684,13 +712,6 @@ Previously listed here as a planned v1 feature (party-scoped PCM audio over a ne
 channel). The user has since said voice chat is being removed from scope - no audio
 code was ever built (this was plan-only), so there's nothing to remove from the
 codebase, just this section. Do not re-propose voice chat.
-
-## 📋 Planned — the website (Python/Flask, hosted on the user's Oracle Cloud instance)
-
-Pages: Home/Changelog, Download (default landing page), Credits, a simplified public
-"how it's built" overview, Features (reusing `FEATURES.md`). Reads the same `VERSION`
-file the jars are stamped with, so the version number never drifts between the app and
-the site.
 
 ## 🎲 Games backlog (curated 2026-09-25 - see note below)
 

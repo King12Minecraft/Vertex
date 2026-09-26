@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Vertex - Home{% endblock %}
+{% block content %}
+<section class="hero hero-small">
+    <h1>Vertex</h1>
+    <p class="tagline">A self-hosted multiplayer game platform, version {{ version }}.</p>
+    <a class="button primary" href="{{ url_for('download') }}">Get Vertex</a>
+</section>
+
+<section class="changelog">
+    <h2>What's in Vertex</h2>
+    {% for release in highlights %}
+    <div class="changelog-entry">
+        <h3>Version {{ release.version }}</h3>
+        <ul>
+            {% for item in release.points %}
+            <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Download Vertex{% endblock %}
+{% block content %}
+<section class="hero">
+    <img src="{{ url_for('static', filename='vertex_logo.png') }}" alt="Vertex logo" class="hero-logo">
+    <h1>Vertex</h1>
+    <p class="tagline">A self-hosted multiplayer game platform. 51 games, one jar, no account with anyone but you.</p>
+    <p class="version">Current version: <strong>{{ version }}</strong></p>
+
+    <div class="download-cards">
+        <div class="download-card">
+            <h2>Play</h2>
+            <p>Run this to play. Connects to a server you (or a friend) already have running.</p>
+            <a class="button primary" href="{{ url_for('downloads', filename='VertexClient.jar') }}">Download VertexClient.jar</a>
+        </div>
+    </div>
+
+    <p class="requirement">Requires a Java Runtime Environment (17 or newer). Runs with a plain
+        <code>java -jar</code> - see the <a href="https://github.com/King12Minecraft/Vertex" target="_blank" rel="noopener">GitHub repository</a>
+        for full setup instructions, including Windows launcher scripts that don't need Java on your PATH, and for
+        how to set up a server if you want to host one yourself.</p>
+</section>
+{% endblock %}

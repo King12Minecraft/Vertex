@@ -1,6 +1,8 @@
 # Vertex — Program Structure
 
 Onboarding doc for the codebase: what each package does and how the pieces connect.
+(This file covers the Java client/server codebase only. The public website
+(`website/`) is a separate Python/Flask project with its own `website/README.md`.)
 `VertexClient/` and `VertexServer/` are **no longer byte-identical** — `VertexServer/`
 now only carries the ~100 files `ServerMain` actually needs (found by compiling just
 that entry point against the full tree and keeping whatever the compiler pulled in,

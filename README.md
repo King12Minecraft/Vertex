@@ -86,10 +86,13 @@ Full details on all of the above: [`FEATURES.md`](FEATURES.md).
 
 ## Repo structure
 
-Two source folders, but they're **not** identical copies of each other anymore:
+Three top-level folders:
 
-- **`VertexClient/`** — built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs, and it's the edit source of truth for anything shared between the two: make changes here first.
+- **`VertexClient/`** — built and shipped as `VertexClient.jar` (`Main-Class: Vertex`). This is what someone who just wants to play runs, and it's the edit source of truth for anything shared between the two Java projects: make changes here first.
 - **`VertexServer/`** — built and shipped as `VertexServer.jar` (`Main-Class: ServerMain`). Headless: no GUI, no client code at all. Runs unattended on a real machine (a cloud VM with no display included) rather than opening a login window the way earlier versions did.
+- **`website/`** — the public website (Python/Flask), unrelated to the two Java projects above. See [`website/README.md`](website/README.md).
+
+`VertexClient/` and `VertexServer/` are **not** identical copies of each other:
 
 **Why they're different now.** Earlier, `ServerMain` also opened a full client login window in-process the moment hosting started, so the server needed almost the entire client UI just to do that - both folders carried the same ~350 files. That's gone: `ServerMain` now only starts `GameServer` and blocks, nothing else. Every class it actually needs was found by compiling just that one entry point against the full source tree and keeping only what the compiler pulled in - not guesswork - which turned out to be about 100 files: `net`, `account`, `social`, `admin`, `economy`, `games` (the rule engines and match managers, not any Window/Dialog class), and `ai.knowledge` (the live Trivia Blitz lookups - the *only* part of the `ai` package the server needs, since practice-mode bots run entirely on the client and never touch the server at all). The entire `ui`, `theme`, and `pages` packages are gone from `VertexServer/`, along with every game's own Window/Dialog class and the `ai.search`/`ai.grid`/`ai.steering` bot engine.
 
