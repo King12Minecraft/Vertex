@@ -925,9 +925,11 @@ public class ClientHandler implements Runnable
 
     private String describeLoginFailure(ServerAccountStore.LoginResult result)
     {
-        if (result == ServerAccountStore.LoginResult.NO_SUCH_ACCOUNT) return "No account with that username.";
-        if (result == ServerAccountStore.LoginResult.LOCKED_OUT) return "Too many failed attempts. This account is temporarily locked.";
-        return "Incorrect password.";
+        // NO_SUCH_ACCOUNT and WRONG_PASSWORD deliberately share one message - telling an
+        // attacker which one it was turns login into a free username-enumeration oracle
+        // against every account on the server.
+        if (result == ServerAccountStore.LoginResult.LOCKED_OUT) return "Too many failed attempts. This account is temporarily locked - try again in a few minutes.";
+        return "Incorrect username or password.";
     }
 
     private boolean isAdmin()

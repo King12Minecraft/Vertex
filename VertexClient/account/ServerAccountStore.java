@@ -15,12 +15,19 @@ public class ServerAccountStore
 {
     private static final String STORE_FILE = "gamehub_server_accounts.dat";
     private static final int MAX_LOGIN_ATTEMPTS = 5;
+    private static final long LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
     private final List<Account> accounts = new ArrayList<Account>();
     private int nextAccountId = 1;
 
     private final Map<String, Integer> failedAttempts = new HashMap<String, Integer>();
-    private final Map<String, Boolean> lockedOut = new HashMap<String, Boolean>();
+    // Value is the timestamp (System.currentTimeMillis()) the lockout expires at, not a
+    // permanent flag - previously this was a Map<String, Boolean> that, once set, never
+    // cleared, so the client-facing "temporarily locked" message was a lie: an attacker
+    // who knew (or guessed) any real username could permanently deny that player login
+    // with 5 wrong passwords, and nothing short of a server restart ever undid it. Found
+    // and fixed as part of the security hardening pass.
+    private final Map<String, Long> lockedOutUntil = new HashMap<String, Long>();
 
     public enum LoginResult { SUCCESS, WRONG_PASSWORD, NO_SUCH_ACCOUNT, LOCKED_OUT }
     public enum ChangeResult { SUCCESS, WRONG_PASSWORD, NO_SUCH_ACCOUNT, USERNAME_TAKEN, USERNAME_TOO_SHORT, USERNAME_INVALID_FORMAT, PASSWORD_TOO_SHORT }
@@ -222,12 +229,22 @@ public class ServerAccountStore
     public synchronized LoginResult attemptLogin(String username, String password)
     {
         String key = username.toLowerCase();
-        if (Boolean.TRUE.equals(lockedOut.get(key))) return LoginResult.LOCKED_OUT;
+        Long lockedUntil = lockedOutUntil.get(key);
+        if (lockedUntil != null)
+        {
+            if (System.currentTimeMillis() < lockedUntil) return LoginResult.LOCKED_OUT;
+            // Lockout window has passed - clear it and give this key a clean slate.
+            lockedOutUntil.remove(key);
+            failedAttempts.remove(key);
+        }
 
         Account account = findByUsername(username);
-        if (account == null) return LoginResult.NO_SUCH_ACCOUNT;
-
-        boolean matches = PasswordHasher.matches(password, account.getPasswordSalt(), account.getPasswordHash());
+        // A missing account still runs through the same failed-attempt/lockout counter
+        // as a wrong password for the same key, rather than returning early - otherwise
+        // an attacker gets an unlimited, unthrottled oracle for confirming which
+        // usernames exist on the server.
+        boolean matches = account != null
+            && PasswordHasher.matches(password, account.getPasswordSalt(), account.getPasswordHash());
         if (matches)
         {
             failedAttempts.remove(key);
@@ -238,10 +255,10 @@ public class ServerAccountStore
         failedAttempts.put(key, attempts);
         if (attempts >= MAX_LOGIN_ATTEMPTS)
         {
-            lockedOut.put(key, true);
+            lockedOutUntil.put(key, System.currentTimeMillis() + LOCKOUT_DURATION_MS);
             return LoginResult.LOCKED_OUT;
         }
-        return LoginResult.WRONG_PASSWORD;
+        return account == null ? LoginResult.NO_SUCH_ACCOUNT : LoginResult.WRONG_PASSWORD;
     }
 
     public synchronized ChangeResult changeUsername(String currentUsername, String currentPassword, String newUsername)

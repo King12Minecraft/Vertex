@@ -44,6 +44,25 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Security: login lockout made actually temporary, plus closed a username-enumeration
+  oracle** — two more findings from the same hardening pass as the username-format fix
+  below. (1) `attemptLogin()`'s lockout was a permanent flag (`Map<String, Boolean>`)
+  that nothing ever cleared - the client-facing message said "temporarily locked" but an
+  attacker who knew or guessed any real username could permanently deny that player
+  login with 5 wrong passwords, with no recovery short of a server restart. Fixed by
+  storing a lockout *expiry timestamp* (`Map<String, Long>`, 15 minutes) instead of a
+  boolean - `attemptLogin()` now clears an expired lockout and gives that key a clean
+  attempt count. (2) A missing username returned `NO_SUCH_ACCOUNT` immediately, before
+  the attempt-counting/lockout logic ran - an unlimited, unthrottled way to check which
+  usernames exist on the server. Fixed by routing a missing account through the same
+  counter/lockout path as a wrong password for that same key, and by unifying the
+  client-visible message for both cases to "Incorrect username or password." (previously
+  "No account with that username." vs "Incorrect password." - a direct tell). Verified
+  with a throwaway test (`LockoutTest.java`): confirms 4 wrong attempts stay
+  `WRONG_PASSWORD`, the 5th locks the account, a correct password is still rejected
+  while locked, access is restored once the lockout window passes (simulated by
+  rewinding the stored expiry rather than sleeping 15 real minutes), and a nonexistent
+  username also locks out after 5 attempts instead of responding forever.
 - **Security: username format validation, closing a path-traversal + save-file-corruption
   hole** — `ServerAccountStore.createAccount()`/`changeUsername()` only ever checked
   username *length* (≥3 chars), with zero check on which characters were allowed. Two
