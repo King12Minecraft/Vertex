@@ -2,6 +2,7 @@ package games;
 
 import account.Session;
 import economy.GuestPlayTracker;
+import economy.PerformanceMode;
 import engine.GameLoop;
 import net.Message;
 import net.MessageType;
@@ -127,7 +128,7 @@ public class HillClimbWindow extends JPanel implements EmbeddedGamePanel
         reported = false;
         updateStatus();
 
-        loop = new GameLoop(16, new GameLoop.Ticker()
+        loop = new GameLoop(PerformanceMode.getTickIntervalMs(16), new GameLoop.Ticker()
         {
             public void tick(double dtSeconds)
             {

@@ -1,5 +1,6 @@
 package games;
 
+import economy.PerformanceMode;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
@@ -117,7 +118,7 @@ public class FlappyBirdWindow extends JPanel implements EmbeddedGamePanel
         reported = false;
         updateStatus();
 
-        timer = new Timer(TICK_MS, new ActionListener()
+        timer = new Timer(PerformanceMode.getTickIntervalMs(TICK_MS), new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
             {

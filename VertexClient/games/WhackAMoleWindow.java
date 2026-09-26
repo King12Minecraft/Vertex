@@ -1,5 +1,6 @@
 package games;
 
+import economy.PerformanceMode;
 import net.Message;
 import net.MessageType;
 import net.NetworkManager;
@@ -113,7 +114,7 @@ public class WhackAMoleWindow extends JPanel implements EmbeddedGamePanel
         statusLabel.setText("Score: 0    Time: 30s");
 
         if (gameTimer != null) gameTimer.stop();
-        gameTimer = new Timer(60, new ActionListener()
+        gameTimer = new Timer(PerformanceMode.getTickIntervalMs(60), new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { onTick(); }
         });

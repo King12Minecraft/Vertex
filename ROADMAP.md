@@ -44,6 +44,32 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Performance Mode: closed the gap where 7 real-time games ignored the toggle** —
+  audited earlier this session and deliberately deferred behind the security pass;
+  picked back up now that the methodology reaches Performance/Reliability.
+  `PerformanceMode.getTickIntervalMs()` halves a real-time game's tick rate (60fps ->
+  30fps) when the low-end-hardware toggle is on, and PROGRAM_STRUCTURE.md already
+  documented this as applying to "real-time games' tick intervals" in general - but
+  `BrickBreakerWindow`, `FlappyBirdWindow`, `GalaxyDefenderWindow`,
+  `BubbleShooterWindow`, `MazeChaseWindow`, `HillClimbWindow`, and (found during this
+  pass, not in the original 6) `WhackAMoleWindow` all constructed their `Timer`/
+  `GameLoop` with a raw hardcoded interval, never calling the shared helper - so
+  Performance Mode silently did nothing for any of them, exactly the "claimed but not
+  actually wired up" pattern this session has repeatedly found elsewhere. Fixed by
+  wrapping each one's existing tick constant in `PerformanceMode.getTickIntervalMs(...)`,
+  the same one-line pattern already used correctly by `SnakePanel` and 7 other games.
+  Deliberately left `AirHockeyMatch.physicsTimer` alone - that's a server-authoritative
+  shared match simulation (a `*Match` class, not a client-only `*Window`), and
+  `PerformanceMode` is explicitly a local, per-computer client display preference; it
+  running inside the server process would mean one machine's own weak-hardware setting
+  altering the match's physics rate for every connected player, not a Performance Mode
+  bug to fix. Verified with an Xvfb/Swing screenshot harness: `BrickBreakerWindow`
+  rendered correctly with Performance Mode both off and on, and directly confirmed the
+  fix is real (not just compiling) - the ball visibly traveled a shorter distance in
+  the on-screenshot after the same 600ms wall-clock delay, proving the Timer is
+  actually ticking at half rate; `WhackAMoleWindow` also confirmed to render correctly
+  post-fix. All client-only `*Window` changes, so no `VertexServer` mirror needed;
+  compiles clean.
 - **Security: chat/social flood protection + a group-creation CPU-exhaustion fix** — an
   audit (part of the same "harden security like crazy" pass) found `ClientHandler.run()`'s
   read loop has zero built-in throttle: a client could spam private messages, group
