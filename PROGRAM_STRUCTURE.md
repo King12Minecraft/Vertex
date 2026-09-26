@@ -669,7 +669,12 @@ gets broadcast to; no message history yet, only what's sent while it's open).
   the actor's role.
 - **`FeedbackManager.java`**/`FeedbackDialog`/`FeedbackListDialog` — bug reports/
   suggestions about Vertex itself (distinct from `ModerationManager`'s player-conduct
-  reports); admins see everything, everyone else sees only their own.
+  reports); admins see everything, everyone else sees only their own. Structured since
+  2026-09-26: a required title, a description, and (bug reports only, optional) steps
+  to reproduce - not just one free-text box. The saved `gamehub_feedback.txt` stays
+  genuinely human-readable (a `Title: ` line and a `Steps to reproduce:` section, both
+  optional per-entry) with a backward-compatible parser fallback for entries written
+  before these fields existed.
 - **`GameSuggestionStore.java`** — public community wishlist of game ideas (text
   pitches only — no uploaded/executed code).
 

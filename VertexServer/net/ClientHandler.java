@@ -1958,6 +1958,14 @@ public class ClientHandler implements Runnable
             return response;
         }
 
+        String title = request.getFeedbackTitle();
+        if (title == null || title.trim().isEmpty())
+        {
+            response.setSuccess(false);
+            response.setErrorText("Give it a short title first.");
+            return response;
+        }
+
         String text = request.getFeedbackText();
         if (text == null || text.trim().isEmpty())
         {
@@ -1966,7 +1974,7 @@ public class ClientHandler implements Runnable
             return response;
         }
 
-        feedbackManager.submit(loggedInUsername, request.getFeedbackType(), text);
+        feedbackManager.submit(loggedInUsername, request.getFeedbackType(), title, text, request.getFeedbackSteps());
         response.setSuccess(true);
         return response;
     }

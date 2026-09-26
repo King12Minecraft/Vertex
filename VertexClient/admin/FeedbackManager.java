@@ -31,6 +31,8 @@ public class FeedbackManager
 {
     private static final String FEEDBACK_FILE = "gamehub_feedback.txt";
     private static final String DELIMITER = "----------------------------------------------------------------";
+    private static final String TITLE_PREFIX = "Title: ";
+    private static final String STEPS_MARKER = "\n\nSteps to reproduce:\n";
 
     private static class Entry
     {
@@ -38,7 +40,11 @@ public class FeedbackManager
         String type;
         String submitterUsername;
         long timestamp;
+        /** A short one-line summary - required, same as any bug tracker's "title" field. Empty string for entries saved before this field existed (see parseBlock's fallback). */
+        String title;
         String text;
+        /** Bug reports only - null/empty for a suggestion, and optional even for a bug. */
+        String stepsToReproduce;
     }
 
     private final List<Entry> entries = new ArrayList<Entry>();
@@ -49,15 +55,17 @@ public class FeedbackManager
         load();
     }
 
-    /** type is "BUG" or "SUGGESTION". Appends to the in-memory list and rewrites the txt file. */
-    public synchronized void submit(String submitterUsername, String type, String text)
+    /** type is "BUG" or "SUGGESTION". stepsToReproduce may be null/blank (always for a suggestion; optional for a bug report too). Appends to the in-memory list and rewrites the txt file. */
+    public synchronized void submit(String submitterUsername, String type, String title, String text, String stepsToReproduce)
     {
         Entry entry = new Entry();
         entry.id = "feedback-" + System.currentTimeMillis() + "-" + entries.size();
         entry.type = "BUG".equals(type) ? "BUG" : "SUGGESTION";
         entry.submitterUsername = submitterUsername;
         entry.timestamp = System.currentTimeMillis();
+        entry.title = title == null ? "" : title.trim();
         entry.text = text.trim();
+        entry.stepsToReproduce = ("BUG".equals(entry.type) && stepsToReproduce != null) ? stepsToReproduce.trim() : "";
         entries.add(entry);
         save();
     }
@@ -84,9 +92,26 @@ public class FeedbackManager
             {
                 continue;
             }
-            String display = "[" + entry.type + "] " + dateFormat.format(new Date(entry.timestamp))
-                + " - " + entry.submitterUsername + ": " + entry.text;
-            result.add(display);
+            StringBuilder display = new StringBuilder();
+            display.append('[').append(entry.type).append("] ")
+                .append(dateFormat.format(new Date(entry.timestamp)))
+                .append(" - ").append(entry.submitterUsername);
+            // Entries saved before the title field existed have an empty title -
+            // fall back to the old "no title, just the text after a colon" look
+            // rather than showing a jarring empty ": ".
+            if (!entry.title.isEmpty())
+            {
+                display.append(": ").append(entry.title).append('\n').append(entry.text);
+            }
+            else
+            {
+                display.append(": ").append(entry.text);
+            }
+            if (entry.stepsToReproduce != null && !entry.stepsToReproduce.isEmpty())
+            {
+                display.append("\n\nSteps to reproduce:\n").append(entry.stepsToReproduce);
+            }
+            result.add(display.toString());
         }
         return result;
     }
@@ -131,10 +156,15 @@ public class FeedbackManager
     /**
      * Block format written by save(): one human-readable header line -
      * "[TYPE] date - username (id=feedback-<epoch millis>-<index>)" -
-     * then the free-text body, up to (not including) the delimiter. The
+     * then a body that's optionally "Title: <title>", a blank line, the
+     * description, and (bug reports with steps only) a "Steps to
+     * reproduce:" section, up to (not including) the delimiter. The
      * timestamp isn't re-parsed from the printed date text (locale/format
      * round-tripping is fragile); it's pulled back out of the id itself,
-     * which already embeds the millis it was created with.
+     * which already embeds the millis it was created with. Entries
+     * written before the title/steps fields existed have no "Title: "
+     * line at all - treated as title="" and the whole body as the plain
+     * description, rather than losing or misparsing pre-existing feedback.
      */
     private void parseBlock(String block)
     {
@@ -170,7 +200,35 @@ public class FeedbackManager
         entry.submitterUsername = header.substring(dashBeforeUsername + 3, idStart).trim();
         entry.id = header.substring(idStart + 4, idEnd);
         entry.timestamp = timestampFromId(entry.id);
-        entry.text = body;
+
+        String title = "";
+        String description = body;
+        if (body.startsWith(TITLE_PREFIX))
+        {
+            int titleLineEnd = body.indexOf('\n');
+            if (titleLineEnd < 0)
+            {
+                titleLineEnd = body.length();
+            }
+            title = body.substring(TITLE_PREFIX.length(), titleLineEnd);
+            description = titleLineEnd < body.length() ? body.substring(titleLineEnd + 1) : "";
+            if (description.startsWith("\n"))
+            {
+                description = description.substring(1);
+            }
+        }
+
+        String steps = "";
+        int stepsMarker = description.indexOf(STEPS_MARKER);
+        if (stepsMarker >= 0)
+        {
+            steps = description.substring(stepsMarker + STEPS_MARKER.length());
+            description = description.substring(0, stepsMarker);
+        }
+
+        entry.title = title;
+        entry.text = description;
+        entry.stepsToReproduce = steps;
         entries.add(entry);
     }
 
@@ -205,7 +263,17 @@ public class FeedbackManager
                 Entry entry = entries.get(i);
                 writer.println("[" + entry.type + "] " + dateFormat.format(new Date(entry.timestamp))
                     + " - " + entry.submitterUsername + " (id=" + entry.id + ")");
-                writer.println(entry.text);
+                StringBuilder body = new StringBuilder();
+                if (!entry.title.isEmpty())
+                {
+                    body.append(TITLE_PREFIX).append(entry.title).append("\n\n");
+                }
+                body.append(entry.text);
+                if (entry.stepsToReproduce != null && !entry.stepsToReproduce.isEmpty())
+                {
+                    body.append(STEPS_MARKER).append(entry.stepsToReproduce);
+                }
+                writer.println(body.toString());
                 writer.println(DELIMITER);
             }
         }

@@ -299,16 +299,26 @@ public class Message implements Serializable
 
     // ---- Bug reports & suggestions (see FeedbackManager) ----
     private String feedbackType;
+    private String feedbackTitle;
     private String feedbackText;
+    private String feedbackSteps;
     private java.util.List<String> feedbackEntries;
 
     /** "BUG" or "SUGGESTION" - FEEDBACK_SUBMIT_REQUEST. */
     public String getFeedbackType() { return feedbackType; }
     public void setFeedbackType(String feedbackType) { this.feedbackType = feedbackType; }
 
-    /** The report/suggestion body text itself - FEEDBACK_SUBMIT_REQUEST. */
+    /** A short one-line summary - FEEDBACK_SUBMIT_REQUEST. Required for both bug reports and suggestions, same as any bug tracker's "title" field. */
+    public String getFeedbackTitle() { return feedbackTitle; }
+    public void setFeedbackTitle(String feedbackTitle) { this.feedbackTitle = feedbackTitle; }
+
+    /** The report/suggestion's full description - FEEDBACK_SUBMIT_REQUEST. */
     public String getFeedbackText() { return feedbackText; }
     public void setFeedbackText(String feedbackText) { this.feedbackText = feedbackText; }
+
+    /** Steps to reproduce - FEEDBACK_SUBMIT_REQUEST, bug reports only (null/empty for a suggestion, and optional even for a bug - some are one-liners with nothing to number). */
+    public String getFeedbackSteps() { return feedbackSteps; }
+    public void setFeedbackSteps(String feedbackSteps) { this.feedbackSteps = feedbackSteps; }
 
     /** Pre-formatted feedback entries, most recent first - FEEDBACK_LIST_RESPONSE. Admins get every submission; anyone else gets only their own. */
     public java.util.List<String> getFeedbackEntries() { return feedbackEntries; }

@@ -44,6 +44,34 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Structured bug reports: `FeedbackDialog` gained real title/description/steps-to-
+  reproduce fields**, instead of one free-text box. `Message` gained
+  `feedbackTitle`/`feedbackSteps` fields (alongside the existing `feedbackType`/
+  `feedbackText`); `FeedbackManager.submit(...)` takes all four, required-title
+  enforced server-side (`ClientHandler.handleFeedbackSubmit`) the same way the
+  description already was. Steps-to-reproduce is bug-reports-only and optional even
+  then - the client's "Suggestion" toggle hides that field entirely (not just
+  disables it) via a genuine dynamic show/hide + dialog re-pack, since it doesn't
+  apply there. `FeedbackManager`'s save format (a deliberately human-readable txt
+  file, not the pipe-delimited format its siblings use) gained a `Title: ` line and a
+  `Steps to reproduce:` section, both optional per-entry - parsed back out with a
+  real backward-compatibility fallback for entries written before these fields
+  existed (no `Title: ` line at all - treated as title="" and the whole body as the
+  plain description, rather than crashing or losing old feedback on the next
+  server restart). `describe()`'s formatted display string (already shown as-is by
+  `FeedbackListDialog`, which needed zero changes) now includes the title inline
+  and an appended steps section when present. Verified with a 16-check test: title/
+  description/steps all show up correctly for a bug report, a suggestion correctly
+  has no steps section, a real save-then-reload round trip (a fresh
+  `FeedbackManager` instance reading the file the first one wrote) preserves
+  everything, per-user visibility filtering still works, and - the check that
+  actually matters for not corrupting existing operator data - a hand-written
+  old-format entry (no `Title: ` line) parses correctly and coexists with a
+  new-format entry after another save/reload cycle. Plus an Xvfb/Swing check
+  confirming the dialog's height genuinely shrinks when the steps field hides for
+  "Suggestion" and grows back for "Bug." Mirrored byte-identical across both trees
+  where shared (`Message`/`FeedbackManager`/`ClientHandler`; `FeedbackDialog` is
+  client-only); both compile clean.
 - **Mutual friends, shown on profiles** - the first "small stuff" item after tonight's
   infrastructure pass. `FriendManager.getMutualFriendUsernames(accountIdA, accountIdB)`
   computes the intersection of two accounts' friend lists (deliberately simple and
@@ -1062,9 +1090,14 @@ recorded below as they're confirmed.
 
 - **Standalone Forums section** — Reddit-style boards (one per game, plus general
   discussion), separate from group chats.
-- **Structured bug reports & suggestions** — `FeedbackDialog`/`GameSuggestionsPanel`
-  already exist but are single free-text fields; add real title/description fields,
-  plus steps-to-reproduce for bug reports specifically.
+- **`GameSuggestionsPanel` structuring** — the other half of this item; `FeedbackDialog`
+  (bug reports/suggestions about Vertex itself) is done, see "Done" below.
+  `GameSuggestionsPanel` is a genuinely different, smaller feature though (pitching a
+  brand-new game idea for the platform, not reporting a problem with it) - just one
+  `ThemedTextField` today, which for a one-line "pitch an idea" wishlist may already be
+  the right amount of structure rather than needing the same title/description/steps
+  treatment. Left open rather than guessed at; worth a real look (not just copying
+  FeedbackDialog's shape) before changing it.
 - **Slash commands + a free pattern-matching chatbot** — `/help`, `/rules chess`,
   `/theme`, `/challenge @friend`, etc. Deliberately *not* a real LLM chatbot (that
   costs money per message and needs an API key) — free and instant by design. A

@@ -5,6 +5,7 @@ import net.MessageType;
 import net.Message;
 import theme.UITheme;
 import ui.ThemedTextArea;
+import ui.ThemedTextField;
 import ui.ThemedButton;
 import theme.ThemeManager;
 import theme.ThemeColor;
@@ -76,6 +77,41 @@ public class FeedbackDialog
         final ThemedButton suggestionButton = new ThemedButton("Suggestion", false);
         suggestionButton.setPreferredSize(new Dimension(130, 36));
 
+        JPanel typeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        typeRow.setOpaque(false);
+        typeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        typeRow.add(bugButton);
+        typeRow.add(suggestionButton);
+        body.add(typeRow);
+        body.add(Box.createVerticalStrut(14));
+
+        final ThemedTextField titleField = new ThemedTextField("Short title");
+        titleField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        body.add(titleField);
+        body.add(Box.createVerticalStrut(10));
+
+        final ThemedTextArea textArea = new ThemedTextArea(
+            "Describe what happened, or what you'd like to see", 5);
+        textArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        textArea.setPreferredSize(new Dimension(380, 110));
+        textArea.setMaximumSize(new Dimension(2000, 110));
+        body.add(textArea);
+
+        // Steps to reproduce only makes sense for a bug report - shown/hidden (not
+        // just disabled) when the type toggle changes, with the dialog re-packed to
+        // the new content height each time.
+        final ThemedTextArea stepsArea = new ThemedTextArea("Steps to reproduce (optional)", 4);
+        stepsArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+        stepsArea.setPreferredSize(new Dimension(380, 90));
+        stepsArea.setMaximumSize(new Dimension(2000, 90));
+        final JPanel stepsWrapper = new JPanel();
+        stepsWrapper.setOpaque(false);
+        stepsWrapper.setLayout(new BoxLayout(stepsWrapper, BoxLayout.Y_AXIS));
+        stepsWrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
+        stepsWrapper.add(Box.createVerticalStrut(10));
+        stepsWrapper.add(stepsArea);
+        body.add(stepsWrapper);
+
         final boolean[] isBug = { true };
         bugButton.addActionListener(new ActionListener()
         {
@@ -84,6 +120,9 @@ public class FeedbackDialog
                 isBug[0] = true;
                 bugButton.setPrimary(true);
                 suggestionButton.setPrimary(false);
+                stepsWrapper.setVisible(true);
+                body.revalidate();
+                dialog.pack();
             }
         });
         suggestionButton.addActionListener(new ActionListener()
@@ -93,23 +132,11 @@ public class FeedbackDialog
                 isBug[0] = false;
                 bugButton.setPrimary(false);
                 suggestionButton.setPrimary(true);
+                stepsWrapper.setVisible(false);
+                body.revalidate();
+                dialog.pack();
             }
         });
-
-        JPanel typeRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        typeRow.setOpaque(false);
-        typeRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        typeRow.add(bugButton);
-        typeRow.add(suggestionButton);
-        body.add(typeRow);
-        body.add(Box.createVerticalStrut(14));
-
-        final ThemedTextArea textArea = new ThemedTextArea(
-            "What happened, or what would you like to see?", 6);
-        textArea.setAlignmentX(Component.LEFT_ALIGNMENT);
-        textArea.setPreferredSize(new Dimension(380, 140));
-        textArea.setMaximumSize(new Dimension(2000, 140));
-        body.add(textArea);
 
         final JLabel errorLabel = new JLabel(" ");
         errorLabel.setFont(UITheme.FONT_SMALL);
@@ -137,6 +164,12 @@ public class FeedbackDialog
         {
             public void actionPerformed(ActionEvent e)
             {
+                String titleText = titleField.getValue();
+                if (titleText.length() < 3)
+                {
+                    errorLabel.setText("Give it a short title first.");
+                    return;
+                }
                 String text = textArea.getValue();
                 if (text.length() < 3)
                 {
@@ -144,8 +177,9 @@ public class FeedbackDialog
                     return;
                 }
 
+                String steps = isBug[0] ? stepsArea.getValue() : "";
                 dialog.dispose();
-                submitFeedback(isBug[0] ? "BUG" : "SUGGESTION", text);
+                submitFeedback(isBug[0] ? "BUG" : "SUGGESTION", titleText, text, steps);
             }
         });
 
@@ -158,12 +192,14 @@ public class FeedbackDialog
         dialog.setVisible(true);
     }
 
-    private static void submitFeedback(final String type, final String text)
+    private static void submitFeedback(final String type, final String title, final String text, final String steps)
     {
         final Message request = new Message();
         request.setType(MessageType.FEEDBACK_SUBMIT_REQUEST);
         request.setFeedbackType(type);
+        request.setFeedbackTitle(title);
         request.setFeedbackText(text);
+        request.setFeedbackSteps(steps);
 
         Thread worker = new Thread(new Runnable()
         {
