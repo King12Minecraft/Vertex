@@ -391,6 +391,35 @@ practice mode runs on its own `MemoryMatchPracticeMatch` rather than the shared
 one shared state, which doesn't hold when part of the state (face-down cards) is
 genuinely secret.
 
+## dominion — Vertex: Dominion's core simulation (server-only for now)
+
+Full design in `DOMINION_DESIGN.md`. Deliberately built server-only so far -
+`VertexClient` has no `dominion` package yet and isn't expected to until the client
+UI (build order step 4) actually needs read-only DTOs to render; not yet added to
+CLAUDE.md's byte-identical sync-rule list for exactly that reason - it'll be added
+once there's real client-side code under this package to keep in sync. `Province`
+(one grid tile - terrain, owning nation id, orthogonal-only adjacency),
+`Nation` (V1: one account per nation - treasury, honor, no council/members yet),
+`Army` (single generic unit type, a `marchOrderTargetProvinceId` holding a queued
+order until the next tick), `RelationType`/`DiplomaticRelation` (NEUTRAL/ALLIANCE/
+NON_AGGRESSION/WAR between two nations - a declared WAR is deliberately not
+immediately active, `effectiveFromTick` is always current tick + 1, a strategic-
+pacing choice not a technical one), `DominionWorld` (all live state in memory -
+persistence is a later build-order step, not yet wired to disk), and
+`DominionTickEngine` (the once-per-day resolution pass: advances the clock, then
+resolves every army's standing march order - an uncontested claim onto unclaimed
+territory, a simple relocation onto the army's own territory, or a decisive
+win/loss combat resolution when marching into contested enemy territory during an
+active war - combat power is troop count x a terrain defense multiplier, no
+partial attrition or unit-type variety yet, matching V1's intentionally small
+scope). Proven with a 16-check test covering exactly the scenario the design's
+build order calls for (two nations, a declared war, an army march, a combat
+outcome, a province flipping ownership) plus edge cases (unclaimed capture,
+own-territory relocation, march blocked with no war declared, an invalid
+non-adjacent march order being silently ignored) - no networking, UI, or
+persistence exists yet, intentionally; see `DOMINION_DESIGN.md`'s build order for
+what's next (persistence, then networking, then the client's persistent nav tab).
+
 ## ai — four independent toolkits, unified by one philosophy
 
 Nearly every class in this package states the same rule in its javadoc: **advisory

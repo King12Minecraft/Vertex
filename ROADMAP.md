@@ -46,6 +46,20 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Vertex: Dominion, build order step 1: core data model + tick engine, proven in
+  isolation.** `DOMINION_DESIGN.md`'s build order calls for the simulation core to
+  exist and be tested before any networking, persistence, or UI - that's what this
+  is. New `dominion` package (server-only for now - see `PROGRAM_STRUCTURE.md` for
+  why): `Province`/`Nation`/`Army`/`RelationType`/`DiplomaticRelation` as the data
+  model, `DominionWorld` holding all live state in memory, `DominionTickEngine` as
+  the once-per-day resolution pass (a declared war becomes active next tick, not
+  immediately; an army's queued march order resolves into an uncontested claim,
+  a same-nation relocation, or decisive combat depending on what's at the
+  destination). Verified with a 16-check test covering the exact scenario the
+  design's build order specifies (two nations, a declared war, a march, a combat
+  outcome, a province flipping ownership) plus edge cases. Next build-order steps:
+  persistence, then networking, then the client's persistent nav tab - none of
+  that exists yet, on purpose.
 - **Reconnection grace period rolled out to Connect Four, Checkers, Reversi, and Dots
   and Boxes** - the same `disconnectedSlot` / `ReconnectRegistry.beginGracePeriod` /
   `onReconnect` / `onReconnectTimeout` shape `TicTacToeMatch` proved (see its own
