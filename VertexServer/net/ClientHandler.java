@@ -1117,6 +1117,11 @@ public class ClientHandler implements Runnable
             sendMuteNotice();
             return null;
         }
+        if (isFloodLimited("chat", 10, 5000))
+        {
+            sendFloodNotice();
+            return null;
+        }
 
         String toUsername = request.getToUsername();
         if (toUsername == null) return null;
@@ -1165,6 +1170,12 @@ public class ClientHandler implements Runnable
             response.setErrorText("Not logged in.");
             return response;
         }
+        if (isFloodLimited("group-create", 3, 60000))
+        {
+            response.setSuccess(false);
+            response.setErrorText("You're doing that too fast - slow down a bit.");
+            return response;
+        }
 
         GroupChatManager.Group group = groupChatManager.createGroup(
             loggedInUsername, request.getGroupName(), request.getMemberUsernames());
@@ -1182,6 +1193,11 @@ public class ClientHandler implements Runnable
             if (moderationManager.isMuted(loggedInUsername))
             {
                 sendMuteNotice();
+                return null;
+            }
+            if (isFloodLimited("chat", 10, 5000))
+            {
+                sendFloodNotice();
                 return null;
             }
             Account account = accountStore.findByUsername(loggedInUsername);
@@ -1308,6 +1324,45 @@ public class ClientHandler implements Runnable
         Message notice = new Message();
         notice.setType(MessageType.ERROR_NOTICE);
         notice.setErrorText("You're muted and can't send messages right now.");
+        sendMessage(notice);
+    }
+
+    // Per-connection flood protection for social/chat actions. run()'s read loop has no
+    // built-in throttle at all, so a client could otherwise spam private messages, group
+    // creation, or friend requests in a tight loop with zero cost - this is a lightweight
+    // sliding-window cap per action "bucket" (each bucket independent, so spamming one
+    // kind of action doesn't trip the limiter on an unrelated one). Deliberately scoped to
+    // social actions only, not gameplay message types - real-time games legitimately send
+    // frequent state-update messages and a blanket per-connection limiter risks throttling
+    // normal play.
+    private final java.util.Map<String, java.util.Deque<Long>> floodWindows = new java.util.HashMap<String, java.util.Deque<Long>>();
+
+    private boolean isFloodLimited(String bucket, int maxPerWindow, long windowMs)
+    {
+        long now = System.currentTimeMillis();
+        java.util.Deque<Long> timestamps = floodWindows.get(bucket);
+        if (timestamps == null)
+        {
+            timestamps = new java.util.ArrayDeque<Long>();
+            floodWindows.put(bucket, timestamps);
+        }
+        while (!timestamps.isEmpty() && now - timestamps.peekFirst() > windowMs)
+        {
+            timestamps.pollFirst();
+        }
+        if (timestamps.size() >= maxPerWindow)
+        {
+            return true;
+        }
+        timestamps.addLast(now);
+        return false;
+    }
+
+    private void sendFloodNotice()
+    {
+        Message notice = new Message();
+        notice.setType(MessageType.ERROR_NOTICE);
+        notice.setErrorText("You're doing that too fast - slow down a bit.");
         sendMessage(notice);
     }
 
@@ -1598,6 +1653,12 @@ public class ClientHandler implements Runnable
         {
             response.setSuccess(false);
             response.setErrorText("Not logged in.");
+            return response;
+        }
+        if (isFloodLimited("friend-request", 5, 30000))
+        {
+            response.setSuccess(false);
+            response.setErrorText("You're doing that too fast - slow down a bit.");
             return response;
         }
 

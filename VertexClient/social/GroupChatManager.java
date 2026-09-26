@@ -34,6 +34,14 @@ public class GroupChatManager
         this.chatManager = chatManager;
     }
 
+    // A client fully controls the size of the incoming list - with no cap, a single
+    // malicious GROUP_CREATE_REQUEST carrying an enormous member list (still well within
+    // VertexSerializationFilter's much looser global byte/element limits) would force this
+    // loop, and its per-entry findByUsername lookup, to run once per entry: a cheap way to
+    // burn a large amount of server CPU from one request. No real group needs more than a
+    // small handful of invitees at creation time.
+    private static final int MAX_REQUESTED_MEMBERS = 50;
+
     public synchronized Group createGroup(String ownerUsername, String requestedName, List<String> requestedMembers)
     {
         String name = (requestedName == null || requestedName.trim().isEmpty()) ? "Unnamed Group" : requestedName.trim();
@@ -43,7 +51,8 @@ public class GroupChatManager
         List<String> actuallyAdded = new ArrayList<String>();
         if (requestedMembers != null)
         {
-            for (int i = 0; i < requestedMembers.size(); i++)
+            int limit = Math.min(requestedMembers.size(), MAX_REQUESTED_MEMBERS);
+            for (int i = 0; i < limit; i++)
             {
                 String candidate = requestedMembers.get(i);
                 if (candidate == null) continue;

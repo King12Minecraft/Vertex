@@ -44,6 +44,34 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Security: chat/social flood protection + a group-creation CPU-exhaustion fix** — an
+  audit (part of the same "harden security like crazy" pass) found `ClientHandler.run()`'s
+  read loop has zero built-in throttle: a client could spam private messages, group
+  messages, group creation, or friend requests in a tight loop at no cost. Deliberately
+  did NOT add a blanket per-connection rate limit across every message type, since
+  real-time games (Among Us, Fight Arena, etc.) legitimately send frequent state-update
+  messages and a blanket cap risks throttling normal gameplay - instead added a small
+  per-connection sliding-window limiter (`ClientHandler.isFloodLimited(bucket, max,
+  windowMs)`) scoped only to social actions: chat (private + group messages share one
+  bucket so switching message type doesn't dodge the cap; 10/5s), group creation (3/60s),
+  and friend requests (5/30s), each independent so spamming one doesn't false-trigger
+  another's cooldown. The audit also found a genuine CPU-exhaustion vector completely
+  separate from rate limiting: `GroupChatManager.createGroup()` looped over the client-
+  supplied member list with no size cap, calling a lookup per entry - a single
+  GROUP_CREATE_REQUEST with an enormous member list (still well within
+  VertexSerializationFilter's much looser global limits) would force a huge amount of
+  server CPU work from one request. Fixed with a `MAX_REQUESTED_MEMBERS = 50` cap
+  independent of the flood limiter (real groups never need more invitees than that
+  anyway). The same audit confirmed two other candidate areas were already solid:
+  every other server-side file write/read uses a fixed filename, not a client-controlled
+  one (no other path-traversal surface remains beyond the already-fixed AvatarStore), and
+  6 spot-checked admin/moderator actions all correctly re-verify the caller's role
+  server-side rather than trusting the client. Verified: a throwaway test
+  (`FloodTest.java`) confirms a 500,000-entry requested-member list still returns in a
+  few milliseconds instead of iterating in full; a standalone copy of the sliding-window
+  algorithm (`SlidingWindowLogicTest.java`) confirms N sends are allowed, the N+1th is
+  blocked, access returns once the window passes, and separate buckets don't cross-
+  contaminate. Mirrored byte-identical across both trees; both compile clean.
 - **Security: login lockout made actually temporary, plus closed a username-enumeration
   oracle** — two more findings from the same hardening pass as the username-format fix
   below. (1) `attemptLogin()`'s lockout was a permanent flag (`Map<String, Boolean>`)
