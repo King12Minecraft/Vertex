@@ -100,14 +100,23 @@ every change; trust it over your own assumptions about project state.
 
 ## Standing schedule (if you're an autonomous/scheduled session)
 
-Bipin runs nightly autonomous work sessions, roughly 11 PM–5 AM IST (he's in
-India), self-scheduled via a recurring trigger. Standing instructions for those
-sessions: work continuously through `ROADMAP.md`'s backlog and the games concept
-backlog; never stop for a blocked question (record it, make a reversible
-assumption if one exists, move to independent work); pace token/usage
-consumption to leave roughly half the budget unused by the end of the window;
-keep the project buildable and fully committed+pushed after every unit of work,
-never leave a broken intermediate state on `main`.
+Bipin runs autonomous work sessions on Monday/Wednesday/Friday nights, roughly
+11 PM–5 AM IST (he's in India), self-scheduled via a recurring trigger -
+cut back from every night (2026-09-26) specifically to control weekly usage;
+don't unilaterally add more nights back without him asking. Standing
+instructions for those sessions: work continuously through `ROADMAP.md`'s
+backlog and the games concept backlog; never stop for a blocked question
+(record it, make a reversible assumption if one exists, move to independent
+work); self-pace check-ins at roughly 45–60 minutes apart, not the tighter
+20–30 minutes used earlier in this project (fewer, larger check-ins means
+fewer billed round-trips for the same work) - a shorter gap is fine only when
+genuinely waiting on something time-sensitive (a build, a test run); pace
+token/usage consumption to use at most ~25–30% of the budget by the end of
+the window (tightened 2026-09-26 from "leave roughly half unused" - same
+weekly-usage reason as the schedule cutback), stopping at a clean checkpoint
+once that cap is reached even if the window isn't over rather than continuing
+to spend down the rest; keep the project buildable and fully committed+pushed
+after every unit of work, never leave a broken intermediate state on `main`.
 
 ## A note on git hygiene
 
