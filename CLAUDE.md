@@ -101,13 +101,18 @@ every change; trust it over your own assumptions about project state.
 
 ## Standing schedule (if you're an autonomous/scheduled session)
 
-Bipin runs autonomous work sessions nightly, roughly 11 PM–5 AM IST (he's in
-India), self-scheduled via a recurring trigger. Briefly cut back to Monday/
-Wednesday/Friday only (2026-09-26) to control weekly usage, then reverted to
-nightly the same day once that week's usage limit reset removed the pressure
-- don't unilaterally cut nights again without him asking; he'll say so if
-weekly usage becomes a problem again. Standing instructions for those
-sessions: work continuously through `ROADMAP.md`'s
+Bipin runs autonomous work sessions on Monday/Wednesday/Friday nights, roughly
+11 PM–5 AM IST (he's in India) - the standing recurring "Vertex Nightly Work"
+trigger, settled 2026-09-26 to control weekly usage (briefly tried nightly
+that same day when a usage-limit reset removed the immediate pressure, but
+Mon/Wed/Fri is the actual standing schedule - don't unilaterally add nights
+back to the recurring trigger without him asking). Separately, one-off
+sessions outside that pattern (e.g. a weekend night he specifically wants
+worked) run as their own one-shot triggers bound to this same session rather
+than by changing the recurring one - if you're a fresh session picking this
+up, check `list_triggers` for anything beyond "Vertex Nightly Work" before
+assuming Mon/Wed/Fri is the only thing scheduled. Standing instructions for
+those sessions: work continuously through `ROADMAP.md`'s
 backlog and the games concept backlog; never stop for a blocked question
 (record it, make a reversible assumption if one exists, move to independent
 work); self-pace check-ins at roughly 45–60 minutes apart, not the tighter
