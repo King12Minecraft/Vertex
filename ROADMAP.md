@@ -44,6 +44,23 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Mutual friends, shown on profiles** - the first "small stuff" item after tonight's
+  infrastructure pass. `FriendManager.getMutualFriendUsernames(accountIdA, accountIdB)`
+  computes the intersection of two accounts' friend lists (deliberately simple and
+  uncached, matching the existing `getFriendUsernames`' own O(n)-scan shape rather than
+  a new data structure for one small feature). Wired into the existing
+  `PLAYER_PROFILE_RESPONSE` handler (`handlePlayerProfile`) - only computed when
+  actually viewing someone *else's* profile while logged in (left `null`, not an empty
+  list, for your own profile or as a guest, so the client can tell "nothing in common"
+  apart from "not applicable"). `PlayerProfileDialog` gained a "MUTUAL FRIENDS" section
+  matching its existing Ratings/Achievements sections' look, shown only when the field
+  is non-null. Verified with a 6-check test building a real 5-account friend graph via
+  the production `sendRequest`/`acceptRequest` flow (confirms the exact expected
+  intersection, symmetry in both directions, and an empty-not-null result for two
+  accounts with nothing in common) plus an Xvfb/Swing check confirming all three
+  render states (has mutual friends, zero mutual friends, own-profile-no-section-at-all).
+  Mirrored byte-identical across both trees where shared (`FriendManager`/`Message`/
+  `ClientHandler`; `PlayerProfileDialog` is client-only); both compile clean.
 - **`MatchmakingKernel` rolled out to a second game: `ConnectFourMatchManager`.**
   Same retrofit as `CheckersMatchManager` below, and found one real generalization
   the first adopter hadn't needed: Connect Four's matches use a `"connect4-N"` matchId
@@ -1045,8 +1062,6 @@ recorded below as they're confirmed.
 
 - **Standalone Forums section** — Reddit-style boards (one per game, plus general
   discussion), separate from group chats.
-- **Mutual friends** — shown on profiles, computed from the intersection of two
-  friends lists.
 - **Structured bug reports & suggestions** — `FeedbackDialog`/`GameSuggestionsPanel`
   already exist but are single free-text fields; add real title/description fields,
   plus steps-to-reproduce for bug reports specifically.

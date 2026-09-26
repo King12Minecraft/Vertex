@@ -649,7 +649,9 @@ Dialog`, `ChangeUsernameDialog`, `ProfilePanel`/`PlayerProfileDialog` — no coi
 shown on other players' profiles).
 
 **social** = relationships and live communication once you're in:
-`FriendManager.java` (requests/list, presence broadcast on login/logout),
+`FriendManager.java` (requests/list, presence broadcast on login/logout,
+`getMutualFriendUsernames(a, b)` powering the profile dialog's "Mutual Friends"
+section),
 `ChatManager.java` (tracks connected clients by username, DM routing, broadcast),
 `GroupChatManager.java`, `PartyManager.java`/`Party.java` (play-together groups,
 feeding `TeamTournamentManager`), `ModerationManager.java` (mute/kick/ban, keyed by

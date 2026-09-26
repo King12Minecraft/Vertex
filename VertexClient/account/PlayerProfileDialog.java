@@ -211,6 +211,27 @@ public class PlayerProfileDialog
             }
         }
 
+        // null (not just empty) means "viewing your own profile" - the server never
+        // computes a meaningless "mutual friends with yourself" list, so this section
+        // is skipped entirely rather than showing "No mutual friends."
+        List<String> mutualFriends = response.getMutualFriendUsernames();
+        if (mutualFriends != null)
+        {
+            body.add(Box.createVerticalStrut(18));
+            body.add(sectionLabel("MUTUAL FRIENDS"));
+            if (mutualFriends.isEmpty())
+            {
+                body.add(mutedLine("No mutual friends."));
+            }
+            else
+            {
+                for (int i = 0; i < mutualFriends.size(); i++)
+                {
+                    body.add(mutedLine(mutualFriends.get(i)));
+                }
+            }
+        }
+
         body.revalidate();
         body.repaint();
         dialog.pack();

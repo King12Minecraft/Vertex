@@ -238,6 +238,7 @@ public class Message implements Serializable
     private java.util.List<String> friendUsernames;
     private java.util.List<String> pendingIncomingUsernames;
     private java.util.List<String> onlineFriendUsernames;
+    private java.util.List<String> mutualFriendUsernames;
     private boolean online;
 
     /** Accepted friends - FRIEND_LIST_RESPONSE. */
@@ -251,6 +252,10 @@ public class Message implements Serializable
     /** Subset of friendUsernames who are currently online, as of FRIEND_LIST_RESPONSE. */
     public java.util.List<String> getOnlineFriendUsernames() { return onlineFriendUsernames; }
     public void setOnlineFriendUsernames(java.util.List<String> onlineFriendUsernames) { this.onlineFriendUsernames = onlineFriendUsernames; }
+
+    /** Friends the viewer and the profile being viewed have in common - PLAYER_PROFILE_RESPONSE only, null/empty when viewing your own profile (see FriendManager.getMutualFriendUsernames). */
+    public java.util.List<String> getMutualFriendUsernames() { return mutualFriendUsernames; }
+    public void setMutualFriendUsernames(java.util.List<String> mutualFriendUsernames) { this.mutualFriendUsernames = mutualFriendUsernames; }
 
     /** Used on FRIEND_STATUS_UPDATE - whether the named friend (see username) just came online or went offline. */
     public boolean isOnline() { return online; }

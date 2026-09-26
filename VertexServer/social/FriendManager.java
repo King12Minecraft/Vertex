@@ -229,6 +229,28 @@ public class FriendManager
         return result;
     }
 
+    /**
+     * Friends accountIdA and accountIdB have in common - for a "N mutual friends"
+     * note on someone else's profile. The intersection of each account's own friend
+     * list; deliberately simple and uncached, matching getFriendUsernames' own
+     * O(n)-scan-every-account shape rather than a new data structure for one small
+     * feature.
+     */
+    public synchronized List<String> getMutualFriendUsernames(int accountIdA, int accountIdB)
+    {
+        List<String> result = new ArrayList<String>();
+        List<String> aFriends = getFriendUsernames(accountIdA);
+        for (int i = 0; i < aFriends.size(); i++)
+        {
+            Account friend = accountStore.findByUsername(aFriends.get(i));
+            if (friend != null && areFriends(friend.getAccountId(), accountIdB))
+            {
+                result.add(friend.getUsername());
+            }
+        }
+        return result;
+    }
+
     public synchronized List<String> getPendingIncomingUsernames(int accountId)
     {
         List<String> result = new ArrayList<String>();

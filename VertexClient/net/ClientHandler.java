@@ -786,6 +786,14 @@ public class ClientHandler implements Runnable
         response.setItemId(target.getEquippedFrameId());
         response.setUnlockedAchievementIds(new java.util.ArrayList<String>(achievementManager.getUnlocked(target.getAccountId())));
         response.setSyncRatings(leaderboardManager.getAllRatingsForAccount(target.getAccountId()));
+
+        // Mutual friends - only meaningful when actually viewing someone ELSE's
+        // profile while logged in yourself; left null viewing your own profile or as
+        // a guest, rather than computing a meaningless "mutual friends with myself."
+        if (loggedInAccountId != null && !loggedInAccountId.equals(target.getAccountId()))
+        {
+            response.setMutualFriendUsernames(friendManager.getMutualFriendUsernames(loggedInAccountId, target.getAccountId()));
+        }
         return response;
     }
 
