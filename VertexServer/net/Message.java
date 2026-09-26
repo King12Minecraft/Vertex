@@ -795,4 +795,26 @@ public class Message implements Serializable
     /** True on the very last TELEPHONE_REVEAL_ENTRY of the match, so the client knows the reveal stream is complete rather than waiting on a message that isn't coming. */
     public boolean isTelephoneRevealDone() { return telephoneRevealDone; }
     public void setTelephoneRevealDone(boolean telephoneRevealDone) { this.telephoneRevealDone = telephoneRevealDone; }
+
+    // ---- Vertex: Dominion (see dominion package, DOMINION_DESIGN.md) ----
+    private String dominionNationName;
+    private Integer dominionProvinceId;
+    private Integer dominionNationId;
+    private dominion.DominionSnapshot dominionSnapshot;
+
+    /** The player-chosen name for a new Nation - DOMINION_FOUND_NATION_REQUEST. Not yet validated anywhere (see Nation.java's javadoc) - must reject "|" before this reaches DominionStore's pipe-delimited save format. */
+    public String getDominionNationName() { return dominionNationName; }
+    public void setDominionNationName(String dominionNationName) { this.dominionNationName = dominionNationName; }
+
+    /** The starting province to claim - DOMINION_FOUND_NATION_REQUEST. Must be unclaimed; the server re-verifies this, never trusts it. */
+    public Integer getDominionProvinceId() { return dominionProvinceId; }
+    public void setDominionProvinceId(Integer dominionProvinceId) { this.dominionProvinceId = dominionProvinceId; }
+
+    /** The founded/relevant Nation's id - DOMINION_FOUND_NATION_RESPONSE. */
+    public Integer getDominionNationId() { return dominionNationId; }
+    public void setDominionNationId(Integer dominionNationId) { this.dominionNationId = dominionNationId; }
+
+    /** A full snapshot of the Dominion world - DOMINION_STATE_RESPONSE. V1 has no fog of war (see DOMINION_DESIGN.md's Future Depth section), so this deliberately includes everything, not just the requester's own nation. */
+    public dominion.DominionSnapshot getDominionSnapshot() { return dominionSnapshot; }
+    public void setDominionSnapshot(dominion.DominionSnapshot dominionSnapshot) { this.dominionSnapshot = dominionSnapshot; }
 }

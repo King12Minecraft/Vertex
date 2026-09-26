@@ -37,12 +37,16 @@ every change; trust it over your own assumptions about project state.
 - **Two projects, `VertexClient/` and `VertexServer/`, not one.** `VertexClient/`
   is the edit-source-of-truth for anything shared between them (networking, game
   rule engines, account/economy/social logic). **The sync rule:** every file
-  under `net`/`account`/`social`/`admin`/`economy`/`games` (except each game's
-  Window/Dialog classes, which are client-only) must stay byte-identical between
-  the two trees. Edit in `VertexClient/`, copy the same file to the matching path
-  in `VertexServer/`, diff to confirm. This has already caused two real bugs this
-  project (a practice-reward fix and a `ClientHandler.java` drift) from someone
-  forgetting the second half of that rule — check with `diff`, don't assume.
+  under `net`/`account`/`social`/`admin`/`economy`/`games`/`dominion` (except each
+  game's Window/Dialog classes, which are client-only) must stay byte-identical
+  between the two trees. Edit in `VertexClient/`, copy the same file to the
+  matching path in `VertexServer/`, diff to confirm. This has already caused two
+  real bugs this project (a practice-reward fix and a `ClientHandler.java` drift)
+  from someone forgetting the second half of that rule — check with `diff`, don't
+  assume. `dominion` was added to this list 2026-09-26 once its networking layer
+  made `net/Message.java`/`net/ClientHandler.java` (both already on this list)
+  reference `dominion.*` types directly - before that it was deliberately
+  server-only with no client-side code to keep in sync at all.
 - **Hosting is `VertexServer.jar`-only, deliberately.** The ordinary client
   (`VertexClient.jar`) has no way to start a server from inside the app — that
   feature (`HostServerDialog`, a "Start Hosting" Settings button) was removed

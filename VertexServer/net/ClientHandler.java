@@ -163,6 +163,7 @@ public class ClientHandler implements Runnable
     private final FeedbackManager feedbackManager;
     private final GameSuggestionStore gameSuggestionStore;
     private final AvatarStore avatarStore;
+    private final dominion.DominionManager dominionManager;
 
     public ClientHandler(Socket socket, ServerAccountStore accountStore, GameRegistry gameRegistry,
                           MatchManager matchManager, ChatManager chatManager,
@@ -185,7 +186,8 @@ public class ClientHandler implements Runnable
                           DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
                           TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
                           TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager,
-                          CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager)
+                          CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager,
+                          dominion.DominionManager dominionManager)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -232,6 +234,7 @@ public class ClientHandler implements Runnable
         this.signalGridMatchManager = signalGridMatchManager;
         this.cardRushMatchManager = cardRushMatchManager;
         this.telephoneMatchManager = telephoneMatchManager;
+        this.dominionManager = dominionManager;
     }
 
     public String getLoggedInUsername() { return loggedInUsername; }
@@ -543,6 +546,8 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.TELEPHONE_FIND_MATCH_REQUEST) return handleTelephoneFindMatch();
         if (request.getType() == MessageType.TELEPHONE_LEAVE_QUEUE_REQUEST) return handleTelephoneLeaveQueue();
         if (request.getType() == MessageType.TELEPHONE_SUBMIT_REQUEST) return handleTelephoneSubmit(request);
+        if (request.getType() == MessageType.DOMINION_FOUND_NATION_REQUEST) return handleDominionFoundNation(request);
+        if (request.getType() == MessageType.DOMINION_STATE_REQUEST) return handleDominionState();
 
         Message response = new Message();
         response.setSuccess(false);
@@ -2183,6 +2188,71 @@ public class ClientHandler implements Runnable
             currentTelephoneMatch.submitEntry(this, request.getTelephoneEntryText(), request.getFileData());
         }
         return null;
+    }
+
+    // ==================== Vertex: Dominion ====================
+
+    private Message handleDominionFoundNation(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.DOMINION_FOUND_NATION_RESPONSE);
+
+        if (loggedInUsername == null || loggedInAccountId == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+        if (request.getDominionProvinceId() == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No starting province chosen.");
+            return response;
+        }
+
+        dominion.DominionWorld.FoundNationOutcome outcome = dominionManager.foundNation(
+            loggedInAccountId, request.getDominionNationName(), request.getDominionProvinceId());
+
+        if (outcome.result == dominion.DominionWorld.FoundNationResult.SUCCESS)
+        {
+            response.setSuccess(true);
+            response.setDominionNationId(outcome.nation.getId());
+        }
+        else
+        {
+            response.setSuccess(false);
+            response.setErrorText(describeDominionFoundNationFailure(outcome.result));
+        }
+        return response;
+    }
+
+    private String describeDominionFoundNationFailure(dominion.DominionWorld.FoundNationResult result)
+    {
+        switch (result)
+        {
+            case INVALID_NAME: return "That's not a valid nation name (2-30 letters, digits, spaces, apostrophes, or hyphens).";
+            case ACCOUNT_ALREADY_HAS_NATION: return "You already have a Nation.";
+            case PROVINCE_NOT_FOUND: return "That province doesn't exist.";
+            case PROVINCE_ALREADY_CLAIMED: return "That province is already claimed.";
+            default: return "Could not found a Nation there.";
+        }
+    }
+
+    private Message handleDominionState()
+    {
+        Message response = new Message();
+        response.setType(MessageType.DOMINION_STATE_RESPONSE);
+
+        if (loggedInUsername == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+
+        response.setSuccess(true);
+        response.setDominionSnapshot(dominionManager.getSnapshot());
+        return response;
     }
 
     // ==================== Fight Arena ====================

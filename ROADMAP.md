@@ -46,6 +46,39 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Vertex: Dominion, build order step 3 (first slice): networking - found a
+  nation, view world state.** New `DominionManager` - the single whole-server
+  front door for Dominion (unlike every other game's per-match manager, there is
+  exactly one `DominionWorld` for the entire server), loaded once at startup via
+  `DominionStore` and seeding a deterministic placeholder 10x10 map on first
+  launch (an empty world has nothing to found a Nation on - the real map size/
+  terrain distribution stay "deliberately not decided" per `DOMINION_DESIGN.md`,
+  pending playtesting). Two new message-type pairs:
+  `DOMINION_FOUND_NATION_REQUEST`/`RESPONSE` and `DOMINION_STATE_REQUEST`/
+  `RESPONSE`. `Nation.isValidName()` closes the input-validation gap flagged in
+  step 1/2's entries below - rejects `"|"` (the exact save-format-corruption bug
+  class `ServerAccountStore.isValidUsernameFormat` already guards against for
+  usernames) plus a 2-30 character format check. `DominionSnapshot` is the new
+  client-facing DTO for state responses - V1 has no fog of war yet (see
+  `DOMINION_DESIGN.md`'s Future Depth section) so it deliberately includes
+  everything, and the real domain objects (`Province`/`Nation`/`Army`/
+  `DiplomaticRelation`) double as the wire format directly rather than a
+  parallel read-only view hierarchy, since V1 has nothing to hide yet.
+  **`dominion` joined CLAUDE.md's byte-identical client/server sync-rule list**
+  the moment `Message`/`ClientHandler` (both already on it) started referencing
+  `dominion.*` types directly - it was deliberately server-only before this.
+  Every concrete class reachable from a serialized `Message` (the whole
+  `DominionSnapshot` graph, plus boxed `Integer` for several nullable id fields)
+  had to be explicitly added to `VertexSerializationFilter`'s allow-list -
+  forgetting an entry there is a real, previously-undocumented-in-practice
+  failure mode the filter's own javadoc warns about ("silently fails to
+  deserialize"), so this was verified with a genuine `ObjectOutputStream`/
+  `ObjectInputStream` round trip through the *actual* filter (not just a compile
+  check), as part of a 29-check test also covering `foundNation()`'s full
+  success/failure-outcome matrix and snapshot correctness. Recruit army/march/
+  declare war/diplomacy message types are the next slice of this same
+  build-order step, not yet built. Both trees compile clean and stay
+  byte-identical.
 - **Vertex: Dominion, build order step 2: persistence.** `DominionStore` - its own
   isolated flat file `gamehub_dominion.dat`, same pipe-delimited/type-tagged-line/
   backward-compatible-by-field-count convention `ServerAccountStore` already uses,

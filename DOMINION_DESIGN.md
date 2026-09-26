@@ -197,17 +197,26 @@ replacement for building V1 small first.
 
 ## Build order (once implementation starts)
 
-1. Server-side data model + `DominionTickEngine` core resolution logic, proven with
-   unit tests (a fixed scenario: two nations, a declared war, an army march, a
-   combat outcome, a province flipping ownership) - no networking or UI yet, same
-   "prove the core logic in isolation first" approach `ai/search`'s `Minimax` took.
-2. Persistence (its own isolated store, per the Architecture Decision - not reusing
-   `ServerAccountStore`'s file format for an unrelated domain).
-3. Networking: new message types for founding a nation, viewing the map, queuing
-   orders, viewing diplomacy state - additive to `MessageType`, doesn't touch any
-   existing game's protocol.
-4. Client: the persistent nav tab (already an settled architecture decision), a map
-   view, a nation dashboard, an orders-queue UI.
+1. ✅ **Done.** Server-side data model + `DominionTickEngine` core resolution
+   logic, proven with unit tests (a fixed scenario: two nations, a declared war,
+   an army march, a combat outcome, a province flipping ownership) - no
+   networking or UI yet, same "prove the core logic in isolation first" approach
+   `ai/search`'s `Minimax` took.
+2. ✅ **Done.** Persistence (`DominionStore`, its own isolated flat file, per the
+   Architecture Decision - not reusing `ServerAccountStore`'s format for an
+   unrelated domain).
+3. 🔧 **In progress.** Networking: new message types for founding a nation,
+   viewing the map, queuing orders, viewing diplomacy state - additive to
+   `MessageType`, doesn't touch any existing game's protocol. First slice done
+   (2026-09-26): `DOMINION_FOUND_NATION_REQUEST`/`RESPONSE` and
+   `DOMINION_STATE_REQUEST`/`RESPONSE`, via a new whole-server `DominionManager`
+   (see `PROGRAM_STRUCTURE.md`). This is also the point where `dominion` joined
+   CLAUDE.md's byte-identical client/server sync-rule list, since `Message`/
+   `ClientHandler` (both already on it) now reference `dominion.*` types
+   directly. Remaining for this step: recruit army, queue a march, declare war,
+   propose/respond to a diplomatic relation.
+4. Client: the persistent nav tab (already a settled architecture decision), a
+   map view, a nation dashboard, an orders-queue UI.
 5. Only then: multi-member nations, additional resource types, unit-type variety,
    vassalage/trade, and the procedural ruler/succession layer - each a real,
    separately-scoped follow-up, not bundled into getting V1 playable.

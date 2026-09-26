@@ -391,51 +391,79 @@ practice mode runs on its own `MemoryMatchPracticeMatch` rather than the shared
 one shared state, which doesn't hold when part of the state (face-down cards) is
 genuinely secret.
 
-## dominion — Vertex: Dominion's core simulation (server-only for now)
+## dominion — Vertex: Dominion's core simulation + networking
 
-Full design in `DOMINION_DESIGN.md`. Deliberately built server-only so far -
-`VertexClient` has no `dominion` package yet and isn't expected to until the client
-UI (build order step 4) actually needs read-only DTOs to render; not yet added to
-CLAUDE.md's byte-identical sync-rule list for exactly that reason - it'll be added
-once there's real client-side code under this package to keep in sync. `Province`
-(one grid tile - terrain, owning nation id, orthogonal-only adjacency),
-`Nation` (V1: one account per nation - treasury, honor, no council/members yet),
+Full design in `DOMINION_DESIGN.md`. Now on CLAUDE.md's byte-identical sync-rule
+list (added 2026-09-26 the moment `net/Message.java`/`net/ClientHandler.java`
+started referencing `dominion.*` types directly for the networking layer below) -
+`VertexClient` carries the whole package byte-identical even though, like
+`TicTacToeMatch` and every other match class, the client doesn't actually run the
+authoritative logic itself.
+
+**Data model** (all `Serializable` - see "Networking" below): `Province` (one grid
+tile - terrain, owning nation id, orthogonal-only adjacency), `Nation` (V1: one
+account per nation - treasury, honor, no council/members yet; `isValidName()`
+rejects `"|"` and enforces a 2-30 character letters/digits/spaces/apostrophes/
+hyphens format, the same pipe-delimited-save-format-corruption bug class
+`ServerAccountStore.isValidUsernameFormat` already guards against for usernames),
 `Army` (single generic unit type, a `marchOrderTargetProvinceId` holding a queued
 order until the next tick), `RelationType`/`DiplomaticRelation` (NEUTRAL/ALLIANCE/
 NON_AGGRESSION/WAR between two nations - a declared WAR is deliberately not
 immediately active, `effectiveFromTick` is always current tick + 1, a strategic-
-pacing choice not a technical one), `DominionWorld` (all live state in memory -
-persistence is a later build-order step, not yet wired to disk), and
-`DominionTickEngine` (the once-per-day resolution pass: advances the clock, then
-resolves every army's standing march order - an uncontested claim onto unclaimed
-territory, a simple relocation onto the army's own territory, or a decisive
-win/loss combat resolution when marching into contested enemy territory during an
-active war - combat power is troop count x a terrain defense multiplier, no
-partial attrition or unit-type variety yet, matching V1's intentionally small
-scope), and `DominionStore` (save/load for a `DominionWorld` - its own isolated
-flat file `gamehub_dominion.dat`, same pipe-delimited/type-tagged-line/backward-
-compatible-by-field-count convention as `ServerAccountStore`, one line per record
-with a leading tag (`TICK`/`PROVINCE`/`NATION`/`ARMY`/`RELATION`) since this one
-file holds every entity type rather than one file per type. Deliberately doesn't
-decide *when* to call `save()` - that's a networking-layer decision, step 3, not
-made yet). `DominionTickEngine` proven with a 16-check test covering exactly the
-scenario the design's build order calls for (two nations, a declared war, an army
-march, a combat outcome, a province flipping ownership) plus edge cases (unclaimed
-capture, own-territory relocation, march blocked with no war declared, an invalid
-non-adjacent march order being silently ignored). `DominionStore` proven with a
-20-check test: a full save-then-reload round trip for every entity type including
-a declared-but-not-yet-active war (must survive exactly, not get recomputed
-relative to the new tick), a real mid-game scenario continuing to resolve
-correctly after a reload (a fresh `DominionStore`/`DominionWorld` instance,
-matching this project's usual persistence-test technique), and loading with no
-file present yielding a fresh empty world rather than erroring. No networking or
-UI exists yet, intentionally; see `DOMINION_DESIGN.md`'s build order for what's
-next (networking, then the client's persistent nav tab). One documented gap
-flagged for whenever step 3 adds a real "found a nation" message handler:
-`Nation.getName()`'s javadoc flags that nothing validates a nation name yet - it
-must reject `"|"` once real player input reaches it, the exact bug class
-`ServerAccountStore.isValidUsernameFormat`'s javadoc already documents for
-usernames (a literal `"|"` corrupts `DominionStore`'s pipe-delimited line format).
+pacing choice not a technical one).
+
+**Simulation**: `DominionWorld` (all live state in memory, plus `foundNation()` -
+validates the name, that the account doesn't already have a Nation, and that the
+target province is unclaimed, then allocates a Nation id and claims the province;
+`toSnapshot()` builds the client-facing `DominionSnapshot`) and `DominionTickEngine`
+(the once-per-day resolution pass: advances the clock, then resolves every army's
+standing march order - an uncontested claim onto unclaimed territory, a simple
+relocation onto the army's own territory, or a decisive win/loss combat resolution
+when marching into contested enemy territory during an active war - combat power
+is troop count x a terrain defense multiplier, no partial attrition or unit-type
+variety yet, matching V1's intentionally small scope). Proven with a 16-check test
+covering exactly the scenario the design's build order calls for (two nations, a
+declared war, an army march, a combat outcome, a province flipping ownership) plus
+edge cases.
+
+**Persistence**: `DominionStore` (save/load for a `DominionWorld` - its own
+isolated flat file `gamehub_dominion.dat`, same pipe-delimited/type-tagged-line/
+backward-compatible-by-field-count convention as `ServerAccountStore`, one line
+per record with a leading tag `TICK`/`PROVINCE`/`NATION`/`ARMY`/`RELATION` since
+this one file holds every entity type rather than one file per type). Proven with
+a 20-check test: a full save-then-reload round trip for every entity type
+including a declared-but-not-yet-active war (must survive exactly, not get
+recomputed relative to the new tick), a real mid-game scenario continuing to
+resolve correctly after a reload, and loading with no file present yielding a
+fresh empty world rather than erroring.
+
+**Networking** (build order step 3, first slice - 2026-09-26): `DominionManager`
+is the single whole-server front door - unlike every other game's per-match
+manager, there is exactly one `DominionWorld` for the entire server (loaded once
+at startup via `DominionStore`; seeds a deterministic placeholder 10x10 map on
+first launch if the loaded world has no provinces, since an empty world has
+nothing to found a Nation on - the real map size/terrain distribution are still
+"deliberately not decided" per `DOMINION_DESIGN.md`, pending playtesting).
+`DOMINION_FOUND_NATION_REQUEST`/`RESPONSE` and `DOMINION_STATE_REQUEST`/`RESPONSE`
+are the two message types so far (`ClientHandler.handleDominionFoundNation`/
+`handleDominionState`) - founding a nation and fetching a full world snapshot to
+render. `DominionSnapshot` is the client-facing DTO for state responses - V1 has
+no fog of war (see `DOMINION_DESIGN.md`'s Future Depth section) so it deliberately
+includes every province/nation/army/relation, not just the requester's own. The
+real domain objects (`Province`/`Nation`/`Army`/`DiplomaticRelation`) double as
+the wire format directly rather than a parallel read-only view hierarchy, since
+V1 has nothing to hide yet - a real DTO split becomes worth it once fog of war is
+built. Every concrete class reachable from a serialized `Message` (including
+`DominionSnapshot` and everything inside it, plus boxed `Integer` for the several
+nullable id fields) is explicitly allow-listed in `VertexSerializationFilter` -
+forgetting an entry here is a real, previously-undocumented failure mode
+(`VertexSerializationFilter`'s own javadoc: a missing class "silently fails to
+deserialize"), so this was verified with a *real* `ObjectOutputStream`/
+`ObjectInputStream` round trip through the actual filter (not just a compile
+check) as part of a 29-check networking test, alongside `foundNation()`'s full
+success/failure-outcome matrix and `toSnapshot()` correctness. Recruit army/march/
+declare war/diplomacy message types are the next slice of this same build-order
+step, not yet built; after that, the client's persistent nav tab/map UI (step 4).
 
 ## ai — four independent toolkits, unified by one philosophy
 

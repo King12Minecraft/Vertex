@@ -137,6 +137,7 @@ public class GameServer
     private final ZombieSurvivalMatchManager zombieSurvivalMatchManager = new ZombieSurvivalMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager, leaderboardManager);
     private final SpaceBattleMatchManager spaceBattleMatchManager = new SpaceBattleMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager, leaderboardManager);
     private final AdminLog adminLog = new AdminLog();
+    private final dominion.DominionManager dominionManager = new dominion.DominionManager();
 
     {
         // Wires AchievementManager into the managers that trigger its checks -
@@ -193,7 +194,7 @@ public class GameServer
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
                     airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager,
                     tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager, signalGridMatchManager,
-                    cardRushMatchManager, telephoneMatchManager);
+                    cardRushMatchManager, telephoneMatchManager, dominionManager);
                 Thread thread = new Thread(handler);
                 thread.start();
             }
