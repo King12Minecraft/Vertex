@@ -1,105 +1,62 @@
 package games;
-import net.MessageType;
-import net.Message;
 import economy.LeaderboardManager;
 import social.ChatManager;
 import economy.GameHistoryManager;
 import economy.EconomyManager;
 import net.ClientHandler;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * CheckersMatchManager
  * --------------------
- * Matchmaking for Checkers - same shape as ConnectFourMatchManager.
+ * Matchmaking for Checkers - thin wrapper over the shared MatchmakingKernel
+ * (see its javadoc; this is the first adopter, proving the pattern
+ * generalizes). Supplies the two things that actually vary per game:
+ * how to construct+start a CheckersMatch, and how to attach it to a
+ * ClientHandler.
  */
 public class CheckersMatchManager
 {
     private static final String GAME_ID = "checkers";
 
-    private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
-    private final Map<String, CheckersMatch> activeMatches = new HashMap<String, CheckersMatch>();
-    private int nextMatchId = 1;
-    private final EconomyManager economyManager;
-    private final GameHistoryManager gameHistoryManager;
-    private final ChatManager chatManager;
-    private final LeaderboardManager leaderboardManager;
+    private final MatchmakingKernel<CheckersMatch> kernel;
 
-    public CheckersMatchManager(EconomyManager economyManager, GameHistoryManager gameHistoryManager,
-                                 ChatManager chatManager, LeaderboardManager leaderboardManager)
+    public CheckersMatchManager(final EconomyManager economyManager, GameHistoryManager gameHistoryManager,
+                                 ChatManager chatManager, final LeaderboardManager leaderboardManager)
     {
-        this.economyManager = economyManager;
-        this.gameHistoryManager = gameHistoryManager;
-        this.chatManager = chatManager;
-        this.leaderboardManager = leaderboardManager;
+        kernel = new MatchmakingKernel<CheckersMatch>(GAME_ID, gameHistoryManager, chatManager,
+            new MatchmakingKernel.PairHandler<CheckersMatch>()
+            {
+                public CheckersMatch pair(String matchId, ClientHandler playerA, ClientHandler playerB)
+                {
+                    CheckersMatch match = new CheckersMatch(matchId, playerA, playerB, CheckersMatchManager.this, economyManager, leaderboardManager);
+                    match.start();
+                    return match;
+                }
+
+                public void attach(ClientHandler handler, CheckersMatch match)
+                {
+                    handler.setCurrentCheckersMatch(match);
+                }
+            });
     }
 
-    public synchronized void findMatch(ClientHandler player)
+    public void findMatch(ClientHandler player)
     {
-        if (waitingPlayers.contains(player))
-        {
-            return;
-        }
-
-        if (!waitingPlayers.isEmpty())
-        {
-            ClientHandler opponent = waitingPlayers.remove(0);
-            String matchId = "checkers-" + (nextMatchId++);
-            CheckersMatch match = new CheckersMatch(matchId, opponent, player, this, economyManager, leaderboardManager);
-            activeMatches.put(matchId, match);
-            opponent.setCurrentCheckersMatch(match);
-            player.setCurrentCheckersMatch(match);
-            match.start();
-
-            recordPlay(opponent);
-            recordPlay(player);
-
-            broadcastQueueCount();
-        }
-        else
-        {
-            waitingPlayers.add(player);
-            broadcastQueueCount();
-        }
+        kernel.findMatch(player);
     }
 
-    private void recordPlay(ClientHandler handler)
+    public void cancelWaiting(ClientHandler player)
     {
-        if (handler.getLoggedInUsername() != null && handler.getAccountId() != null)
-        {
-            gameHistoryManager.recordPlay(handler.getAccountId(), GAME_ID);
-        }
+        kernel.cancelWaiting(player);
     }
 
-    public synchronized void cancelWaiting(ClientHandler player)
+    public void endMatch(String matchId)
     {
-        boolean removed = waitingPlayers.remove(player);
-        if (removed)
-        {
-            broadcastQueueCount();
-        }
+        kernel.endMatch(matchId);
     }
 
-    public synchronized void endMatch(String matchId)
+    public int getQueueCount()
     {
-        activeMatches.remove(matchId);
-    }
-
-    public synchronized int getQueueCount()
-    {
-        return waitingPlayers.size();
-    }
-
-    private void broadcastQueueCount()
-    {
-        Message msg = new Message();
-        msg.setType(MessageType.QUEUE_UPDATE);
-        msg.setQueueGameId(GAME_ID);
-        msg.setQueueCount(waitingPlayers.size());
-        chatManager.broadcastToAll(msg);
+        return kernel.getQueueCount();
     }
 }

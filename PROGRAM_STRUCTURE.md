@@ -272,9 +272,23 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   dialogs; has no effect on matchmaking or gameplay.
 - **`MatchManager.java`** — the original reference matchmaking manager (for
   `tictactoe-online`): FIFO pairing queue, constructs the Match, broadcasts queue-count
-  updates. Every other `<Name>MatchManager` follows this same shape with per-game
-  tuning. Also owns the one shared `ReconnectRegistry` instance (`getReconnectRegistry()`),
-  passed into each `TicTacToeMatch` it constructs.
+  updates. Every other `<Name>MatchManager` still follows this same shape with per-game
+  tuning, though it's now also available as `MatchmakingKernel` (below) for a new
+  adopter to build on top of instead of hand-rolling it fresh - `MatchManager` itself
+  stays hand-rolled since retrofitting the reconnection-registry-owning original isn't
+  worth the churn for no behavior change. Also owns the one shared `ReconnectRegistry`
+  instance (`getReconnectRegistry()`), passed into each `TicTacToeMatch` it constructs.
+- **`MatchmakingKernel.java`** — the FIFO waiting-queue shape every `<Name>MatchManager`
+  hand-rolled, extracted generic over the match type via a small `PairHandler`
+  interface (`pair(matchId, a, b)` constructs+starts the match; `attach(handler, match)`
+  wires it to that handler's own `currentXxxMatch`-style field). The kernel itself
+  never constructs, starts, or inspects a match - it only tracks the waiting list and
+  the `matchId -> match` map, delegating everything match-type-specific to the
+  `PairHandler`. First (and so far only) adopter: `CheckersMatchManager`, added
+  2026-09-26 as proof the shared shape actually generalizes (see `ROADMAP.md`) before
+  a wider rollout to the other ~25 `<Name>MatchManager` classes. ELO deliberately
+  isn't part of this - `LeaderboardManager`'s rating math is a separate, already-shared
+  concern untouched by matchmaking queue mechanics.
 - **`ReconnectRegistry.java`** — generic disconnect-grace-period mechanism, keyed by
   accountId (a brand-new `ClientHandler`/socket exists on reconnect, so accountId, not
   the handler reference, is the only stable identity). Any match class can adopt it by

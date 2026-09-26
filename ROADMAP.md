@@ -44,6 +44,36 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`MatchmakingKernel` - the "matchmaking kernel," proven on `CheckersMatchManager`.**
+  Comparing several `<Name>MatchManager` classes side by side (Tic-Tac-Toe's
+  `MatchManager`, `ConnectFourMatchManager`, `CheckersMatchManager`) found them
+  structurally identical across all ~26 online games: the same waiting-player list,
+  the same find/cancel/queue-count/`endMatch` shape, the same `QUEUE_UPDATE`
+  broadcast - varying only in which concrete `Match` class gets constructed and
+  which `ClientHandler` setter attaches it. Extracted that shared shape into
+  `games/MatchmakingKernel.java` (generic over the match type, via a small
+  `PairHandler` interface supplying just the two things that actually vary:
+  construct-and-start the match, and attach it to a `ClientHandler`) and retrofit
+  `CheckersMatchManager` onto it as the first adopter - its public API
+  (`findMatch`/`cancelWaiting`/`endMatch`/`getQueueCount`) is completely unchanged,
+  so its own `CheckersMatch.java` and every external caller needed zero edits;
+  the manager class itself shrank from ~106 lines of hand-rolled queue logic to a
+  ~55-line wrapper naming just what's actually specific to Checkers. Note found
+  along the way: the original ROADMAP wording for this item ("shared ELO/queue
+  logic") assumed ELO and queueing were entangled enough to need one merged kernel -
+  they're not; `LeaderboardManager`'s ELO math is already its own separate, correct,
+  already-shared system untouched by this. Deliberately scoped to one adopter
+  tonight, not all ~26 - the same "prove it, don't roll out everywhere at once"
+  approach `ai/search`/`engine`/`EconomyKernel`/`GameWindowKernel`/reconnection all
+  took; the other 25 `MatchManager` classes are unchanged and equally correct,
+  free to adopt this whenever one is next touched. Verified with an 11-check test
+  (using a real `ClientHandler` subclass, same technique as the reconnection tests)
+  covering FIFO pairing, queue-count transitions, double-`findMatch` not double-
+  queuing a still-waiting player, cancel-waiting, and - the check that actually
+  proves `attach()` wired the real production field rather than something inert -
+  successfully routing a real `handleDisconnect` call through the attached
+  `currentCheckersMatch` field and confirming the opponent gets notified correctly.
+  Mirrored byte-identical across both trees; both compile clean.
 - **`AchievementManager` made data-driven - the "achievements kernel," the next
   planned-infrastructure item after `EconomyKernel`/`GameWindowKernel`.** Unlike
   `EconomyManager`, this one's public API wasn't actually duplicated - 6 sensibly-
@@ -978,8 +1008,13 @@ recorded below as they're confirmed.
   three states.
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
-- **`matchmaking` kernel** — shared ELO/queue logic any new competitive game can
-  register into.
+- **`matchmaking` kernel: rollout to the other ~25 `<Name>MatchManager` classes.**
+  `MatchmakingKernel`/`CheckersMatchManager` (done - see "Done" below) prove the FIFO
+  queue shape generalizes; ELO itself already lives in `LeaderboardManager`
+  separately and isn't part of this kernel (queue mechanics and rating are genuinely
+  different concerns) - "shared ELO/queue logic" in this item's original wording
+  turned out to already be two separate, already-correct systems once actually
+  looked at, not one that needed merging.
 - **Procedural/emergent character system** — a general engine capability (not tied to
   one game): a pool of name/trait/role combinations that get spawned into a game when
   specific triggers fire (a rival general emerges after you conquer 3 provinces, a
