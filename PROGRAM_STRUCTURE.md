@@ -257,7 +257,28 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
 - **`MatchManager.java`** — the original reference matchmaking manager (for
   `tictactoe-online`): FIFO pairing queue, constructs the Match, broadcasts queue-count
   updates. Every other `<Name>MatchManager` follows this same shape with per-game
-  tuning.
+  tuning. Also owns the one shared `ReconnectRegistry` instance (`getReconnectRegistry()`),
+  passed into each `TicTacToeMatch` it constructs.
+- **`ReconnectRegistry.java`** — generic disconnect-grace-period mechanism, keyed by
+  accountId (a brand-new `ClientHandler`/socket exists on reconnect, so accountId, not
+  the handler reference, is the only stable identity). Any match class can adopt it by
+  implementing the small `ReconnectableMatch` interface (`onReconnectTimeout()`,
+  `onReconnect(newHandler)`, `attachToHandler(handler)`) and calling
+  `beginGracePeriod(accountId, this)` from its own disconnect handling - `TicTacToeMatch`
+  is the first (and so far only) adopter, proving the pattern before a wider rollout
+  (see `ROADMAP.md`). `ClientHandler.handleLogin()` calls `tryReconnect(accountId, this)`
+  on successful login and, if a match was waiting, populates the `LOGIN_RESPONSE` with
+  everything the client needs to resume (`reconnectGameId`/`reconnectTurnSymbol` plus
+  the existing `matchId`/`symbol`/`opponentUsername`/`boardState` fields `MATCH_FOUND`
+  already carries) - the client (`AuthWindow.resumeMatchIfPending`) reconstructs the
+  equivalent of a fresh `MATCH_FOUND` + `MATCH_UPDATE` locally from those fields and
+  feeds them straight to a newly-built game window, deliberately not via a second server
+  push to the reconnecting client's own socket (that race is explained in `ROADMAP.md`).
+  A guest (no account) disconnect always forfeits immediately - no stable identity to
+  grant a grace period against. Threading note load-bearing for anyone extending this to
+  another game: `ReconnectRegistry`'s own lock must only ever be acquired either alone,
+  or immediately before calling into the match (never the reverse) - see the class's own
+  javadoc for the full reasoning.
 - **`TournamentManager.java`** — 4-player single-elimination bracket for Battleship and
   Rock Paper Scissors only (both always produce a decisive winner). **`TeamTournament-
   Manager.java`** — team version for Fight Arena's 2v2/3v3, registered by whole

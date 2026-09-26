@@ -2,9 +2,12 @@ package account;
 import pages.OfflineHubWindow;
 import ui.ThemedButton;
 import games.ConnectDialog;
+import games.GameWindowFactory;
 import net.NetworkConfig;
 import theme.UITheme;
 import net.ConnectionIndicator;
+import net.Message;
+import net.MessageType;
 import net.NetworkManager;
 import pages.MainMenu;
 import economy.GuestPlayTracker;
@@ -14,6 +17,7 @@ import games.GameLogo;
 import theme.GlitchEffectOverlay;
 import theme.SignatureOverlay;
 
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
@@ -60,7 +64,7 @@ public class AuthWindow extends JFrame
 
         LoginPanel.LoginSuccessListener onSuccess = new LoginPanel.LoginSuccessListener()
         {
-            public void onLoginSuccess(Account account, String password)
+            public void onLoginSuccess(Account account, String password, Message loginResponse)
             {
                 Session.login(account, password);
                 GuestPlayTracker.flushToServer();
@@ -68,6 +72,7 @@ public class AuthWindow extends JFrame
                 AuthWindow.this.dispose();
                 MainMenu window = new MainMenu();
                 window.setVisible(true);
+                resumeMatchIfPending(loginResponse);
             }
         };
 
@@ -113,6 +118,60 @@ public class AuthWindow extends JFrame
             public void run() { NetworkManager.connect(); }
         });
         connectThread.start();
+    }
+
+    /**
+     * Reconnection: if this login's response carried a pending match (see
+     * ReconnectRegistry/TicTacToeMatch server-side - only tictactoe-online has this
+     * today), jumps straight into that game's window instead of leaving the player on
+     * MainMenu with no idea their match survived a disconnect. Deliberately does NOT
+     * wait for a separate server push for this - the server already re-associated the
+     * match with this session as part of handling the login itself, and everything
+     * needed to resume is already sitting in loginResponse's fields, so this
+     * reconstructs the equivalent of the messages a *fresh* match-found would have
+     * sent (MATCH_FOUND then MATCH_UPDATE) and feeds them to the freshly built window
+     * directly, purely locally - avoiding any race with a real network push arriving
+     * before this window exists to receive it.
+     */
+    private void resumeMatchIfPending(Message loginResponse)
+    {
+        String gameId = loginResponse.getReconnectGameId();
+        if (gameId == null || loginResponse.getMatchId() == null)
+        {
+            return;
+        }
+
+        java.util.function.Supplier<JComponent> factory = GameWindowFactory.factoryFor(gameId);
+        if (factory == null)
+        {
+            return;
+        }
+        JComponent window = factory.get();
+        MainMenu.getInstance().showGame(window);
+
+        if (!(window instanceof NetworkManager.PushListener))
+        {
+            return;
+        }
+        NetworkManager.PushListener listener = (NetworkManager.PushListener) window;
+
+        Message found = new Message();
+        found.setType(MessageType.MATCH_FOUND);
+        found.setMatchId(loginResponse.getMatchId());
+        found.setSymbol(loginResponse.getSymbol());
+        found.setOpponentUsername(loginResponse.getOpponentUsername());
+        found.setBoardState(loginResponse.getBoardState());
+        listener.onPush(found);
+
+        // Corrects whose-turn state MATCH_FOUND alone can't express (it always assumes
+        // a brand new match where X goes first) - reuses the same MATCH_UPDATE shape
+        // and handling every online game already has for a live turn change.
+        Message update = new Message();
+        update.setType(MessageType.MATCH_UPDATE);
+        update.setMatchId(loginResponse.getMatchId());
+        update.setSymbol(loginResponse.getReconnectTurnSymbol());
+        update.setBoardState(loginResponse.getBoardState());
+        listener.onPush(update);
     }
 
     private JPanel createConnectionRow()

@@ -42,6 +42,14 @@ public class Message implements Serializable
     private String opponentUsername;
     private String matchResult;
 
+    // --- Reconnection: set on LOGIN_RESPONSE when the account has a paused match
+    // waiting (see ReconnectRegistry) - reuses matchId/symbol/opponentUsername/boardState
+    // above for the rest (same shape MATCH_FOUND already carries), so these two are the
+    // only genuinely new fields. reconnectTurnSymbol is separate from symbol because they
+    // mean different things at once here: symbol is "my symbol," this is "whose turn." ---
+    private String reconnectGameId;
+    private String reconnectTurnSymbol;
+
     // --- Phase 9: General Chat field. Sender identity reuses "username". ---
     private String chatText;
     private String chatMessageId;
@@ -100,6 +108,12 @@ public class Message implements Serializable
 
     public String getOpponentUsername() { return opponentUsername; }
     public void setOpponentUsername(String opponentUsername) { this.opponentUsername = opponentUsername; }
+
+    public String getReconnectGameId() { return reconnectGameId; }
+    public void setReconnectGameId(String reconnectGameId) { this.reconnectGameId = reconnectGameId; }
+
+    public String getReconnectTurnSymbol() { return reconnectTurnSymbol; }
+    public void setReconnectTurnSymbol(String reconnectTurnSymbol) { this.reconnectTurnSymbol = reconnectTurnSymbol; }
 
     /** "WIN", "LOSE", "DRAW", or "OPPONENT_LEFT" - set on MATCH_OVER. */
     public String getMatchResult() { return matchResult; }

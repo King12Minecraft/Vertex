@@ -914,6 +914,25 @@ public class ClientHandler implements Runnable
             loggedInAccountId = account.getAccountId();
             chatManager.register(this, loggedInUsername);
             friendManager.broadcastPresenceChange(account, true);
+
+            // Reconnection: if this account disconnected mid-match recently enough to
+            // still be in its grace period (see ReconnectRegistry/TicTacToeMatch), this
+            // resumes it - re-associates the match with this brand-new ClientHandler and
+            // carries the info the client needs to jump straight back into the game
+            // (AuthWindow reconstructs the equivalent of MATCH_FOUND+MATCH_UPDATE locally
+            // from these fields once login succeeds, rather than relying on a separate
+            // push that could race the login response itself over the same socket).
+            games.ReconnectRegistry.ReconnectResult reconnect =
+                matchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+            if (reconnect != null)
+            {
+                response.setMatchId(reconnect.matchId);
+                response.setReconnectGameId(reconnect.gameId);
+                response.setSymbol(reconnect.mySymbol);
+                response.setOpponentUsername(reconnect.opponentUsername);
+                response.setBoardState(reconnect.boardState);
+                response.setReconnectTurnSymbol(reconnect.turnSymbol);
+            }
         }
         else
         {

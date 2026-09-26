@@ -43,7 +43,8 @@ public class LoginPanel extends JPanel
     /** Implemented by AuthWindow to know when to open MainMenu. */
     public interface LoginSuccessListener
     {
-        void onLoginSuccess(Account account, String password);
+        /** loginResponse is the full LOGIN_RESPONSE/CREATE_ACCOUNT_RESPONSE message - AuthWindow uses it to check for a pending match reconnect (see ReconnectRegistry) beyond just the account it already carries. */
+        void onLoginSuccess(Account account, String password, Message loginResponse);
     }
 
     private final ThemedTextField usernameField;
@@ -216,7 +217,7 @@ public class LoginPanel extends JPanel
                         {
                             errorLabel.setText(" ");
                             showDailyRewardPopup(LoginPanel.this, response);
-                            successListener.onLoginSuccess(response.getAccount(), password);
+                            successListener.onLoginSuccess(response.getAccount(), password, response);
                         }
                         else
                         {

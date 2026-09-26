@@ -44,6 +44,61 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Reconnection grace period - built and proven on Tic-Tac-Toe, the "prove it on one
+  game first" step the audit deliberately deferred earlier this session.** Every
+  online match previously ended the instant either socket dropped - a genuine quit and
+  a one-second wifi hiccup were indistinguishable, both an immediate forfeit. Built a
+  generic `games.ReconnectRegistry` (keyed by accountId, since a brand-new
+  `ClientHandler`/socket exists on reconnect with no continuity except the same
+  account logging back in) that any match type can adopt via a small
+  `ReconnectableMatch` interface (`onReconnectTimeout()`, `onReconnect(newHandler)`,
+  `attachToHandler(handler)`), and wired `TicTacToeMatch` up to it as the one concrete
+  proof this generalizes - same "shared engine, proven on one real game" approach
+  `ai/search`/`engine` both used before scaling out.
+  How it works: a disconnect from a player with a real account (guests still forfeit
+  immediately - no stable identity to reconnect against) freezes the match instead of
+  ending it - the remaining player gets a new `OPPONENT_DISCONNECTED_NOTICE` push
+  ("waiting to reconnect, up to 45s"), and the server independently rejects any move
+  attempt during the freeze (never trusts the client's own input-blocking). If that
+  account logs back in within 45 seconds, `ClientHandler.handleLogin()` calls
+  `ReconnectRegistry.tryReconnect()`, which swaps the stale `ClientHandler` reference
+  inside the match for the new one, re-attaches the new handler's `currentMatch` field
+  (so a *second* disconnect on the resumed session is still correctly handled - a real
+  gap caught and fixed during design, not just the happy path), and hands back
+  everything the login response needs to resume play. The client reconstructs the
+  equivalent of a fresh `MATCH_FOUND` + `MATCH_UPDATE` locally from the login
+  response's fields and feeds them straight to a newly-built game window - deliberately
+  NOT a separate server push to the reconnecting client's own socket for this, since
+  tracing the exact call order proved a real race: `onReconnect()` writing directly to
+  the new socket during `handleLogin()` would go out on the wire *before* the
+  `LOGIN_RESPONSE` itself (both writes happen inside the same synchronous `handle()`
+  call), meaning that push could arrive and be silently dropped before any window
+  exists to receive it. If the grace window expires with no reconnect, the match
+  finalizes exactly as before (`OPPONENT_LEFT`, remaining player awarded the win).
+  Two lock-ordering hazards found and fixed by design, not by luck: (1)
+  `TicTacToeMatch.handleDisconnect()` must call `ReconnectRegistry.beginGracePeriod()`
+  only *after* releasing its own monitor, since `tryReconnect()` and the grace-timer's
+  own callback both acquire the registry's lock first and then the match's - nesting
+  the other way anywhere would risk a classic two-thread deadlock; (2) a
+  both-players-disconnect-during-the-same-grace-period edge case (finalizes cleanly
+  with no reward, nothing left dangling) is handled explicitly rather than by accident.
+  Verified with a 23-check state-machine test (`ReconnectionTest.java`, using a real
+  `ClientHandler` subclass built via its actual constructor with every manager
+  dependency null - safe since that constructor is pure field assignment - so every
+  assertion runs against the real production classes) covering: the ordinary happy
+  path is unaffected, a guest disconnect still forfeits immediately, a real reconnect
+  correctly swaps the handler and resumes play (confirmed by having the *new* handler
+  actually make a move, not just checking the returned data), a grace-period timeout
+  finalizes correctly, a reconnect attempt after the window closed finds nothing
+  pending, both-players-gone finalizes cleanly, a move during the freeze is rejected
+  server-side, and the re-attached handler's own later disconnect is correctly
+  honored. Plus an Xvfb/Swing visual check confirming the resumed board renders with
+  the right pieces and correct turn state, and that the pause/unpause status text
+  updates correctly in a live match. Mirrored byte-identical across both trees; both
+  compile clean. Scoped deliberately to Tic-Tac-Toe only tonight (not all ~30 match
+  types) - the remaining games can adopt the same registry by implementing
+  `ReconnectableMatch`, following this file as the template, whenever that's picked up
+  next; nothing about the shared registry itself needs to change to support them.
 - **Reliability audit: 3 real fixes** — the methodology's Reliability pass, following
   Security and Performance. An audit of exception-handling blast radius, resource
   leaks, thread-safety of shared managers, and server startup/shutdown robustness
@@ -771,37 +826,19 @@ recorded below as they're confirmed.
   drawing game, needing chat *restricted* rather than open, since free chat would let
   players just say the answer out loud).
 
-- **Reconnection audit finding, confirmed real, design drafted, implementation
-  deliberately deferred.** Checked `TicTacToeMatch.handleDisconnect` (and the
-  identical pattern repeated across all 30 `currentXxxMatch` fields on
-  `ClientHandler`, each with its own `handleDisconnect(ClientHandler)`): any
-  disconnect at all - a genuine quit or a one-second wifi hiccup, indistinguishable
-  today - immediately ends the match and declares the other player the winner via
-  `MATCH_OVER`/`OPPONENT_LEFT`. Confirms exactly what the platform strategy doc's
-  Multiplayer Breakthroughs section predicted. Concrete plan for a real fix (not
-  implemented tonight - see below for why):
-  1. Give match classes a short grace state instead of ending immediately on
-     disconnect: mark the player's slot "disconnected," start a timer (~30-60s),
-     notify the *other* player "opponent disconnected, waiting..." instead of an
-     immediate win.
-  2. On login, check whether the account has a match awaiting reconnect (a small
-     `accountId -> pending match` registry, likely on `MatchManager` or similar) -
-     if so, re-associate the new `ClientHandler` with the match object (replacing
-     the stale reference) and cancel the grace timer.
-  3. If the timer expires with no reconnect, finalize exactly as today
-     (`OPPONENT_LEFT`).
-  4. Client-side: every online game's `Window` needs a new "opponent
-     disconnected, waiting" UI state distinct from match-over, and the app needs a
-     "you have a match in progress, rejoin?" flow on login/reconnect.
-  **Why this wasn't attempted tonight despite being real and important**: it's
-  genuinely cross-cutting (new message types, server-side timer/state logic,
-  client UI changes, eventually all 30 match types) and state-sensitive in a way
-  that's easy to get subtly wrong under time pressure - a half-built version could
-  leave matches stuck in limbo, which is a worse outcome than today's honest
-  instant-forfeit. This needs a proper, focused session (prove it on one simple
-  turn-based game first, the same "prove it generalizes, then expand" approach used
-  for `ai/search`/`engine`), not a rushed addition alongside a dozen other changes
-  in one night.
+- **Reconnection rollout to the other ~29 match types.** Tic-Tac-Toe now proves the
+  `ReconnectRegistry`/`ReconnectableMatch` pattern works end-to-end (see "Done" above)
+  - extending it to Chess/Connect Four/Reversi/Checkers/Dots and Boxes (the other
+  `ai/search`-backed turn-based games, closest in shape to Tic-Tac-Toe) is next,
+  followed by the remaining request/response-style games (Battleship, RPS, Trivia
+  Blitz, Word Duel, etc.). The genuinely continuous-simulation games (Racing, Space
+  Battle, Air Hockey, Fight Arena, Zombie Survival) will need more thought - "resume
+  mid-tick" is a different problem than "resume on your turn" - so those are lower
+  priority for this pattern until a second concrete game proves that shape out too.
+  Client-side, every game window that adopts this needs its own `OPPONENT_DISCONNECTED_
+  NOTICE` handling branch (a few lines each, following `TicTacToeWindow`'s as the
+  template) since each game's `onPush` dispatch is still hand-written per window, not
+  a shared base class.
 
 ## 📋 Planned — infrastructure & shared packages
 

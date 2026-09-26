@@ -23,6 +23,9 @@ public class MatchManager
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
+    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
+
+    public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
 
     public MatchManager(EconomyManager economyManager, GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager)
     {
@@ -43,7 +46,7 @@ public class MatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "match-" + (nextMatchId++);
-            TicTacToeMatch match = new TicTacToeMatch(matchId, opponent, player, this, economyManager, leaderboardManager);
+            TicTacToeMatch match = new TicTacToeMatch(matchId, opponent, player, this, economyManager, leaderboardManager, reconnectRegistry);
             activeMatches.put(matchId, match);
             opponent.setCurrentMatch(match);
             player.setCurrentMatch(match);

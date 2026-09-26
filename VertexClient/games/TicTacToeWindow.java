@@ -493,7 +493,8 @@ public class TicTacToeWindow extends JPanel implements NetworkManager.PushListen
     {
         MessageType type = message.getType();
         boolean isMatchType = type == MessageType.MATCH_FOUND || type == MessageType.MATCH_UPDATE
-            || type == MessageType.MATCH_OVER || type == MessageType.MOVE_REJECTED;
+            || type == MessageType.MATCH_OVER || type == MessageType.MOVE_REJECTED
+            || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isMatchType)
         {
             return;
@@ -529,6 +530,20 @@ public class TicTacToeWindow extends JPanel implements NetworkManager.PushListen
             canPlay = true;
             myTurn = message.getSymbol() != null && message.getSymbol().equals(mySymbol);
             updateStatus(myTurn ? "Your turn" : "Waiting for " + opponentUsername + "...");
+        }
+        else if (message.getType() == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - the server gives the opponent a grace window
+            // to reconnect (see ReconnectRegistry) rather than declaring an immediate
+            // win/loss over what might just be a wifi hiccup. canPlay=false blocks
+            // input client-side (the server independently rejects moves during this
+            // window too); the follow-up is an ordinary MATCH_UPDATE, sent either when
+            // the opponent reconnects (resuming play) or replaced by a real MATCH_OVER
+            // if the grace window expires first - no separate "resumed" message type
+            // needed.
+            canPlay = false;
+            applyBoardState(message.getBoardState());
+            updateStatus(message.getErrorText());
         }
         else if (message.getType() == MessageType.MOVE_REJECTED)
         {

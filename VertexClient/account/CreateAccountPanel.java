@@ -214,7 +214,7 @@ public class CreateAccountPanel extends JPanel
                                     + "so you've been made the platform Administrator.");
                             }
                             LoginPanel.showDailyRewardPopup(self, response);
-                            successListener.onLoginSuccess(response.getAccount(), password);
+                            successListener.onLoginSuccess(response.getAccount(), password, response);
                         }
                         else
                         {

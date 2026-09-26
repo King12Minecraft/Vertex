@@ -29,6 +29,12 @@ public enum MessageType
     MATCH_UPDATE,
     MATCH_OVER,
     LEAVE_MATCH_REQUEST,
+    // Reconnection grace period (Tic-Tac-Toe only so far - see ReconnectRegistry):
+    // pushed to the still-connected player when their opponent's socket drops, so their
+    // client can freeze input and show a "waiting to reconnect" status instead of an
+    // immediate loss. The matching "resumed" case reuses the existing MATCH_UPDATE
+    // rather than a new type - no new client-side field shapes needed for that side.
+    OPPONENT_DISCONNECTED_NOTICE,
 
     // --- Phase 9: General Chat. Also push-capable - broadcast to every
     // logged-in client, not just a direct reply. ---

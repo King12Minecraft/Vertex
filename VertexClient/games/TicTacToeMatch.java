@@ -17,18 +17,23 @@ public class TicTacToeMatch
     };
 
     private final String matchId;
-    private final ClientHandler playerX;
-    private final ClientHandler playerO;
+    private ClientHandler playerX;
+    private ClientHandler playerO;
     private final MatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
+    private final ReconnectRegistry reconnectRegistry;
 
     private final char[] board = new char[9];
     private boolean xTurn = true;
     private boolean over = false;
 
+    /** '\0' when neither player is in a reconnect grace period; 'X' or 'O' for whichever slot's socket just dropped. Only ever set for a logged-in account (see handleDisconnect) - a guest disconnect finalizes immediately, exactly as before this feature existed. */
+    private char disconnectedSlot = '\0';
+
     public TicTacToeMatch(String matchId, ClientHandler playerX, ClientHandler playerO,
-                           MatchManager matchManager, EconomyManager economyManager, LeaderboardManager leaderboardManager)
+                           MatchManager matchManager, EconomyManager economyManager, LeaderboardManager leaderboardManager,
+                           ReconnectRegistry reconnectRegistry)
     {
         this.matchId = matchId;
         this.playerX = playerX;
@@ -36,6 +41,7 @@ public class TicTacToeMatch
         this.matchManager = matchManager;
         this.economyManager = economyManager;
         this.leaderboardManager = leaderboardManager;
+        this.reconnectRegistry = reconnectRegistry;
         Arrays.fill(board, '.');
     }
 
@@ -61,6 +67,14 @@ public class TicTacToeMatch
     {
         if (over)
         {
+            return;
+        }
+        if (disconnectedSlot != '\0')
+        {
+            // Match is paused waiting for the disconnected player to reconnect - the
+            // client is expected to already block input here (see TicTacToeWindow's
+            // canPlay flag), but the server never trusts that and re-checks itself.
+            sendRejected(requester, "Waiting for your opponent to reconnect...");
             return;
         }
 
@@ -165,24 +179,136 @@ public class TicTacToeMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
+    {
+        Integer accountIdToRegister = null;
+        ClientHandler remainingForNotice = null;
+        boolean bothNowGone = false;
+
+        synchronized (this)
+        {
+            if (over)
+            {
+                return;
+            }
+            if (disconnectedSlot != '\0')
+            {
+                // The other player was already in a grace period and has now ALSO
+                // disconnected - nobody left to wait for or to notify. Finalize with
+                // no winner (neither side is present to receive or deserve a reward).
+                over = true;
+                bothNowGone = true;
+            }
+            else if (who.getAccountId() == null)
+            {
+                // Guest - no stable identity to reconnect against on a future login,
+                // so there's nothing to give a grace period to. Falls back to exactly
+                // the immediate-forfeit behavior this match had before reconnection
+                // support existed.
+                over = true;
+                ClientHandler remaining = (who == playerX) ? playerO : playerX;
+                sendAbandonedResult(remaining);
+                economyManager.awardWin(remaining, GAME_ID);
+                matchManager.endMatch(matchId);
+                return;
+            }
+            else
+            {
+                disconnectedSlot = (who == playerX) ? 'X' : 'O';
+                remainingForNotice = (who == playerX) ? playerO : playerX;
+                accountIdToRegister = who.getAccountId();
+
+                Message notice = new Message();
+                notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+                notice.setMatchId(matchId);
+                notice.setBoardState(boardString());
+                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                remainingForNotice.sendMessage(notice);
+            }
+        }
+
+        if (bothNowGone)
+        {
+            matchManager.endMatch(matchId);
+            return;
+        }
+
+        // Deliberately called OUTSIDE the synchronized block above: ReconnectRegistry's
+        // own lock must never be acquired while holding this match's lock, only the
+        // reverse (see ReconnectRegistry's class-level threading note) - nesting them
+        // the other way here would risk a deadlock against a concurrent tryReconnect()
+        // or grace-timer callback, both of which take the registry's lock first and
+        // then call back into this match.
+        reconnectRegistry.beginGracePeriod(accountIdToRegister, new ReconnectRegistry.ReconnectableMatch()
+        {
+            public void onReconnectTimeout()
+            {
+                TicTacToeMatch.this.onReconnectTimeout();
+            }
+
+            public ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+            {
+                return TicTacToeMatch.this.onReconnect(newHandler);
+            }
+
+            public void attachToHandler(ClientHandler handler)
+            {
+                handler.setCurrentMatch(TicTacToeMatch.this);
+            }
+        });
+    }
+
+    private synchronized void onReconnectTimeout()
     {
         if (over)
         {
             return;
         }
         over = true;
+        ClientHandler remaining = (disconnectedSlot == 'X') ? playerO : playerX;
+        disconnectedSlot = '\0';
         matchManager.endMatch(matchId);
+        sendAbandonedResult(remaining);
+        economyManager.awardWin(remaining, GAME_ID);
+    }
 
-        ClientHandler remaining = (who == playerX) ? playerO : playerX;
+    /** Called by ReconnectRegistry.tryReconnect() while it holds the registry's own lock - must never call back into the registry from here (see the class-level threading note on ReconnectRegistry). */
+    private synchronized ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+    {
+        if (over || disconnectedSlot == '\0')
+        {
+            // Already finalized some other way (shouldn't normally happen - the
+            // registry only calls this once per grace period - but never resume a
+            // match that isn't actually waiting).
+            return null;
+        }
+
+        if (disconnectedSlot == 'X')
+        {
+            playerX = newHandler;
+        }
+        else
+        {
+            playerO = newHandler;
+        }
+        disconnectedSlot = '\0';
+
+        ClientHandler opponent = (newHandler == playerX) ? playerO : playerX;
+        sendUpdate(opponent);
+
+        String mySymbol = (newHandler == playerX) ? "X" : "O";
+        return new ReconnectRegistry.ReconnectResult(
+            matchId, GAME_ID, mySymbol, opponent.getLoggedInUsername(), boardString(), xTurn ? "X" : "O");
+    }
+
+    private void sendAbandonedResult(ClientHandler remaining)
+    {
         Message msg = new Message();
         msg.setType(MessageType.MATCH_OVER);
         msg.setMatchId(matchId);
         msg.setMatchResult("OPPONENT_LEFT");
         msg.setBoardState(boardString());
         remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
     }
 
     private boolean hasEmptyCell()
