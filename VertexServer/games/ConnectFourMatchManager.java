@@ -30,7 +30,8 @@ public class ConnectFourMatchManager
             {
                 public ConnectFourMatch pair(String matchId, ClientHandler playerA, ClientHandler playerB)
                 {
-                    ConnectFourMatch match = new ConnectFourMatch(matchId, playerA, playerB, ConnectFourMatchManager.this, economyManager, leaderboardManager);
+                    ConnectFourMatch match = new ConnectFourMatch(matchId, playerA, playerB, ConnectFourMatchManager.this,
+                        economyManager, leaderboardManager, kernel.getReconnectRegistry());
                     match.start();
                     return match;
                 }
@@ -41,6 +42,8 @@ public class ConnectFourMatchManager
                 }
             });
     }
+
+    public ReconnectRegistry getReconnectRegistry() { return kernel.getReconnectRegistry(); }
 
     public void findMatch(ClientHandler player)
     {

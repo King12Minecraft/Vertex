@@ -44,6 +44,41 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Reconnection grace period rolled out to Connect Four, Checkers, Reversi, and Dots
+  and Boxes** - the same `disconnectedSlot` / `ReconnectRegistry.beginGracePeriod` /
+  `onReconnect` / `onReconnectTimeout` shape `TicTacToeMatch` proved (see its own
+  "Done" entry) copied onto all 4 of the other `ai/search`-backed 1v1 board games in
+  one pass, since side-by-side they turned out structurally identical (only
+  `DotsAndBoxesMatch` differs in detail - it tracks its two players as a
+  `List<ClientHandler>` with an index rather than two named fields, so its
+  `disconnectedIndex` is an `Integer` rather than a char slot). `MatchmakingKernel`
+  gained its own `ReconnectRegistry` instance (`getReconnectRegistry()`) so every
+  kernel-backed manager gets grace-period support for free the moment it adopts the
+  kernel; `ReversiMatchManager` and `DotsAndBoxesMatchManager` were converted from
+  their own hand-rolled matchmaking queues to `MatchmakingKernel` in this same unit of
+  work specifically to pick that up (rather than writing a fourth/fifth standalone
+  `ReconnectRegistry` field by hand), incidentally also shrinking both to thin wrappers
+  and finishing another chunk of the separate "`matchmaking` kernel rollout" backlog
+  item for free. `ClientHandler.handleLogin()`'s reconnect check became
+  `tryReconnectAllGames()`, trying every reconnect-aware match type's registry in turn
+  (a player is only ever in one online match at a time, so at most one ever returns
+  non-null). Client-side, `ConnectFourWindow`/`CheckersWindow`/`ReversiWindow`/
+  `DotsAndBoxesWindow` each gained an `awaitingReconnect` flag (blocks input the same
+  way `gameOver` does, without actually ending the match) and an
+  `OPPONENT_DISCONNECTED_NOTICE` handling branch, following `TicTacToeWindow`'s as the
+  template; `AuthWindow.resumeMatchIfPending` (which replays a resumed match's
+  match-found+update locally right after login, avoiding a race with a real server
+  push) generalized from a `tictactoe-online`-only hardcoded pair of `MessageType`s to
+  a small `reconnectMessageTypesFor(gameId)` lookup covering all 5 adopters' own
+  message-type pairs. Chess deliberately NOT included - see "In Progress" below for
+  why. Verified with a 17-check test exercising both shapes (Connect Four for the
+  named-field case, proving a full disconnect -> grace-period notice -> successful
+  reconnect -> resumed play cycle plus a separate disconnect -> timeout -> forfeit
+  cycle; Dots and Boxes for the list/index case) using `ReconnectRegistry`'s
+  package-visible short-grace-window constructor and a real `ClientHandler` subclass
+  (same testing technique as this session's other social/reconnect tests) rather than
+  waiting out the real 45s window. Both trees compile clean and stay byte-identical
+  outside client-only Window/Dialog classes.
 - **Structured bug reports: `FeedbackDialog` gained real title/description/steps-to-
   reproduce fields**, instead of one free-text box. `Message` gained
   `feedbackTitle`/`feedbackSteps` fields (alongside the existing `feedbackType`/
@@ -1044,19 +1079,29 @@ recorded below as they're confirmed.
   some games, like a Gartic-Phone-style drawing game, needing chat *restricted* rather
   than open, since free chat would let players just say the answer out loud).
 
-- **Reconnection rollout to the other ~29 match types.** Tic-Tac-Toe now proves the
-  `ReconnectRegistry`/`ReconnectableMatch` pattern works end-to-end (see "Done" above)
-  - extending it to Chess/Connect Four/Reversi/Checkers/Dots and Boxes (the other
-  `ai/search`-backed turn-based games, closest in shape to Tic-Tac-Toe) is next,
-  followed by the remaining request/response-style games (Battleship, RPS, Trivia
-  Blitz, Word Duel, etc.). The genuinely continuous-simulation games (Racing, Space
-  Battle, Air Hockey, Fight Arena, Zombie Survival) will need more thought - "resume
-  mid-tick" is a different problem than "resume on your turn" - so those are lower
-  priority for this pattern until a second concrete game proves that shape out too.
-  Client-side, every game window that adopts this needs its own `OPPONENT_DISCONNECTED_
-  NOTICE` handling branch (a few lines each, following `TicTacToeWindow`'s as the
-  template) since each game's `onPush` dispatch is still hand-written per window, not
-  a shared base class.
+- **Reconnection rollout continues: Chess, then the request/response-style games.**
+  Connect Four, Checkers, Reversi, and Dots and Boxes are now reconnect-aware (2026-09-26,
+  see "Done" below) - the same `disconnectedSlot`/grace-period/timeout shape
+  `TicTacToeMatch` proved, applied to all 4 of the other `ai/search`-backed turn-based
+  games in one pass since they're structurally identical (Reversi/Dots and Boxes also
+  got converted from their own hand-rolled matchmaking queues to `MatchmakingKernel` in
+  the same unit of work, since a kernel-backed manager gets a `ReconnectRegistry` for
+  free - see `MatchmakingKernel.getReconnectRegistry()`). Chess is deliberately NOT yet
+  adopted - its resign/draw-offer state (`CHESS_DRAW_OFFERED` etc.) interacts with a
+  mid-grace-period reconnect in ways not designed yet (can a disconnected player's
+  pending draw offer survive a reconnect? should the timer pause?) - a real design
+  question, not guessed at, tracked here rather than in `BLOCKED_QUESTIONS.md` since
+  there's a reversible default (Chess keeps its current immediate-forfeit-on-disconnect
+  behavior until this is actually decided). After Chess, the remaining request/response-
+  style games (Battleship, RPS, Trivia Blitz, Word Duel, etc.) are next. The genuinely
+  continuous-simulation games (Racing, Space Battle, Air Hockey, Fight Arena, Zombie
+  Survival) will need more thought - "resume mid-tick" is a different problem than
+  "resume on your turn" - so those are lower priority for this pattern until a second
+  concrete game proves that shape out too. Client-side, every game window that adopts
+  this needs its own `OPPONENT_DISCONNECTED_NOTICE` handling branch (a few lines each,
+  following `TicTacToeWindow`'s as the template, now also done for all 4 of this
+  round's windows) since each game's `onPush` dispatch is still hand-written per
+  window, not a shared base class.
 
 ## 📋 Planned — infrastructure & shared packages
 
@@ -1071,15 +1116,15 @@ recorded below as they're confirmed.
   three states.
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
-- **`matchmaking` kernel: rollout to the other ~24 `<Name>MatchManager` classes.**
-  `MatchmakingKernel`/`CheckersMatchManager`/`ConnectFourMatchManager` (done - see
-  "Done" below) prove the FIFO queue shape generalizes, including the real
-  matchId-prefix-vs-gameId divergence Connect Four needed; ELO itself already lives
-  in `LeaderboardManager`
-  separately and isn't part of this kernel (queue mechanics and rating are genuinely
-  different concerns) - "shared ELO/queue logic" in this item's original wording
-  turned out to already be two separate, already-correct systems once actually
-  looked at, not one that needed merging.
+- **`matchmaking` kernel: rollout to the other ~22 `<Name>MatchManager` classes.**
+  `MatchmakingKernel`/`CheckersMatchManager`/`ConnectFourMatchManager`/
+  `ReversiMatchManager`/`DotsAndBoxesMatchManager` (done - see "Done" below) prove the
+  FIFO queue shape generalizes, including the real matchId-prefix-vs-gameId divergence
+  Connect Four and Dots and Boxes both needed; ELO itself already lives in
+  `LeaderboardManager` separately and isn't part of this kernel (queue mechanics and
+  rating are genuinely different concerns) - "shared ELO/queue logic" in this item's
+  original wording turned out to already be two separate, already-correct systems once
+  actually looked at, not one that needed merging.
 - **Procedural/emergent character system** — a general engine capability (not tied to
   one game): a pool of name/trait/role combinations that get spawned into a game when
   specific triggers fire (a rival general emerges after you conquer 3 provinces, a

@@ -85,6 +85,8 @@ public class DotsAndBoxesWindow extends JPanel implements NetworkManager.PushLis
     private char[] lines = new char[DotsAndBoxesMatch.LINE_COUNT];
     private char[] boxOwners = new char[DotsAndBoxesMatch.BOX_COUNT];
     private boolean gameOver;
+    /** True while the server has this match paused waiting for a disconnected opponent to reconnect (see ReconnectRegistry) - blocks input client-side same as gameOver, without actually ending the match. */
+    private boolean awaitingReconnect;
 
     public DotsAndBoxesWindow()
     {
@@ -283,7 +285,7 @@ public class DotsAndBoxesWindow extends JPanel implements NetworkManager.PushLis
             return;
         }
 
-        if (gameOver || lines[lineIndex] != '.') return;
+        if (gameOver || awaitingReconnect || lines[lineIndex] != '.') return;
         Message request = new Message();
         request.setType(MessageType.DOTS_LINE_REQUEST);
         request.setMatchId(matchId);
@@ -408,7 +410,7 @@ public class DotsAndBoxesWindow extends JPanel implements NetworkManager.PushLis
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.DOTS_MATCH_FOUND || type == MessageType.DOTS_UPDATE
-            || type == MessageType.DOTS_RESULT;
+            || type == MessageType.DOTS_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -439,13 +441,23 @@ public class DotsAndBoxesWindow extends JPanel implements NetworkManager.PushLis
         }
         else if (type == MessageType.DOTS_UPDATE)
         {
+            awaitingReconnect = false;
             applyBoardState(message.getBoardState());
             updateStatus(Integer.parseInt(message.getSymbol()));
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - see TicTacToeWindow's identical handling for
+            // why (a short reconnect grace window, not an immediate forfeit).
+            awaitingReconnect = true;
+            applyBoardState(message.getBoardState());
+            statusLabel.setText(message.getErrorText());
         }
         else if (type == MessageType.DOTS_RESULT)
         {
             applyBoardState(message.getBoardState());
             gameOver = true;
+            awaitingReconnect = false;
             String result = message.getMatchResult();
             String text = "WIN".equals(result) ? "You won with " + message.getScore() + " boxes!"
                 : "LOSE".equals(result) ? "You lost - " + message.getScore() + " boxes."

@@ -85,6 +85,8 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
     private char[] board = new char[ReversiMatch.SIZE * ReversiMatch.SIZE];
     private boolean myTurn;
     private boolean gameOver;
+    /** True while the server has this match paused waiting for a disconnected opponent to reconnect (see ReconnectRegistry) - blocks input client-side same as gameOver, without actually ending the match. */
+    private boolean awaitingReconnect;
 
     public ReversiWindow()
     {
@@ -274,7 +276,7 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
             return;
         }
 
-        if (gameOver || !myTurn) return;
+        if (gameOver || awaitingReconnect || !myTurn) return;
         Message request = new Message();
         request.setType(MessageType.REVERSI_MOVE_REQUEST);
         request.setMatchId(matchId);
@@ -399,7 +401,8 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.REVERSI_MATCH_FOUND || type == MessageType.REVERSI_UPDATE
-            || type == MessageType.REVERSI_RESULT || type == MessageType.REVERSI_MOVE_REJECTED;
+            || type == MessageType.REVERSI_RESULT || type == MessageType.REVERSI_MOVE_REJECTED
+            || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -431,9 +434,18 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
         }
         else if (type == MessageType.REVERSI_UPDATE)
         {
+            awaitingReconnect = false;
             applyBoardState(message.getBoardState());
             myTurn = message.getSymbol().equals(mySymbol);
             updateStatus();
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - see TicTacToeWindow's identical handling for
+            // why (a short reconnect grace window, not an immediate forfeit).
+            awaitingReconnect = true;
+            applyBoardState(message.getBoardState());
+            statusLabel.setText(message.getErrorText());
         }
         else if (type == MessageType.REVERSI_MOVE_REJECTED)
         {
@@ -444,6 +456,7 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
         {
             applyBoardState(message.getBoardState());
             gameOver = true;
+            awaitingReconnect = false;
             String result = message.getMatchResult();
             String text = "WIN".equals(result) ? "You won with " + message.getScore() + " pieces!"
                 : "LOSE".equals(result) ? "You lost - " + message.getScore() + " pieces."

@@ -31,19 +31,23 @@ public class ReversiMatch
     };
 
     private final String matchId;
-    private final ClientHandler blackPlayer;
-    private final ClientHandler whitePlayer;
+    private ClientHandler blackPlayer;
+    private ClientHandler whitePlayer;
     private final ReversiMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
+    private final ReconnectRegistry reconnectRegistry;
 
     private final char[] board = new char[SIZE * SIZE];
     private boolean blackTurn = true;
     private boolean over = false;
 
+    /** '\0' when neither player is in a reconnect grace period; 'B' or 'W' for whichever slot's socket just dropped - same pattern as TicTacToeMatch.disconnectedSlot. */
+    private char disconnectedSlot = '\0';
+
     public ReversiMatch(String matchId, ClientHandler blackPlayer, ClientHandler whitePlayer,
                          ReversiMatchManager matchManager, EconomyManager economyManager,
-                         LeaderboardManager leaderboardManager)
+                         LeaderboardManager leaderboardManager, ReconnectRegistry reconnectRegistry)
     {
         this.matchId = matchId;
         this.blackPlayer = blackPlayer;
@@ -51,6 +55,7 @@ public class ReversiMatch
         this.matchManager = matchManager;
         this.economyManager = economyManager;
         this.leaderboardManager = leaderboardManager;
+        this.reconnectRegistry = reconnectRegistry;
         setupBoard();
     }
 
@@ -85,6 +90,11 @@ public class ReversiMatch
     public synchronized void placePiece(ClientHandler requester, int index)
     {
         if (over) return;
+        if (disconnectedSlot != '\0')
+        {
+            sendRejected(requester, "Waiting for your opponent to reconnect...");
+            return;
+        }
         boolean isBlack = requester == blackPlayer;
         if (isBlack != blackTurn)
         {
@@ -174,16 +184,18 @@ public class ReversiMatch
 
     private void broadcastUpdate()
     {
-        String state = boardString();
-        for (ClientHandler player : new ClientHandler[] { blackPlayer, whitePlayer })
-        {
-            Message msg = new Message();
-            msg.setType(MessageType.REVERSI_UPDATE);
-            msg.setMatchId(matchId);
-            msg.setBoardState(state);
-            msg.setSymbol(blackTurn ? "BLACK" : "WHITE");
-            player.sendMessage(msg);
-        }
+        sendUpdate(blackPlayer);
+        sendUpdate(whitePlayer);
+    }
+
+    private void sendUpdate(ClientHandler to)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.REVERSI_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(boardString());
+        msg.setSymbol(blackTurn ? "BLACK" : "WHITE");
+        to.sendMessage(msg);
     }
 
     private void finish()
@@ -241,21 +253,116 @@ public class ReversiMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
+    {
+        Integer accountIdToRegister = null;
+        ClientHandler remainingForNotice = null;
+        boolean bothNowGone = false;
+
+        synchronized (this)
+        {
+            if (over) return;
+            if (disconnectedSlot != '\0')
+            {
+                over = true;
+                bothNowGone = true;
+            }
+            else if (who.getAccountId() == null)
+            {
+                over = true;
+                ClientHandler remaining = (who == blackPlayer) ? whitePlayer : blackPlayer;
+                sendAbandonedResult(remaining);
+                economyManager.awardWin(remaining, GAME_ID);
+                matchManager.endMatch(matchId);
+                return;
+            }
+            else
+            {
+                disconnectedSlot = (who == blackPlayer) ? 'B' : 'W';
+                remainingForNotice = (who == blackPlayer) ? whitePlayer : blackPlayer;
+                accountIdToRegister = who.getAccountId();
+
+                Message notice = new Message();
+                notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+                notice.setMatchId(matchId);
+                notice.setBoardState(boardString());
+                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                remainingForNotice.sendMessage(notice);
+            }
+        }
+
+        if (bothNowGone)
+        {
+            matchManager.endMatch(matchId);
+            return;
+        }
+
+        // See ReconnectRegistry's class-level threading note - never call this while
+        // holding this match's own lock.
+        reconnectRegistry.beginGracePeriod(accountIdToRegister, new ReconnectRegistry.ReconnectableMatch()
+        {
+            public void onReconnectTimeout()
+            {
+                ReversiMatch.this.onReconnectTimeout();
+            }
+
+            public ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+            {
+                return ReversiMatch.this.onReconnect(newHandler);
+            }
+
+            public void attachToHandler(ClientHandler handler)
+            {
+                handler.setCurrentReversiMatch(ReversiMatch.this);
+            }
+        });
+    }
+
+    private synchronized void onReconnectTimeout()
     {
         if (over) return;
         over = true;
+        ClientHandler remaining = (disconnectedSlot == 'B') ? whitePlayer : blackPlayer;
+        disconnectedSlot = '\0';
         matchManager.endMatch(matchId);
+        sendAbandonedResult(remaining);
+        economyManager.awardWin(remaining, GAME_ID);
+    }
 
-        ClientHandler remaining = (who == blackPlayer) ? whitePlayer : blackPlayer;
+    /** Called by ReconnectRegistry.tryReconnect() while it holds the registry's own lock - must never call back into the registry from here. */
+    private synchronized ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+    {
+        if (over || disconnectedSlot == '\0')
+        {
+            return null;
+        }
+
+        if (disconnectedSlot == 'B')
+        {
+            blackPlayer = newHandler;
+        }
+        else
+        {
+            whitePlayer = newHandler;
+        }
+        disconnectedSlot = '\0';
+
+        ClientHandler opponent = (newHandler == blackPlayer) ? whitePlayer : blackPlayer;
+        sendUpdate(opponent);
+
+        String mySymbol = (newHandler == blackPlayer) ? "BLACK" : "WHITE";
+        return new ReconnectRegistry.ReconnectResult(
+            matchId, GAME_ID, mySymbol, opponent.getLoggedInUsername(), boardString(), blackTurn ? "BLACK" : "WHITE");
+    }
+
+    private void sendAbandonedResult(ClientHandler remaining)
+    {
         Message msg = new Message();
         msg.setType(MessageType.REVERSI_RESULT);
         msg.setMatchId(matchId);
         msg.setMatchResult("OPPONENT_LEFT");
         msg.setBoardState(boardString());
         remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
     }
 
     private String boardString()

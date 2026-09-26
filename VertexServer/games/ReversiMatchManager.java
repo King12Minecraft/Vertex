@@ -1,106 +1,65 @@
 package games;
-
-import net.ClientHandler;
-import net.Message;
-import net.MessageType;
-import economy.EconomyManager;
-import economy.GameHistoryManager;
 import economy.LeaderboardManager;
 import social.ChatManager;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import economy.GameHistoryManager;
+import economy.EconomyManager;
+import net.ClientHandler;
 
 /**
  * ReversiMatchManager
  * -------------------
- * Matchmaking for Reversi - same shape as CheckersMatchManager.
+ * Matchmaking for Reversi - thin wrapper over the shared MatchmakingKernel
+ * (see its javadoc), converted from a bespoke hand-rolled queue to this
+ * kernel wrapper while adding reconnect support (which the kernel now
+ * supplies for free to every adopter - see MatchmakingKernel.getReconnectRegistry()),
+ * same shape as CheckersMatchManager/ConnectFourMatchManager.
  */
 public class ReversiMatchManager
 {
     private static final String GAME_ID = "reversi";
 
-    private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
-    private final Map<String, ReversiMatch> activeMatches = new HashMap<String, ReversiMatch>();
-    private int nextMatchId = 1;
-    private final EconomyManager economyManager;
-    private final GameHistoryManager gameHistoryManager;
-    private final ChatManager chatManager;
-    private final LeaderboardManager leaderboardManager;
+    private final MatchmakingKernel<ReversiMatch> kernel;
 
-    public ReversiMatchManager(EconomyManager economyManager, GameHistoryManager gameHistoryManager,
-                                ChatManager chatManager, LeaderboardManager leaderboardManager)
+    public ReversiMatchManager(final EconomyManager economyManager, GameHistoryManager gameHistoryManager,
+                                ChatManager chatManager, final LeaderboardManager leaderboardManager)
     {
-        this.economyManager = economyManager;
-        this.gameHistoryManager = gameHistoryManager;
-        this.chatManager = chatManager;
-        this.leaderboardManager = leaderboardManager;
+        kernel = new MatchmakingKernel<ReversiMatch>(GAME_ID, gameHistoryManager, chatManager,
+            new MatchmakingKernel.PairHandler<ReversiMatch>()
+            {
+                public ReversiMatch pair(String matchId, ClientHandler playerA, ClientHandler playerB)
+                {
+                    ReversiMatch match = new ReversiMatch(matchId, playerA, playerB, ReversiMatchManager.this,
+                        economyManager, leaderboardManager, kernel.getReconnectRegistry());
+                    match.start();
+                    return match;
+                }
+
+                public void attach(ClientHandler handler, ReversiMatch match)
+                {
+                    handler.setCurrentReversiMatch(match);
+                }
+            });
     }
 
-    public synchronized void findMatch(ClientHandler player)
+    public ReconnectRegistry getReconnectRegistry() { return kernel.getReconnectRegistry(); }
+
+    public void findMatch(ClientHandler player)
     {
-        if (waitingPlayers.contains(player))
-        {
-            return;
-        }
-
-        if (!waitingPlayers.isEmpty())
-        {
-            ClientHandler opponent = waitingPlayers.remove(0);
-            String matchId = "reversi-" + (nextMatchId++);
-            ReversiMatch match = new ReversiMatch(matchId, opponent, player, this, economyManager, leaderboardManager);
-            activeMatches.put(matchId, match);
-            opponent.setCurrentReversiMatch(match);
-            player.setCurrentReversiMatch(match);
-            match.start();
-
-            recordPlay(opponent);
-            recordPlay(player);
-
-            broadcastQueueCount();
-        }
-        else
-        {
-            waitingPlayers.add(player);
-            broadcastQueueCount();
-        }
+        kernel.findMatch(player);
     }
 
-    private void recordPlay(ClientHandler handler)
+    public void cancelWaiting(ClientHandler player)
     {
-        if (handler.getLoggedInUsername() != null && handler.getAccountId() != null)
-        {
-            gameHistoryManager.recordPlay(handler.getAccountId(), GAME_ID);
-        }
+        kernel.cancelWaiting(player);
     }
 
-    public synchronized void cancelWaiting(ClientHandler player)
+    public void endMatch(String matchId)
     {
-        boolean removed = waitingPlayers.remove(player);
-        if (removed)
-        {
-            broadcastQueueCount();
-        }
+        kernel.endMatch(matchId);
     }
 
-    public synchronized void endMatch(String matchId)
+    public int getQueueCount()
     {
-        activeMatches.remove(matchId);
-    }
-
-    public synchronized int getQueueCount()
-    {
-        return waitingPlayers.size();
-    }
-
-    private void broadcastQueueCount()
-    {
-        Message msg = new Message();
-        msg.setType(MessageType.QUEUE_UPDATE);
-        msg.setQueueGameId(GAME_ID);
-        msg.setQueueCount(waitingPlayers.size());
-        chatManager.broadcastToAll(msg);
+        return kernel.getQueueCount();
     }
 }

@@ -85,6 +85,8 @@ public class CheckersWindow extends JPanel implements NetworkManager.PushListene
     private boolean myTurn;
     private boolean gameOver;
     private Integer selectedIndex;
+    /** True while the server has this match paused waiting for a disconnected opponent to reconnect (see ReconnectRegistry) - blocks input client-side same as gameOver, without actually ending the match. */
+    private boolean awaitingReconnect;
 
     public CheckersWindow()
     {
@@ -281,7 +283,7 @@ public class CheckersWindow extends JPanel implements NetworkManager.PushListene
             return;
         }
 
-        if (gameOver || !myTurn)
+        if (gameOver || awaitingReconnect || !myTurn)
         {
             return;
         }
@@ -459,7 +461,8 @@ public class CheckersWindow extends JPanel implements NetworkManager.PushListene
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.CHECKERS_MATCH_FOUND || type == MessageType.CHECKERS_UPDATE
-            || type == MessageType.CHECKERS_RESULT || type == MessageType.CHECKERS_MOVE_REJECTED;
+            || type == MessageType.CHECKERS_RESULT || type == MessageType.CHECKERS_MOVE_REJECTED
+            || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -489,10 +492,20 @@ public class CheckersWindow extends JPanel implements NetworkManager.PushListene
         }
         else if (type == MessageType.CHECKERS_UPDATE)
         {
+            awaitingReconnect = false;
             applyBoardState(message.getBoardState());
             selectedIndex = null;
             myTurn = message.getSymbol().equals(mySymbol);
             updateStatus();
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - see TicTacToeWindow's identical handling for
+            // why (a short reconnect grace window, not an immediate forfeit).
+            awaitingReconnect = true;
+            applyBoardState(message.getBoardState());
+            selectedIndex = null;
+            statusLabel.setText(message.getErrorText());
         }
         else if (type == MessageType.CHECKERS_MOVE_REJECTED)
         {
@@ -504,6 +517,7 @@ public class CheckersWindow extends JPanel implements NetworkManager.PushListene
         {
             applyBoardState(message.getBoardState());
             gameOver = true;
+            awaitingReconnect = false;
             String result = message.getMatchResult();
             String text = "WIN".equals(result) ? "You won!"
                 : "LOSE".equals(result) ? "You lost."

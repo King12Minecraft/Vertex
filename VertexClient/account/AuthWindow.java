@@ -122,21 +122,32 @@ public class AuthWindow extends JFrame
 
     /**
      * Reconnection: if this login's response carried a pending match (see
-     * ReconnectRegistry/TicTacToeMatch server-side - only tictactoe-online has this
-     * today), jumps straight into that game's window instead of leaving the player on
-     * MainMenu with no idea their match survived a disconnect. Deliberately does NOT
-     * wait for a separate server push for this - the server already re-associated the
-     * match with this session as part of handling the login itself, and everything
-     * needed to resume is already sitting in loginResponse's fields, so this
-     * reconstructs the equivalent of the messages a *fresh* match-found would have
-     * sent (MATCH_FOUND then MATCH_UPDATE) and feeds them to the freshly built window
-     * directly, purely locally - avoiding any race with a real network push arriving
-     * before this window exists to receive it.
+     * ReconnectRegistry server-side, now backing TicTacToe/Connect Four/
+     * Checkers/Reversi/Dots and Boxes), jumps straight into that game's window
+     * instead of leaving the player on MainMenu with no idea their match
+     * survived a disconnect. Deliberately does NOT wait for a separate server
+     * push for this - the server already re-associated the match with this
+     * session as part of handling the login itself, and everything needed to
+     * resume is already sitting in loginResponse's fields, so this
+     * reconstructs the equivalent of the messages a *fresh* match-found would
+     * have sent (a MATCH_FOUND-shaped push then an MATCH_UPDATE-shaped one)
+     * and feeds them to the freshly built window directly, purely locally -
+     * avoiding any race with a real network push arriving before this window
+     * exists to receive it. Each game uses its own MessageType pair (TicTacToe's
+     * generic MATCH_FOUND/MATCH_UPDATE vs. e.g. Connect Four's CONNECT4_MATCH_
+     * FOUND/CONNECT4_UPDATE) - reconnectMessageTypesFor() is the (small, just a
+     * per-game lookup, not worth a bigger abstraction for 5 entries) mapping.
      */
     private void resumeMatchIfPending(Message loginResponse)
     {
         String gameId = loginResponse.getReconnectGameId();
         if (gameId == null || loginResponse.getMatchId() == null)
+        {
+            return;
+        }
+
+        MessageType[] types = reconnectMessageTypesFor(gameId);
+        if (types == null)
         {
             return;
         }
@@ -156,22 +167,49 @@ public class AuthWindow extends JFrame
         NetworkManager.PushListener listener = (NetworkManager.PushListener) window;
 
         Message found = new Message();
-        found.setType(MessageType.MATCH_FOUND);
+        found.setType(types[0]);
         found.setMatchId(loginResponse.getMatchId());
         found.setSymbol(loginResponse.getSymbol());
         found.setOpponentUsername(loginResponse.getOpponentUsername());
         found.setBoardState(loginResponse.getBoardState());
         listener.onPush(found);
 
-        // Corrects whose-turn state MATCH_FOUND alone can't express (it always assumes
-        // a brand new match where X goes first) - reuses the same MATCH_UPDATE shape
-        // and handling every online game already has for a live turn change.
+        // Corrects whose-turn state the match-found push alone can't express (it
+        // always assumes a brand new match where the first symbol goes first) -
+        // reuses the same *_UPDATE shape and handling every online game already
+        // has for a live turn change.
         Message update = new Message();
-        update.setType(MessageType.MATCH_UPDATE);
+        update.setType(types[1]);
         update.setMatchId(loginResponse.getMatchId());
         update.setSymbol(loginResponse.getReconnectTurnSymbol());
         update.setBoardState(loginResponse.getBoardState());
         listener.onPush(update);
+    }
+
+    /** {matchFoundType, updateType} for a reconnect-aware game's own message types, or null if gameId isn't one of them (no pending-match resume attempted in that case). */
+    private static MessageType[] reconnectMessageTypesFor(String gameId)
+    {
+        if ("tictactoe-online".equals(gameId))
+        {
+            return new MessageType[] { MessageType.MATCH_FOUND, MessageType.MATCH_UPDATE };
+        }
+        if ("connect-four".equals(gameId))
+        {
+            return new MessageType[] { MessageType.CONNECT4_MATCH_FOUND, MessageType.CONNECT4_UPDATE };
+        }
+        if ("checkers".equals(gameId))
+        {
+            return new MessageType[] { MessageType.CHECKERS_MATCH_FOUND, MessageType.CHECKERS_UPDATE };
+        }
+        if ("reversi".equals(gameId))
+        {
+            return new MessageType[] { MessageType.REVERSI_MATCH_FOUND, MessageType.REVERSI_UPDATE };
+        }
+        if ("dots-and-boxes".equals(gameId))
+        {
+            return new MessageType[] { MessageType.DOTS_MATCH_FOUND, MessageType.DOTS_UPDATE };
+        }
+        return null;
     }
 
     private JPanel createConnectionRow()

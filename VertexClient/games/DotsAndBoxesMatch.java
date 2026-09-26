@@ -46,15 +46,19 @@ public class DotsAndBoxesMatch
     private final DotsAndBoxesMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
+    private final ReconnectRegistry reconnectRegistry;
 
     private final char[] lines = new char[LINE_COUNT];
     private final char[] boxOwners = new char[BOX_COUNT];
     private int turnPlayerIndex = 0;
     private boolean over = false;
 
+    /** null when nobody is in a reconnect grace period, otherwise the index (0 or 1) of whichever player's socket just dropped - same pattern as TicTacToeMatch.disconnectedSlot, just index-based since this game already tracks players as a 2-element list rather than named fields. */
+    private Integer disconnectedIndex = null;
+
     public DotsAndBoxesMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                               DotsAndBoxesMatchManager matchManager, EconomyManager economyManager,
-                              LeaderboardManager leaderboardManager)
+                              LeaderboardManager leaderboardManager, ReconnectRegistry reconnectRegistry)
     {
         this.matchId = matchId;
         this.players = new ArrayList<ClientHandler>();
@@ -63,6 +67,7 @@ public class DotsAndBoxesMatch
         this.matchManager = matchManager;
         this.economyManager = economyManager;
         this.leaderboardManager = leaderboardManager;
+        this.reconnectRegistry = reconnectRegistry;
         java.util.Arrays.fill(lines, '.');
         java.util.Arrays.fill(boxOwners, '.');
     }
@@ -84,6 +89,7 @@ public class DotsAndBoxesMatch
     public synchronized void drawLine(ClientHandler requester, int lineIndex)
     {
         if (over || lineIndex < 0 || lineIndex >= LINE_COUNT) return;
+        if (disconnectedIndex != null) return;
         int playerIndex = players.indexOf(requester);
         if (playerIndex < 0 || playerIndex != turnPlayerIndex) return;
         if (lines[lineIndex] != '.') return;
@@ -162,15 +168,9 @@ public class DotsAndBoxesMatch
 
     private void broadcastUpdate()
     {
-        String state = boardString();
         for (int i = 0; i < players.size(); i++)
         {
-            Message msg = new Message();
-            msg.setType(MessageType.DOTS_UPDATE);
-            msg.setMatchId(matchId);
-            msg.setBoardState(state);
-            msg.setSymbol(String.valueOf(turnPlayerIndex));
-            players.get(i).sendMessage(msg);
+            sendUpdate(players.get(i));
         }
     }
 
@@ -221,24 +221,122 @@ public class DotsAndBoxesMatch
         leaderboardManager.recordRatedMatch(GAME_ID, players.get(0).getAccountId(), players.get(1).getAccountId(), outcomeForFirst);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
+    {
+        Integer accountIdToRegister = null;
+        ClientHandler remainingForNotice = null;
+        boolean bothNowGone = false;
+
+        synchronized (this)
+        {
+            if (over) return;
+            int leavingIndex = players.indexOf(who);
+            if (leavingIndex < 0) return;
+
+            if (disconnectedIndex != null)
+            {
+                over = true;
+                bothNowGone = true;
+            }
+            else if (who.getAccountId() == null)
+            {
+                over = true;
+                ClientHandler remaining = players.get(1 - leavingIndex);
+                sendAbandonedResult(remaining);
+                economyManager.awardWin(remaining, GAME_ID);
+                matchManager.endMatch(matchId);
+                return;
+            }
+            else
+            {
+                disconnectedIndex = leavingIndex;
+                remainingForNotice = players.get(1 - leavingIndex);
+                accountIdToRegister = who.getAccountId();
+
+                Message notice = new Message();
+                notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+                notice.setMatchId(matchId);
+                notice.setBoardState(boardString());
+                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                remainingForNotice.sendMessage(notice);
+            }
+        }
+
+        if (bothNowGone)
+        {
+            matchManager.endMatch(matchId);
+            return;
+        }
+
+        // See ReconnectRegistry's class-level threading note - never call this while
+        // holding this match's own lock.
+        reconnectRegistry.beginGracePeriod(accountIdToRegister, new ReconnectRegistry.ReconnectableMatch()
+        {
+            public void onReconnectTimeout()
+            {
+                DotsAndBoxesMatch.this.onReconnectTimeout();
+            }
+
+            public ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+            {
+                return DotsAndBoxesMatch.this.onReconnect(newHandler);
+            }
+
+            public void attachToHandler(ClientHandler handler)
+            {
+                handler.setCurrentDotsAndBoxesMatch(DotsAndBoxesMatch.this);
+            }
+        });
+    }
+
+    private synchronized void onReconnectTimeout()
     {
         if (over) return;
         over = true;
+        ClientHandler remaining = players.get(1 - disconnectedIndex);
+        disconnectedIndex = null;
         matchManager.endMatch(matchId);
+        sendAbandonedResult(remaining);
+        economyManager.awardWin(remaining, GAME_ID);
+    }
 
-        int leavingIndex = players.indexOf(who);
-        if (leavingIndex < 0) return;
-        ClientHandler remaining = players.get(1 - leavingIndex);
+    /** Called by ReconnectRegistry.tryReconnect() while it holds the registry's own lock - must never call back into the registry from here. */
+    private synchronized ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+    {
+        if (over || disconnectedIndex == null)
+        {
+            return null;
+        }
 
+        int reconnectedIndex = disconnectedIndex;
+        players.set(reconnectedIndex, newHandler);
+        disconnectedIndex = null;
+
+        ClientHandler opponent = players.get(1 - reconnectedIndex);
+        sendUpdate(opponent);
+
+        return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, String.valueOf(reconnectedIndex),
+            opponent.getLoggedInUsername(), boardString(), String.valueOf(turnPlayerIndex));
+    }
+
+    private void sendUpdate(ClientHandler to)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.DOTS_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(boardString());
+        msg.setSymbol(String.valueOf(turnPlayerIndex));
+        to.sendMessage(msg);
+    }
+
+    private void sendAbandonedResult(ClientHandler remaining)
+    {
         Message msg = new Message();
         msg.setType(MessageType.DOTS_RESULT);
         msg.setMatchId(matchId);
         msg.setMatchResult("OPPONENT_LEFT");
         msg.setBoardState(boardString());
         remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
     }
 
     private String boardString()

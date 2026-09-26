@@ -81,6 +81,8 @@ public class ConnectFourWindow extends JPanel implements NetworkManager.PushList
     private char[] board = new char[ConnectFourMatch.COLS * ConnectFourMatch.ROWS];
     private boolean myTurn;
     private boolean gameOver;
+    /** True while the server has this match paused waiting for a disconnected opponent to reconnect (see ReconnectRegistry) - blocks input client-side same as gameOver, without actually ending the match. */
+    private boolean awaitingReconnect;
 
     public ConnectFourWindow()
     {
@@ -278,7 +280,7 @@ public class ConnectFourWindow extends JPanel implements NetworkManager.PushList
             return;
         }
 
-        if (gameOver || !myTurn)
+        if (gameOver || awaitingReconnect || !myTurn)
         {
             return;
         }
@@ -394,7 +396,8 @@ public class ConnectFourWindow extends JPanel implements NetworkManager.PushList
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.CONNECT4_MATCH_FOUND || type == MessageType.CONNECT4_UPDATE
-            || type == MessageType.CONNECT4_RESULT || type == MessageType.CONNECT4_MOVE_REJECTED;
+            || type == MessageType.CONNECT4_RESULT || type == MessageType.CONNECT4_MOVE_REJECTED
+            || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -424,9 +427,18 @@ public class ConnectFourWindow extends JPanel implements NetworkManager.PushList
         }
         else if (type == MessageType.CONNECT4_UPDATE)
         {
+            awaitingReconnect = false;
             applyBoardState(message.getBoardState());
             myTurn = message.getSymbol().equals(mySymbol);
             updateStatus();
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - see TicTacToeWindow's identical handling for
+            // why (a short reconnect grace window, not an immediate forfeit).
+            awaitingReconnect = true;
+            applyBoardState(message.getBoardState());
+            statusLabel.setText(message.getErrorText());
         }
         else if (type == MessageType.CONNECT4_MOVE_REJECTED)
         {
@@ -437,6 +449,7 @@ public class ConnectFourWindow extends JPanel implements NetworkManager.PushList
         {
             applyBoardState(message.getBoardState());
             gameOver = true;
+            awaitingReconnect = false;
             boardPanel.winningLine = message.getWinningLine();
             String result = message.getMatchResult();
             String text = "WIN".equals(result) ? "You won!"

@@ -61,6 +61,10 @@ public class MatchmakingKernel<M>
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final PairHandler<M> pairHandler;
+    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
+
+    /** Every kernel-backed match type gets a grace-period reconnect registry for free - see ReconnectRegistry's javadoc. A PairHandler.pair() implementation that wants reconnect support passes this to its Match constructor, same as TicTacToeMatch takes MatchManager's own registry today. */
+    public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
 
     public MatchmakingKernel(String gameId, GameHistoryManager gameHistoryManager, ChatManager chatManager, PairHandler<M> pairHandler)
     {

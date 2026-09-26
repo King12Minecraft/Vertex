@@ -28,7 +28,8 @@ public class CheckersMatchManager
             {
                 public CheckersMatch pair(String matchId, ClientHandler playerA, ClientHandler playerB)
                 {
-                    CheckersMatch match = new CheckersMatch(matchId, playerA, playerB, CheckersMatchManager.this, economyManager, leaderboardManager);
+                    CheckersMatch match = new CheckersMatch(matchId, playerA, playerB, CheckersMatchManager.this,
+                        economyManager, leaderboardManager, kernel.getReconnectRegistry());
                     match.start();
                     return match;
                 }
@@ -39,6 +40,8 @@ public class CheckersMatchManager
                 }
             });
     }
+
+    public ReconnectRegistry getReconnectRegistry() { return kernel.getReconnectRegistry(); }
 
     public void findMatch(ClientHandler player)
     {

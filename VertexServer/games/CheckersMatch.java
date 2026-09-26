@@ -33,21 +33,25 @@ public class CheckersMatch
     private static final String GAME_ID = "checkers";
 
     private final String matchId;
-    private final ClientHandler redPlayer;
-    private final ClientHandler blackPlayer;
+    private ClientHandler redPlayer;
+    private ClientHandler blackPlayer;
     private final CheckersMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
+    private final ReconnectRegistry reconnectRegistry;
 
     private final char[] board = new char[SIZE * SIZE];
     private boolean redTurn = true;
     private boolean over = false;
-    /** Set to the index of a piece mid multi-jump - if non-null, the next move from that player MUST move this exact piece and MUST be a capture. */
+    /** Set to the index of a piece mid multi-jump - if non-null, the next move from that player MUST move this exact piece and MUST be a capture. Persists correctly across a reconnect grace period since the match object itself is never torn down while waiting - only the stale ClientHandler reference is swapped out. */
     private Integer mustContinueFrom = null;
+
+    /** '\0' when neither player is in a reconnect grace period; 'R' or 'B' for whichever slot's socket just dropped - same pattern as TicTacToeMatch.disconnectedSlot. */
+    private char disconnectedSlot = '\0';
 
     public CheckersMatch(String matchId, ClientHandler redPlayer, ClientHandler blackPlayer,
                           CheckersMatchManager matchManager, EconomyManager economyManager,
-                          LeaderboardManager leaderboardManager)
+                          LeaderboardManager leaderboardManager, ReconnectRegistry reconnectRegistry)
     {
         this.matchId = matchId;
         this.redPlayer = redPlayer;
@@ -55,6 +59,7 @@ public class CheckersMatch
         this.matchManager = matchManager;
         this.economyManager = economyManager;
         this.leaderboardManager = leaderboardManager;
+        this.reconnectRegistry = reconnectRegistry;
         setupBoard();
     }
 
@@ -97,6 +102,11 @@ public class CheckersMatch
     public synchronized void makeMove(ClientHandler requester, int from, int to)
     {
         if (over) return;
+        if (disconnectedSlot != '\0')
+        {
+            sendRejected(requester, "Waiting for your opponent to reconnect...");
+            return;
+        }
 
         boolean isRed = requester == redPlayer;
         if (isRed != redTurn)
@@ -360,21 +370,116 @@ public class CheckersMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
+    {
+        Integer accountIdToRegister = null;
+        ClientHandler remainingForNotice = null;
+        boolean bothNowGone = false;
+
+        synchronized (this)
+        {
+            if (over) return;
+            if (disconnectedSlot != '\0')
+            {
+                over = true;
+                bothNowGone = true;
+            }
+            else if (who.getAccountId() == null)
+            {
+                over = true;
+                ClientHandler remaining = (who == redPlayer) ? blackPlayer : redPlayer;
+                sendAbandonedResult(remaining);
+                economyManager.awardWin(remaining, GAME_ID);
+                matchManager.endMatch(matchId);
+                return;
+            }
+            else
+            {
+                disconnectedSlot = (who == redPlayer) ? 'R' : 'B';
+                remainingForNotice = (who == redPlayer) ? blackPlayer : redPlayer;
+                accountIdToRegister = who.getAccountId();
+
+                Message notice = new Message();
+                notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+                notice.setMatchId(matchId);
+                notice.setBoardState(boardString());
+                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                remainingForNotice.sendMessage(notice);
+            }
+        }
+
+        if (bothNowGone)
+        {
+            matchManager.endMatch(matchId);
+            return;
+        }
+
+        // See ReconnectRegistry's class-level threading note - never call this while
+        // holding this match's own lock.
+        reconnectRegistry.beginGracePeriod(accountIdToRegister, new ReconnectRegistry.ReconnectableMatch()
+        {
+            public void onReconnectTimeout()
+            {
+                CheckersMatch.this.onReconnectTimeout();
+            }
+
+            public ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+            {
+                return CheckersMatch.this.onReconnect(newHandler);
+            }
+
+            public void attachToHandler(ClientHandler handler)
+            {
+                handler.setCurrentCheckersMatch(CheckersMatch.this);
+            }
+        });
+    }
+
+    private synchronized void onReconnectTimeout()
     {
         if (over) return;
         over = true;
+        ClientHandler remaining = (disconnectedSlot == 'R') ? blackPlayer : redPlayer;
+        disconnectedSlot = '\0';
         matchManager.endMatch(matchId);
+        sendAbandonedResult(remaining);
+        economyManager.awardWin(remaining, GAME_ID);
+    }
 
-        ClientHandler remaining = (who == redPlayer) ? blackPlayer : redPlayer;
+    /** Called by ReconnectRegistry.tryReconnect() while it holds the registry's own lock - must never call back into the registry from here. */
+    private synchronized ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+    {
+        if (over || disconnectedSlot == '\0')
+        {
+            return null;
+        }
+
+        if (disconnectedSlot == 'R')
+        {
+            redPlayer = newHandler;
+        }
+        else
+        {
+            blackPlayer = newHandler;
+        }
+        disconnectedSlot = '\0';
+
+        ClientHandler opponent = (newHandler == redPlayer) ? blackPlayer : redPlayer;
+        sendUpdate(opponent);
+
+        String mySymbol = (newHandler == redPlayer) ? "RED" : "BLACK";
+        return new ReconnectRegistry.ReconnectResult(
+            matchId, GAME_ID, mySymbol, opponent.getLoggedInUsername(), boardString(), redTurn ? "RED" : "BLACK");
+    }
+
+    private void sendAbandonedResult(ClientHandler remaining)
+    {
         Message msg = new Message();
         msg.setType(MessageType.CHECKERS_RESULT);
         msg.setMatchId(matchId);
         msg.setMatchResult("OPPONENT_LEFT");
         msg.setBoardState(boardString());
         remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
     }
 
     private String boardString()

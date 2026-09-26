@@ -289,33 +289,46 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   Four, whose matches are `"connect4-N"` while its `GAME_ID` (used for `QUEUE_UPDATE`/
   history tracking) is `"connect-four"`; preserved exactly rather than silently
   changed, even though the client only ever compares `matchId` for equality and never
-  parses it. Adopters so far: `CheckersMatchManager` (first, proving the shape
-  generalizes) and `ConnectFourMatchManager` (second, proving the `matchIdPrefix`
-  divergence case), both added 2026-09-26 - a wider rollout to the other ~24
-  `<Name>MatchManager` classes is optional cleanup for whenever one is next touched,
-  not a requirement (see `ROADMAP.md`). ELO deliberately isn't part of this -
-  `LeaderboardManager`'s rating math is a separate, already-shared concern untouched
-  by matchmaking queue mechanics.
+  parses it. Also owns a `ReconnectRegistry` instance of its own (`getReconnectRegistry()`)
+  - every kernel-backed match type gets grace-period reconnect support for free the
+  moment it adopts the kernel, added 2026-09-26 alongside the reconnect rollout below.
+  Adopters: `CheckersMatchManager` and `ConnectFourMatchManager` (the original two,
+  proving the shape generalizes and the `matchIdPrefix` divergence case), plus
+  `ReversiMatchManager` and `DotsAndBoxesMatchManager` (converted from their own
+  hand-rolled queues while adding reconnect, since they needed a registry anyway) - a
+  wider rollout to the other ~22 `<Name>MatchManager` classes remains optional cleanup
+  for whenever one is next touched, not a requirement (see `ROADMAP.md`). ELO
+  deliberately isn't part of this - `LeaderboardManager`'s rating math is a separate,
+  already-shared concern untouched by matchmaking queue mechanics.
 - **`ReconnectRegistry.java`** — generic disconnect-grace-period mechanism, keyed by
   accountId (a brand-new `ClientHandler`/socket exists on reconnect, so accountId, not
   the handler reference, is the only stable identity). Any match class can adopt it by
   implementing the small `ReconnectableMatch` interface (`onReconnectTimeout()`,
   `onReconnect(newHandler)`, `attachToHandler(handler)`) and calling
-  `beginGracePeriod(accountId, this)` from its own disconnect handling - `TicTacToeMatch`
-  is the first (and so far only) adopter, proving the pattern before a wider rollout
-  (see `ROADMAP.md`). `ClientHandler.handleLogin()` calls `tryReconnect(accountId, this)`
-  on successful login and, if a match was waiting, populates the `LOGIN_RESPONSE` with
-  everything the client needs to resume (`reconnectGameId`/`reconnectTurnSymbol` plus
-  the existing `matchId`/`symbol`/`opponentUsername`/`boardState` fields `MATCH_FOUND`
-  already carries) - the client (`AuthWindow.resumeMatchIfPending`) reconstructs the
-  equivalent of a fresh `MATCH_FOUND` + `MATCH_UPDATE` locally from those fields and
-  feeds them straight to a newly-built game window, deliberately not via a second server
-  push to the reconnecting client's own socket (that race is explained in `ROADMAP.md`).
-  A guest (no account) disconnect always forfeits immediately - no stable identity to
-  grant a grace period against. Threading note load-bearing for anyone extending this to
-  another game: `ReconnectRegistry`'s own lock must only ever be acquired either alone,
-  or immediately before calling into the match (never the reverse) - see the class's own
-  javadoc for the full reasoning.
+  `beginGracePeriod(accountId, this)` from its own disconnect handling. Adopters:
+  `TicTacToeMatch` (the original, via `MatchManager`'s own registry instance), plus
+  `ConnectFourMatch`/`CheckersMatch`/`ReversiMatch`/`DotsAndBoxesMatch` (2026-09-26,
+  each via its manager's `MatchmakingKernel`-supplied registry) - the same
+  `disconnectedSlot`/grace-period/timeout shape in every one, differing only in how
+  each match names its two player slots (`DotsAndBoxesMatch` uses a `List<ClientHandler>`
+  and an index rather than two named fields, the one structurally different case).
+  Chess is deliberately not yet adopted - its resign/draw-offer state interacts with a
+  mid-grace-period reconnect in ways not yet designed, tracked in `ROADMAP.md` rather
+  than guessed at. `ClientHandler.handleLogin()` tries every reconnect-aware match
+  type's own registry in turn (`tryReconnectAllGames()`) and, if one had a match
+  waiting, populates the `LOGIN_RESPONSE` with everything the client needs to resume
+  (`reconnectGameId`/`reconnectTurnSymbol` plus the existing `matchId`/`symbol`/
+  `opponentUsername`/`boardState` fields a match-found push already carries) - the
+  client (`AuthWindow.resumeMatchIfPending`, via the small per-game
+  `reconnectMessageTypesFor()` lookup covering all 5 adopters' own message-type pairs)
+  reconstructs the equivalent of a fresh match-found + update locally from those fields
+  and feeds them straight to a newly-built game window, deliberately not via a second
+  server push to the reconnecting client's own socket (that race is explained in
+  `ROADMAP.md`). A guest (no account) disconnect always forfeits immediately - no
+  stable identity to grant a grace period against. Threading note load-bearing for
+  anyone extending this to another game: `ReconnectRegistry`'s own lock must only ever
+  be acquired either alone, or immediately before calling into the match (never the
+  reverse) - see the class's own javadoc for the full reasoning.
 - **`TournamentManager.java`** — 4-player single-elimination bracket for Battleship and
   Rock Paper Scissors only (both always produce a decisive winner). **`TeamTournament-
   Manager.java`** — team version for Fight Arena's 2v2/3v3, registered by whole

@@ -926,14 +926,16 @@ public class ClientHandler implements Runnable
             friendManager.broadcastPresenceChange(account, true);
 
             // Reconnection: if this account disconnected mid-match recently enough to
-            // still be in its grace period (see ReconnectRegistry/TicTacToeMatch), this
-            // resumes it - re-associates the match with this brand-new ClientHandler and
-            // carries the info the client needs to jump straight back into the game
-            // (AuthWindow reconstructs the equivalent of MATCH_FOUND+MATCH_UPDATE locally
-            // from these fields once login succeeds, rather than relying on a separate
-            // push that could race the login response itself over the same socket).
-            games.ReconnectRegistry.ReconnectResult reconnect =
-                matchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+            // still be in its grace period (see ReconnectRegistry), this resumes it -
+            // re-associates the match with this brand-new ClientHandler and carries the
+            // info the client needs to jump straight back into the game (AuthWindow
+            // reconstructs the equivalent of a fresh match-found+update locally from
+            // these fields once login succeeds, rather than relying on a separate push
+            // that could race the login response itself over the same socket). Tried
+            // against every reconnect-aware match type's own registry in turn - a player
+            // is only ever in one online match at a time, so at most one of these can
+            // ever return non-null.
+            games.ReconnectRegistry.ReconnectResult reconnect = tryReconnectAllGames();
             if (reconnect != null)
             {
                 response.setMatchId(reconnect.matchId);
@@ -950,6 +952,20 @@ public class ClientHandler implements Runnable
             response.setErrorText(describeLoginFailure(result));
         }
         return response;
+    }
+
+    /** Tries every reconnect-aware match type's registry in turn, returning the first non-null result (see the call site's comment on why at most one ever can be). */
+    private games.ReconnectRegistry.ReconnectResult tryReconnectAllGames()
+    {
+        games.ReconnectRegistry.ReconnectResult result = matchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        if (result != null) return result;
+        result = connectFourMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        if (result != null) return result;
+        result = checkersMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        if (result != null) return result;
+        result = reversiMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        if (result != null) return result;
+        return dotsAndBoxesMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
     }
 
     private String describeLoginFailure(ServerAccountStore.LoginResult result)
