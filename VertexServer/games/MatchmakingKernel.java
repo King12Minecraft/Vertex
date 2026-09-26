@@ -57,13 +57,29 @@ public class MatchmakingKernel<M>
     private int nextMatchId = 1;
 
     private final String gameId;
+    private final String matchIdPrefix;
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final PairHandler<M> pairHandler;
 
     public MatchmakingKernel(String gameId, GameHistoryManager gameHistoryManager, ChatManager chatManager, PairHandler<M> pairHandler)
     {
+        this(gameId, gameId, gameHistoryManager, chatManager, pairHandler);
+    }
+
+    /**
+     * matchIdPrefix is usually the same as gameId, but not always - Connect Four's
+     * matches are "connect4-1"/"connect4-2" while its GAME_ID (used for QUEUE_UPDATE
+     * and history tracking) is "connect-four". Kept as a separate parameter rather
+     * than assuming they match, to preserve each existing game's exact matchId format
+     * (an opaque string the client only ever compares for equality, never parses -
+     * so this is a cosmetic-only distinction, but preserving it exactly means
+     * adopting this kernel is guaranteed zero observable behavior change).
+     */
+    public MatchmakingKernel(String gameId, String matchIdPrefix, GameHistoryManager gameHistoryManager, ChatManager chatManager, PairHandler<M> pairHandler)
+    {
         this.gameId = gameId;
+        this.matchIdPrefix = matchIdPrefix;
         this.gameHistoryManager = gameHistoryManager;
         this.chatManager = chatManager;
         this.pairHandler = pairHandler;
@@ -79,7 +95,7 @@ public class MatchmakingKernel<M>
         if (!waitingPlayers.isEmpty())
         {
             ClientHandler opponent = waitingPlayers.remove(0);
-            String matchId = gameId + "-" + (nextMatchId++);
+            String matchId = matchIdPrefix + "-" + (nextMatchId++);
             M match = pairHandler.pair(matchId, opponent, player);
             activeMatches.put(matchId, match);
             pairHandler.attach(opponent, match);

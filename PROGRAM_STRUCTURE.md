@@ -284,11 +284,18 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   wires it to that handler's own `currentXxxMatch`-style field). The kernel itself
   never constructs, starts, or inspects a match - it only tracks the waiting list and
   the `matchId -> match` map, delegating everything match-type-specific to the
-  `PairHandler`. First (and so far only) adopter: `CheckersMatchManager`, added
-  2026-09-26 as proof the shared shape actually generalizes (see `ROADMAP.md`) before
-  a wider rollout to the other ~25 `<Name>MatchManager` classes. ELO deliberately
-  isn't part of this - `LeaderboardManager`'s rating math is a separate, already-shared
-  concern untouched by matchmaking queue mechanics.
+  `PairHandler`. Takes an optional `matchIdPrefix` separate from `gameId` (defaults to
+  `gameId` if the 4-arg constructor is used) - found necessary retrofitting Connect
+  Four, whose matches are `"connect4-N"` while its `GAME_ID` (used for `QUEUE_UPDATE`/
+  history tracking) is `"connect-four"`; preserved exactly rather than silently
+  changed, even though the client only ever compares `matchId` for equality and never
+  parses it. Adopters so far: `CheckersMatchManager` (first, proving the shape
+  generalizes) and `ConnectFourMatchManager` (second, proving the `matchIdPrefix`
+  divergence case), both added 2026-09-26 - a wider rollout to the other ~24
+  `<Name>MatchManager` classes is optional cleanup for whenever one is next touched,
+  not a requirement (see `ROADMAP.md`). ELO deliberately isn't part of this -
+  `LeaderboardManager`'s rating math is a separate, already-shared concern untouched
+  by matchmaking queue mechanics.
 - **`ReconnectRegistry.java`** — generic disconnect-grace-period mechanism, keyed by
   accountId (a brand-new `ClientHandler`/socket exists on reconnect, so accountId, not
   the handler reference, is the only stable identity). Any match class can adopt it by

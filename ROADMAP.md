@@ -44,6 +44,24 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`MatchmakingKernel` rolled out to a second game: `ConnectFourMatchManager`.**
+  Same retrofit as `CheckersMatchManager` below, and found one real generalization
+  the first adopter hadn't needed: Connect Four's matches use a `"connect4-N"` matchId
+  prefix, distinct from its `GAME_ID` of `"connect-four"` (used for `QUEUE_UPDATE`
+  broadcasts and history tracking) - the original kernel design assumed the two were
+  always the same string (true for Checkers/Tic-Tac-Toe, not for Connect Four). Added
+  an optional `matchIdPrefix` constructor parameter (defaults to `gameId` for the
+  common case) rather than silently changing Connect Four's matchId format - it's an
+  opaque string the client only ever compares for equality, so the change would have
+  been functionally invisible, but "adopting a shared kernel changes zero observable
+  behavior" is the whole point of this kind of refactor, not a detail to shrug off.
+  Verified with a 5-check test - queue/pairing/disconnect-routing behavior identical
+  to the direct-comparison harness used for Checkers, plus a check specifically
+  confirming the matchId keeps its original `"connect4-"` prefix rather than
+  defaulting to `"connect-four-"`. Mirrored byte-identical across both trees; both
+  compile clean. Two adopters is enough to trust the shared shape (and its one real
+  edge case) generalizes - the other ~24 `MatchManager` classes remain unchanged,
+  free to adopt whenever next touched.
 - **`MatchmakingKernel` - the "matchmaking kernel," proven on `CheckersMatchManager`.**
   Comparing several `<Name>MatchManager` classes side by side (Tic-Tac-Toe's
   `MatchManager`, `ConnectFourMatchManager`, `CheckersMatchManager`) found them
@@ -1008,9 +1026,11 @@ recorded below as they're confirmed.
   three states.
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
-- **`matchmaking` kernel: rollout to the other ~25 `<Name>MatchManager` classes.**
-  `MatchmakingKernel`/`CheckersMatchManager` (done - see "Done" below) prove the FIFO
-  queue shape generalizes; ELO itself already lives in `LeaderboardManager`
+- **`matchmaking` kernel: rollout to the other ~24 `<Name>MatchManager` classes.**
+  `MatchmakingKernel`/`CheckersMatchManager`/`ConnectFourMatchManager` (done - see
+  "Done" below) prove the FIFO queue shape generalizes, including the real
+  matchId-prefix-vs-gameId divergence Connect Four needed; ELO itself already lives
+  in `LeaderboardManager`
   separately and isn't part of this kernel (queue mechanics and rating are genuinely
   different concerns) - "shared ELO/queue logic" in this item's original wording
   turned out to already be two separate, already-correct systems once actually

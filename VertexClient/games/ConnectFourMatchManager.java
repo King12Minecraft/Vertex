@@ -1,105 +1,64 @@
 package games;
-import net.MessageType;
-import net.Message;
 import economy.LeaderboardManager;
 import social.ChatManager;
 import economy.GameHistoryManager;
 import economy.EconomyManager;
 import net.ClientHandler;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 /**
  * ConnectFourMatchManager
  * -----------------------
- * Matchmaking for Connect Four - same shape as MatchManager (Tic-Tac-Toe).
+ * Matchmaking for Connect Four - thin wrapper over the shared
+ * MatchmakingKernel (see its javadoc), the second adopter after
+ * CheckersMatchManager. matchId keeps its original "connect4-N" prefix
+ * (distinct from GAME_ID "connect-four") via MatchmakingKernel's
+ * matchIdPrefix parameter - a cosmetic detail preserved exactly rather
+ * than silently changed.
  */
 public class ConnectFourMatchManager
 {
     private static final String GAME_ID = "connect-four";
+    private static final String MATCH_ID_PREFIX = "connect4";
 
-    private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
-    private final Map<String, ConnectFourMatch> activeMatches = new HashMap<String, ConnectFourMatch>();
-    private int nextMatchId = 1;
-    private final EconomyManager economyManager;
-    private final GameHistoryManager gameHistoryManager;
-    private final ChatManager chatManager;
-    private final LeaderboardManager leaderboardManager;
+    private final MatchmakingKernel<ConnectFourMatch> kernel;
 
-    public ConnectFourMatchManager(EconomyManager economyManager, GameHistoryManager gameHistoryManager,
-                                    ChatManager chatManager, LeaderboardManager leaderboardManager)
+    public ConnectFourMatchManager(final EconomyManager economyManager, GameHistoryManager gameHistoryManager,
+                                    ChatManager chatManager, final LeaderboardManager leaderboardManager)
     {
-        this.economyManager = economyManager;
-        this.gameHistoryManager = gameHistoryManager;
-        this.chatManager = chatManager;
-        this.leaderboardManager = leaderboardManager;
+        kernel = new MatchmakingKernel<ConnectFourMatch>(GAME_ID, MATCH_ID_PREFIX, gameHistoryManager, chatManager,
+            new MatchmakingKernel.PairHandler<ConnectFourMatch>()
+            {
+                public ConnectFourMatch pair(String matchId, ClientHandler playerA, ClientHandler playerB)
+                {
+                    ConnectFourMatch match = new ConnectFourMatch(matchId, playerA, playerB, ConnectFourMatchManager.this, economyManager, leaderboardManager);
+                    match.start();
+                    return match;
+                }
+
+                public void attach(ClientHandler handler, ConnectFourMatch match)
+                {
+                    handler.setCurrentConnectFourMatch(match);
+                }
+            });
     }
 
-    public synchronized void findMatch(ClientHandler player)
+    public void findMatch(ClientHandler player)
     {
-        if (waitingPlayers.contains(player))
-        {
-            return;
-        }
-
-        if (!waitingPlayers.isEmpty())
-        {
-            ClientHandler opponent = waitingPlayers.remove(0);
-            String matchId = "connect4-" + (nextMatchId++);
-            ConnectFourMatch match = new ConnectFourMatch(matchId, opponent, player, this, economyManager, leaderboardManager);
-            activeMatches.put(matchId, match);
-            opponent.setCurrentConnectFourMatch(match);
-            player.setCurrentConnectFourMatch(match);
-            match.start();
-
-            recordPlay(opponent);
-            recordPlay(player);
-
-            broadcastQueueCount();
-        }
-        else
-        {
-            waitingPlayers.add(player);
-            broadcastQueueCount();
-        }
+        kernel.findMatch(player);
     }
 
-    private void recordPlay(ClientHandler handler)
+    public void cancelWaiting(ClientHandler player)
     {
-        if (handler.getLoggedInUsername() != null && handler.getAccountId() != null)
-        {
-            gameHistoryManager.recordPlay(handler.getAccountId(), GAME_ID);
-        }
+        kernel.cancelWaiting(player);
     }
 
-    public synchronized void cancelWaiting(ClientHandler player)
+    public void endMatch(String matchId)
     {
-        boolean removed = waitingPlayers.remove(player);
-        if (removed)
-        {
-            broadcastQueueCount();
-        }
+        kernel.endMatch(matchId);
     }
 
-    public synchronized void endMatch(String matchId)
+    public int getQueueCount()
     {
-        activeMatches.remove(matchId);
-    }
-
-    public synchronized int getQueueCount()
-    {
-        return waitingPlayers.size();
-    }
-
-    private void broadcastQueueCount()
-    {
-        Message msg = new Message();
-        msg.setType(MessageType.QUEUE_UPDATE);
-        msg.setQueueGameId(GAME_ID);
-        msg.setQueueCount(waitingPlayers.size());
-        chatManager.broadcastToAll(msg);
+        return kernel.getQueueCount();
     }
 }
