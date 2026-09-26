@@ -579,7 +579,18 @@ already happen rather than needing their own call site in every match.
   best-score tracking for score-based games. Among Us is deliberately excluded from ELO
   (asymmetric roles don't map to a symmetric skill rating).
 - **`AchievementManager.java`** — permanent, silent unlocks computed from three
-  already-tracked metrics: win counts, total plays, coin balance.
+  already-tracked metrics: win counts, total plays, coin balance. Data-driven since
+  2026-09-26 (the "achievements kernel" requested alongside `EconomyKernel`): each
+  `Definition` carries its own trigger - a threshold on a named metric
+  (`"wins:chess" >= 5`) or a one-shot event key (`"racing:place1"`) - and the two
+  generic entry points `checkThreshold(accountId, metric, currentValue)`/
+  `checkEvent(accountId, eventKey)` unlock whatever `Definition`s match, so a new
+  achievement is one `Definition` line, never a new method or another branch in a
+  hand-maintained if-chain. The original 6 named check methods
+  (`checkWinAchievements`, `checkRacingPlacement`, ...) stay as thin wrappers over
+  those two - unlike `EconomyKernel`, no separate facade class was needed here, since
+  this public API was already clean rather than duplicated; existing call sites
+  needed zero changes.
 - **`GameHistoryManager.java`** — records every play event, feeds "Recently
   Played"/"Trending" and achievement play-count checks.
 - **`TransactionManager.java`** — flat coin-transaction audit log.

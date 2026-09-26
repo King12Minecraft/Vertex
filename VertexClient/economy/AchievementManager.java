@@ -34,10 +34,23 @@ import java.util.Set;
  * checks themselves, needing only one integration point each instead
  * of five-plus.
  *
- * Scoped to what existing tracked data already supports: win counts
- * per game (LeaderboardManager), total games played
- * (GameHistoryManager), and current coin balance (a proxy for "earned
- * a lot of coins," not literal lifetime-earned tracking).
+ * Data-driven since 2026-09-26 (the "achievements kernel" requested
+ * alongside EconomyKernel - see ROADMAP.md): every Definition below
+ * carries its own trigger, either a threshold on a named metric
+ * ("wins:chess" >= 5) or a one-shot event key ("racing:place1") -
+ * {@link #checkThreshold} and {@link #checkEvent} are the two generic
+ * entry points that unlock whatever Definitions match, so adding a new
+ * achievement is one Definition, never a new `checkXxx` method or
+ * another branch in a hand-maintained if-chain. Unlike EconomyKernel,
+ * this generic engine lives directly on AchievementManager rather than
+ * a separate facade class - the original 6 named check methods
+ * (checkWinAchievements, checkRacingPlacement, ...) were already a
+ * clean, sensible public API (not scattered/duplicated the way
+ * EconomyManager's award* methods were), so they're kept as thin,
+ * more-readable wrappers over the two generic methods rather than
+ * removed - existing call sites needed zero changes. A future game
+ * with a genuinely new trigger shape can call checkThreshold/checkEvent
+ * directly instead of waiting for a new named wrapper.
  */
 public class AchievementManager
 {
@@ -48,30 +61,51 @@ public class AchievementManager
         public final String id;
         public final String name;
         public final String description;
+        /** Metric key this achievement's threshold applies to (e.g. "wins:chess", "coins") - null if this is an event-based achievement instead. */
+        final String metric;
+        /** The value {@link #metric} must reach - meaningless if metric is null. */
+        final int threshold;
+        /** One-shot trigger key (e.g. "racing:place1") - null if this is a threshold-based achievement instead. Exactly one of metric/eventKey is non-null. */
+        final String eventKey;
 
-        Definition(String id, String name, String description)
+        private Definition(String id, String name, String description, String metric, int threshold, String eventKey)
         {
             this.id = id;
             this.name = name;
             this.description = description;
+            this.metric = metric;
+            this.threshold = threshold;
+            this.eventKey = eventKey;
+        }
+
+        /** A metric that grows over time (win count, coin balance, total plays) crossing a fixed value. */
+        static Definition threshold(String id, String name, String description, String metric, int threshold)
+        {
+            return new Definition(id, name, description, metric, threshold, null);
+        }
+
+        /** A one-shot moment (finished 1st, survived to the end) rather than a growing counter. */
+        static Definition event(String id, String name, String description, String eventKey)
+        {
+            return new Definition(id, name, description, null, 0, eventKey);
         }
     }
 
     private static final List<Definition> ALL_DEFINITIONS = new ArrayList<Definition>();
     static
     {
-        ALL_DEFINITIONS.add(new Definition("first-blood", "First Blood", "Win your first ranked match, in any game."));
-        ALL_DEFINITIONS.add(new Definition("chess-novice", "Chess Novice", "Win 5 games of Chess."));
-        ALL_DEFINITIONS.add(new Definition("chess-master", "Chess Master", "Win 25 games of Chess."));
-        ALL_DEFINITIONS.add(new Definition("battleship-admiral", "Battleship Admiral", "Win 10 games of Battleship."));
-        ALL_DEFINITIONS.add(new Definition("rps-champion", "Rock Paper Scissors Champion", "Win 10 Rock Paper Scissors series."));
-        ALL_DEFINITIONS.add(new Definition("tictactoe-ace", "Tic-Tac-Toe Ace", "Win 10 games of Tic-Tac-Toe Online."));
-        ALL_DEFINITIONS.add(new Definition("fight-champion", "Fight Champion", "Win 10 Fight Arena matches."));
-        ALL_DEFINITIONS.add(new Definition("racing-ace", "Racing Ace", "Finish 1st in an online Race."));
-        ALL_DEFINITIONS.add(new Definition("zombie-survivor", "Survivor", "Survive all 8 waves of an online Zombie Survival match."));
-        ALL_DEFINITIONS.add(new Definition("space-ace", "Space Ace", "Finish 1st in an online Space Battle."));
-        ALL_DEFINITIONS.add(new Definition("high-roller", "High Roller", "Hold 1000 coins at once."));
-        ALL_DEFINITIONS.add(new Definition("dedicated", "Dedicated", "Play 50 games, of any kind, total."));
+        ALL_DEFINITIONS.add(Definition.threshold("first-blood", "First Blood", "Win your first ranked match, in any game.", "any-win", 1));
+        ALL_DEFINITIONS.add(Definition.threshold("chess-novice", "Chess Novice", "Win 5 games of Chess.", "wins:chess", 5));
+        ALL_DEFINITIONS.add(Definition.threshold("chess-master", "Chess Master", "Win 25 games of Chess.", "wins:chess", 25));
+        ALL_DEFINITIONS.add(Definition.threshold("battleship-admiral", "Battleship Admiral", "Win 10 games of Battleship.", "wins:battleship", 10));
+        ALL_DEFINITIONS.add(Definition.threshold("rps-champion", "Rock Paper Scissors Champion", "Win 10 Rock Paper Scissors series.", "wins:rock-paper-scissors", 10));
+        ALL_DEFINITIONS.add(Definition.threshold("tictactoe-ace", "Tic-Tac-Toe Ace", "Win 10 games of Tic-Tac-Toe Online.", "wins:tictactoe-online", 10));
+        ALL_DEFINITIONS.add(Definition.threshold("fight-champion", "Fight Champion", "Win 10 Fight Arena matches.", "wins:fight-arena", 10));
+        ALL_DEFINITIONS.add(Definition.event("racing-ace", "Racing Ace", "Finish 1st in an online Race.", "racing:place1"));
+        ALL_DEFINITIONS.add(Definition.event("zombie-survivor", "Survivor", "Survive all 8 waves of an online Zombie Survival match.", "zombie-survival:won"));
+        ALL_DEFINITIONS.add(Definition.event("space-ace", "Space Ace", "Finish 1st in an online Space Battle.", "space-battle:place1"));
+        ALL_DEFINITIONS.add(Definition.threshold("high-roller", "High Roller", "Hold 1000 coins at once.", "coins", 1000));
+        ALL_DEFINITIONS.add(Definition.threshold("dedicated", "Dedicated", "Play 50 games, of any kind, total.", "total-plays", 50));
     }
 
     private final Map<Integer, Set<String>> unlockedByAccount = new HashMap<Integer, Set<String>>();
@@ -101,76 +135,79 @@ public class AchievementManager
         return unlocked == null ? new HashSet<String>() : new HashSet<String>(unlocked);
     }
 
-    /** Call after any rated match's winner is decided (win count already includes this result) - checks the win-count achievements for that specific game plus "First Blood". */
-    public synchronized void checkWinAchievements(int accountId, String gameId, int wins)
+    /** Call after any rated match's winner is decided (win count already includes this result) - checks the win-count achievement for that specific game plus "First Blood" (any game's first win). Thin wrapper over checkThreshold - kept as a named method since "a win just happened" reads better at the call site than the raw metric strings it maps to. */
+    public void checkWinAchievements(int accountId, String gameId, int wins)
+    {
+        checkThreshold(accountId, "any-win", 1);
+        checkThreshold(accountId, "wins:" + gameId, wins);
+    }
+
+    public void checkRacingPlacement(int accountId, int place)
+    {
+        if (place == 1) checkEvent(accountId, "racing:place1");
+    }
+
+    public void checkZombieSurvival(int accountId, boolean won, int waveReached)
+    {
+        if (won) checkEvent(accountId, "zombie-survival:won");
+    }
+
+    public void checkSpaceBattlePlacement(int accountId, int place)
+    {
+        if (place == 1) checkEvent(accountId, "space-battle:place1");
+    }
+
+    public void checkCoinBalance(int accountId, int currentBalance)
+    {
+        checkThreshold(accountId, "coins", currentBalance);
+    }
+
+    public void checkPlayCount(int accountId, int totalPlays)
+    {
+        checkThreshold(accountId, "total-plays", totalPlays);
+    }
+
+    /**
+     * The generic engine for threshold-based achievements: unlocks every Definition
+     * whose metric matches and whose threshold is already met. A future game with a
+     * new growing-counter achievement can call this directly with its own metric key
+     * instead of needing a new named wrapper method here.
+     */
+    public synchronized void checkThreshold(int accountId, String metric, int currentValue)
     {
         if (accountId <= 0)
         {
             return;
         }
-
-        unlock(accountId, "first-blood");
-
-        if ("chess".equals(gameId))
+        for (int i = 0; i < ALL_DEFINITIONS.size(); i++)
         {
-            if (wins >= 5) unlock(accountId, "chess-novice");
-            if (wins >= 25) unlock(accountId, "chess-master");
-        }
-        else if ("battleship".equals(gameId))
-        {
-            if (wins >= 10) unlock(accountId, "battleship-admiral");
-        }
-        else if ("rock-paper-scissors".equals(gameId))
-        {
-            if (wins >= 10) unlock(accountId, "rps-champion");
-        }
-        else if ("tictactoe-online".equals(gameId))
-        {
-            if (wins >= 10) unlock(accountId, "tictactoe-ace");
-        }
-        else if ("fight-arena".equals(gameId))
-        {
-            if (wins >= 10) unlock(accountId, "fight-champion");
+            Definition def = ALL_DEFINITIONS.get(i);
+            if (metric.equals(def.metric) && currentValue >= def.threshold)
+            {
+                unlock(accountId, def.id);
+            }
         }
     }
 
-    public synchronized void checkRacingPlacement(int accountId, int place)
+    /**
+     * The generic engine for event-based (one-shot) achievements: unlocks every
+     * Definition whose eventKey matches. A future game with a new "this specific
+     * thing just happened" achievement can call this directly instead of needing a
+     * new named wrapper method here.
+     */
+    public synchronized void checkEvent(int accountId, String eventKey)
     {
-        if (place == 1 && accountId > 0)
+        if (accountId <= 0)
         {
-            unlock(accountId, "racing-ace");
+            return;
         }
-    }
-
-    public synchronized void checkZombieSurvival(int accountId, boolean won, int waveReached)
-    {
-        if (won && accountId > 0)
+        for (int i = 0; i < ALL_DEFINITIONS.size(); i++)
         {
-            unlock(accountId, "zombie-survivor");
-        }
-    }
-
-    public synchronized void checkSpaceBattlePlacement(int accountId, int place)
-    {
-        if (place == 1 && accountId > 0)
-        {
-            unlock(accountId, "space-ace");
-        }
-    }
-
-    public synchronized void checkCoinBalance(int accountId, int currentBalance)
-    {
-        if (currentBalance >= 1000 && accountId > 0)
-        {
-            unlock(accountId, "high-roller");
-        }
-    }
-
-    public synchronized void checkPlayCount(int accountId, int totalPlays)
-    {
-        if (totalPlays >= 50 && accountId > 0)
-        {
-            unlock(accountId, "dedicated");
+            Definition def = ALL_DEFINITIONS.get(i);
+            if (eventKey.equals(def.eventKey))
+            {
+                unlock(accountId, def.id);
+            }
         }
     }
 

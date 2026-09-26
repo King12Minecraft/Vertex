@@ -44,6 +44,31 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`AchievementManager` made data-driven - the "achievements kernel," the next
+  planned-infrastructure item after `EconomyKernel`/`GameWindowKernel`.** Unlike
+  `EconomyManager`, this one's public API wasn't actually duplicated - 6 sensibly-
+  named check methods (`checkWinAchievements`, `checkRacingPlacement`, ...), each a
+  reasonable call site. The real gap matched the ROADMAP's own description exactly
+  though: adding a new achievement meant editing a hardcoded if-chain inside
+  `checkWinAchievements` (or adding a whole new `checkXxx` method for a new trigger
+  shape) rather than just describing the achievement. Fixed by giving every
+  `Definition` its own trigger data - a threshold on a named metric
+  (`"wins:chess" >= 5`, built via `Definition.threshold(...)`) or a one-shot event key
+  (`"racing:place1"`, via `Definition.event(...)`) - and adding two generic engines,
+  `checkThreshold(accountId, metric, currentValue)`/`checkEvent(accountId, eventKey)`,
+  that unlock whatever `Definition`s match. A new achievement is now one `Definition`
+  line; a genuinely new trigger shape calls the generic methods directly instead of
+  waiting for a new named wrapper. The original 6 methods stay, now as thin wrappers
+  over the two generic ones - zero call sites changed. Deliberately did NOT build a
+  separate `AchievementKernel` facade class the way `EconomyKernel` wraps
+  `EconomyManager` - that facade earned its place by cleaning up real duplication;
+  here the public API was already the right shape, so the generic engine lives
+  directly on `AchievementManager` instead of behind an unnecessary extra class.
+  Verified with a 20-check regression test proving all 12 existing achievements
+  still unlock under the exact same real-world calls every match class already
+  makes, plus two checks calling the new generic primitives directly with the same
+  metric/event data to confirm that path works identically. Mirrored byte-identical
+  across both trees; both compile clean.
 - **Two shared "kernel" utilities, requested explicitly: `EconomyKernel` and
   `GameWindowKernel`.** Both follow the same shape already established by
   `PerformanceMode`/`EconomyConfig` in this codebase - a static facade over existing
@@ -951,8 +976,6 @@ recorded below as they're confirmed.
   just slightly duplicated, and a refactor of working code carries real risk for no
   user-facing benefit on its own. Worth doing the next time a panel needs the same
   three states.
-- **`achievements` kernel** — generic trigger-based unlock system, parallel to
-  `EconomyKernel` (which is done - see "Done" below; this one isn't yet).
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
 - **`matchmaking` kernel** — shared ELO/queue logic any new competitive game can
