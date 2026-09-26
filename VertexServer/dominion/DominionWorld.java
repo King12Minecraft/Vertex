@@ -103,4 +103,7 @@ public class DominionWorld
     }
 
     public List<DiplomaticRelation> getRelations() { return relations; }
+
+    /** Adds a relation exactly as given, with no business-rule recomputation (declareWar/setPeacefulRelation both derive effectiveFromTick from the CURRENT tick, which is wrong when restoring an already-fixed value from disk) - DominionStore's load() is the only intended caller. */
+    void addRelation(DiplomaticRelation relation) { relations.add(relation); }
 }

@@ -46,6 +46,27 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Vertex: Dominion, build order step 2: persistence.** `DominionStore` - its own
+  isolated flat file `gamehub_dominion.dat`, same pipe-delimited/type-tagged-line/
+  backward-compatible-by-field-count convention `ServerAccountStore` already uses,
+  one line per record (`TICK`/`PROVINCE`/`NATION`/`ARMY`/`RELATION`) since this one
+  file holds every entity type. Deliberately doesn't decide *when* `save()` gets
+  called (every tick? every order?) - that's a networking-layer decision, step 3,
+  not this one. Verified with a 20-check test: a full save-then-reload round trip
+  for every entity type - including the tricky case of a declared-but-not-yet-
+  active war, which must survive exactly as stored rather than getting its
+  next-tick effective date recomputed relative to whatever tick it happens to load
+  back into - plus a real mid-game scenario (declare war, save, reload into a
+  fresh `DominionWorld`/`DominionStore` pair, then keep resolving ticks and
+  confirm combat still resolves correctly post-reload), plus loading with no file
+  present yielding a fresh empty world rather than erroring. One gap flagged for
+  step 3 rather than solved speculatively now: `Nation.getName()` has no input
+  validation yet since nothing accepts a player-chosen name until step 3's "found
+  a nation" message handler exists - its javadoc flags that a literal `"|"` must
+  be rejected there, the same bug class `ServerAccountStore.isValidUsernameFormat`
+  already guards against for usernames (this store's pipe-delimited format has the
+  identical corruption risk). Next build-order steps: networking, then the
+  client's persistent nav tab.
 - **Vertex: Dominion, build order step 1: core data model + tick engine, proven in
   isolation.** `DOMINION_DESIGN.md`'s build order calls for the simulation core to
   exist and be tested before any networking, persistence, or UI - that's what this

@@ -412,13 +412,30 @@ territory, a simple relocation onto the army's own territory, or a decisive
 win/loss combat resolution when marching into contested enemy territory during an
 active war - combat power is troop count x a terrain defense multiplier, no
 partial attrition or unit-type variety yet, matching V1's intentionally small
-scope). Proven with a 16-check test covering exactly the scenario the design's
-build order calls for (two nations, a declared war, an army march, a combat
-outcome, a province flipping ownership) plus edge cases (unclaimed capture,
-own-territory relocation, march blocked with no war declared, an invalid
-non-adjacent march order being silently ignored) - no networking, UI, or
-persistence exists yet, intentionally; see `DOMINION_DESIGN.md`'s build order for
-what's next (persistence, then networking, then the client's persistent nav tab).
+scope), and `DominionStore` (save/load for a `DominionWorld` - its own isolated
+flat file `gamehub_dominion.dat`, same pipe-delimited/type-tagged-line/backward-
+compatible-by-field-count convention as `ServerAccountStore`, one line per record
+with a leading tag (`TICK`/`PROVINCE`/`NATION`/`ARMY`/`RELATION`) since this one
+file holds every entity type rather than one file per type. Deliberately doesn't
+decide *when* to call `save()` - that's a networking-layer decision, step 3, not
+made yet). `DominionTickEngine` proven with a 16-check test covering exactly the
+scenario the design's build order calls for (two nations, a declared war, an army
+march, a combat outcome, a province flipping ownership) plus edge cases (unclaimed
+capture, own-territory relocation, march blocked with no war declared, an invalid
+non-adjacent march order being silently ignored). `DominionStore` proven with a
+20-check test: a full save-then-reload round trip for every entity type including
+a declared-but-not-yet-active war (must survive exactly, not get recomputed
+relative to the new tick), a real mid-game scenario continuing to resolve
+correctly after a reload (a fresh `DominionStore`/`DominionWorld` instance,
+matching this project's usual persistence-test technique), and loading with no
+file present yielding a fresh empty world rather than erroring. No networking or
+UI exists yet, intentionally; see `DOMINION_DESIGN.md`'s build order for what's
+next (networking, then the client's persistent nav tab). One documented gap
+flagged for whenever step 3 adds a real "found a nation" message handler:
+`Nation.getName()`'s javadoc flags that nothing validates a nation name yet - it
+must reject `"|"` once real player input reaches it, the exact bug class
+`ServerAccountStore.isValidUsernameFormat`'s javadoc already documents for
+usernames (a literal `"|"` corrupts `DominionStore`'s pipe-delimited line format).
 
 ## ai — four independent toolkits, unified by one philosophy
 
