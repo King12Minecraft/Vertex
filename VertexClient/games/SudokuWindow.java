@@ -150,6 +150,11 @@ public class SudokuWindow extends JPanel implements EmbeddedGamePanel
                 Message request = new Message();
                 request.setType(MessageType.GAME_PLAYED_REQUEST);
                 request.setGameId("sudoku");
+                // Sudoku has no meaningful numeric score (solved-or-not, nothing else
+                // tracked) - a positive placeholder just signals "completed" past
+                // EconomyConfig.getPracticeReward's score<=0 guard; the sudoku-specific
+                // branch there returns a flat reward regardless of this exact value.
+                request.setScore(1);
                 NetworkManager.sendAsync(request);
             }
         });

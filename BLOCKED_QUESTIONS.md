@@ -40,20 +40,31 @@ raised.
   when internet play is actually being built. Raised 2026-09-25. No code-signing
   assumption made; only the safe, clearly-scoped integrity check above was added.
 
-- **Sudoku has no practice-mode coin reward formula at all** in
-  `EconomyConfig.getPracticeReward` — every other offline/single-player game does
-  (20 games now have one after tonight's `handleGamePlayed` fix). This isn't the
-  wiring bug that fix addressed (those 14 games already had a formula, just weren't
-  reached); Sudoku genuinely has no formula defined, so completing it pays zero
-  coins by design-or-oversight, unclear which. Needs a real decision (a reward
-  value/formula, matching the "min(cap, score-based-scaling)" shape every other
-  entry uses) rather than an invented number — picking Sudoku's actual reward
-  economics isn't a mechanical fix. Raised 2026-09-25. No assumption made; left
-  exactly as found.
-
 ---
 
 ## Resolved
+
+- **Sudoku had no practice-mode coin reward formula at all** in
+  `EconomyConfig.getPracticeReward`, so completing it paid zero coins. Raised
+  2026-09-25 as needing a real decision rather than an invented number, since every
+  other entry scales a formula off a numeric score and Sudoku never had one to
+  scale from - not a wiring bug, a genuine missing design decision. Resolved
+  2026-09-26 with a reversible default rather than left unpaid indefinitely: traced
+  the actual client code first and found the *real* root cause was one level deeper
+  than the formula gap - `SudokuWindow` never reported a score at all (`SudokuGame`
+  tracks nothing beyond solved-or-not; no time, mistakes, or hint count exists to
+  score), so even a formula would always compute against 0 and pay nothing. Fixed
+  with a flat, not scaled, completion reward: the client now sends a placeholder
+  positive score (1) purely to pass `getPracticeReward`'s `score<=0` guard, and the
+  new `sudoku` branch returns a flat 30 coins regardless of the actual score value -
+  matching the reward level of comparable long single-completion puzzles (Peg
+  Solitaire 35, Lights Out/Match Three 30) rather than a made-up number. This is a
+  pure numeric tuning constant, trivially retuned later if 30 turns out to be wrong
+  - the kind of "safe reversible assumption" the standing autonomous-session rule
+  calls for, unlike the deeper TLS/code-signing item above which genuinely needs a
+  human's risk-tolerance call. Verified with a 4-case test confirming the flat
+  reward, the unaffected zero-score guard, and no scaling with score. Mirrored
+  byte-identical across both trees where shared; both compile clean.
 
 - **Should `Vertex: Dominion` live in `MainMenu`'s game-host `CardLayout` slot like
   every other game, or get its own persistent nav destination?** Raised while

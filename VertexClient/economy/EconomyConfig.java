@@ -77,6 +77,15 @@ public class EconomyConfig
         if ("yahtzee".equals(gameId))        return Math.min(35, score / 12);
         if ("mancala".equals(gameId))        return Math.min(35, score / 8);
         if ("hill-climb".equals(gameId))     return Math.min(35, score / 20);
+        // Sudoku has no meaningful numeric score to scale from (SudokuGame tracks
+        // nothing beyond solved-or-not - no time, mistakes, or hint count) - a flat
+        // completion reward, not a formula, is the honest fit here. 30 matches the
+        // reward level of comparable long single-completion puzzles (Peg Solitaire 35,
+        // Lights Out/Match Three 30) rather than an invented number. This was an open
+        // question in BLOCKED_QUESTIONS.md (completing Sudoku paid literally zero
+        // coins) - resolved with this reversible default rather than left unpaid
+        // indefinitely; a real value is trivial to retune later if it turns out wrong.
+        if ("sudoku".equals(gameId))         return 30;
         return 0;
     }
 

@@ -1483,10 +1483,7 @@ public class ClientHandler implements Runnable
                 // Previously only pingpong/2048/dino-dash/tetris/crossing-road/aim-trainer reached
                 // this path even though getPracticeReward already had formulas for 14 more games
                 // (Simon Says through Mancala) - those games paid zero coins on completion despite
-                // the reward being fully designed, just never wired up. Sudoku still has no formula
-                // at all in getPracticeReward (a real gap, not a wiring bug - see
-                // BLOCKED_QUESTIONS.md, since picking a reward value is a design call, not a
-                // mechanical fix).
+                // the reward being fully designed, just never wired up.
                 economyManager.awardPracticeScore(this, gameId, request.getScore());
             }
         }

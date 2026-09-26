@@ -44,6 +44,11 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Sudoku now pays a completion reward (30 coins flat)** - closes the open question
+  in `BLOCKED_QUESTIONS.md` (see there for the full reasoning: the real root cause was
+  one level deeper than a missing formula - `SudokuWindow` never reported a score at
+  all, since `SudokuGame` has nothing to score beyond solved-or-not). A reversible
+  numeric default, not a guess left unresolved.
 - **`GameDetailDialog` fills the owner window instead of floating as a small fixed-size
   card** - the other half of the "Also still wanted" note under the embedded-games
   rollout, alongside reconnection above. Now sizes itself to match the owner window
