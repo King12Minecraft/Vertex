@@ -44,6 +44,27 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Security: username format validation, closing a path-traversal + save-file-corruption
+  hole** — `ServerAccountStore.createAccount()`/`changeUsername()` only ever checked
+  username *length* (≥3 chars), with zero check on which characters were allowed. Two
+  real, independent exploits shared that one root cause: (1) `AvatarStore.fileFor(username)`
+  builds a filesystem path directly from the raw username (`new File(AVATAR_DIR,
+  username.toLowerCase() + ".png")`) - a username like `../../etc/passwd` or containing
+  `/` would let a client write (or later read) a PNG-content file *outside* the avatars
+  folder, a classic path-traversal write; (2) `ServerAccountStore.save()`/`load()` persist
+  accounts in a hand-rolled `|`-delimited line format - a literal `|` in a username would
+  silently corrupt that account's saved line and shift every field after it on the next
+  server restart. Fixed with one shared choke point: `ServerAccountStore.isValidUsernameFormat(String)`,
+  a `^[A-Za-z0-9_-]{3,20}$` regex, enforced at all three points a username can be set or
+  used - `ClientHandler.handleCreateAccount()` (new `USERNAME_INVALID_FORMAT` error path,
+  since account creation doesn't route through `changeUsername`), `ServerAccountStore.changeUsername()`
+  itself, and defense-in-depth inside `AvatarStore.save()`/`load()` (independent backstop
+  even if a caller upstream ever forgets to check). Verified with a throwaway test
+  (`UsernameValidationTest.java`) exercising 22 cases - every path-traversal/pipe/space/
+  null-byte/too-long/too-short variant rejected, every normal alphanumeric/underscore/
+  hyphen username of valid length still accepted. Prompted by an explicit "upgrade
+  security like crazy" request ahead of a friend attempting to penetration-test the
+  platform.
 - **Practice-mode AI for 11 games** — a shared `ai/search` engine (Minimax/alpha-beta)
   powering Connect Four, Reversi, Dots and Boxes, Checkers, Chess, and Signal Grid,
   plus 5 bespoke bots for games that don't fit that shape (Word Duel, Dice Duel,

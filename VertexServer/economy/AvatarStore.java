@@ -1,5 +1,7 @@
 package economy;
 
+import account.ServerAccountStore;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileInputStream;
@@ -37,6 +39,11 @@ public class AvatarStore
         {
             return false;
         }
+        if (!ServerAccountStore.isValidUsernameFormat(username))
+        {
+            System.err.println("Refused to save an avatar for an invalid username: " + username);
+            return false;
+        }
         try
         {
             FileOutputStream out = new FileOutputStream(fileFor(username));
@@ -54,6 +61,10 @@ public class AvatarStore
     /** Null if this account has never set an avatar. */
     public byte[] load(String username)
     {
+        if (!ServerAccountStore.isValidUsernameFormat(username))
+        {
+            return null;
+        }
         File file = fileFor(username);
         if (!file.exists())
         {
@@ -82,8 +93,11 @@ public class AvatarStore
 
     private File fileFor(String username)
     {
-        // Usernames are already validated at account-creation time (alphanumeric-ish),
-        // but normalize to lowercase so the filename can't collide/differ only by case.
+        // save()/load() both already reject anything that fails
+        // ServerAccountStore.isValidUsernameFormat() before reaching here - this
+        // constructs a path from the username, so a "/" or ".." would otherwise be a
+        // path-traversal write/read outside AVATAR_DIR (found and fixed 2026-09-26).
+        // Normalize to lowercase so the filename can't collide/differ only by case.
         return new File(AVATAR_DIR, username.toLowerCase() + ".png");
     }
 }

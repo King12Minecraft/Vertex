@@ -960,6 +960,12 @@ public class ClientHandler implements Runnable
             response.setErrorText("Username must be at least 3 characters.");
             return response;
         }
+        if (!ServerAccountStore.isValidUsernameFormat(username))
+        {
+            response.setSuccess(false);
+            response.setErrorText("Username can only contain letters, numbers, underscores, and hyphens (max 20 characters).");
+            return response;
+        }
         if (accountStore.usernameExists(username))
         {
             response.setSuccess(false);
@@ -1073,6 +1079,7 @@ public class ClientHandler implements Runnable
         if (result == ServerAccountStore.ChangeResult.NO_SUCH_ACCOUNT) return "Account not found.";
         if (result == ServerAccountStore.ChangeResult.USERNAME_TAKEN) return "That username is already taken.";
         if (result == ServerAccountStore.ChangeResult.USERNAME_TOO_SHORT) return "Username must be at least 3 characters.";
+        if (result == ServerAccountStore.ChangeResult.USERNAME_INVALID_FORMAT) return "Username can only contain letters, numbers, underscores, and hyphens (max 20 characters).";
         if (result == ServerAccountStore.ChangeResult.PASSWORD_TOO_SHORT) return "New password must be at least 6 characters.";
         return "Something went wrong.";
     }

@@ -23,7 +23,25 @@ public class ServerAccountStore
     private final Map<String, Boolean> lockedOut = new HashMap<String, Boolean>();
 
     public enum LoginResult { SUCCESS, WRONG_PASSWORD, NO_SUCH_ACCOUNT, LOCKED_OUT }
-    public enum ChangeResult { SUCCESS, WRONG_PASSWORD, NO_SUCH_ACCOUNT, USERNAME_TAKEN, USERNAME_TOO_SHORT, PASSWORD_TOO_SHORT }
+    public enum ChangeResult { SUCCESS, WRONG_PASSWORD, NO_SUCH_ACCOUNT, USERNAME_TAKEN, USERNAME_TOO_SHORT, USERNAME_INVALID_FORMAT, PASSWORD_TOO_SHORT }
+
+    /**
+     * Letters, digits, underscore, hyphen only, 3-20 characters. Enforced both here
+     * and in ClientHandler.handleCreateAccount (account creation doesn't go through
+     * changeUsername) - this is a real security boundary, not just a UX nicety:
+     * usernames are used directly as a filename in AvatarStore.fileFor(username)
+     * (a "/" or ".." would be a path-traversal write outside the avatars folder) and
+     * as a "|"-delimited field in this class's own save() format (a literal "|" in a
+     * username would corrupt that account's saved line, shifting every field after
+     * it on the next load). Found and fixed together - both bugs had the exact same
+     * root cause: nothing but a minimum length was ever checked.
+     */
+    private static final java.util.regex.Pattern VALID_USERNAME = java.util.regex.Pattern.compile("^[A-Za-z0-9_-]{3,20}$");
+
+    public static boolean isValidUsernameFormat(String username)
+    {
+        return username != null && VALID_USERNAME.matcher(username).matches();
+    }
 
     public ServerAccountStore()
     {
@@ -235,6 +253,7 @@ public class ServerAccountStore
             return ChangeResult.WRONG_PASSWORD;
         }
         if (newUsername == null || newUsername.length() < 3) return ChangeResult.USERNAME_TOO_SHORT;
+        if (!isValidUsernameFormat(newUsername)) return ChangeResult.USERNAME_INVALID_FORMAT;
         if (!newUsername.equalsIgnoreCase(currentUsername) && usernameExists(newUsername))
         {
             return ChangeResult.USERNAME_TAKEN;
