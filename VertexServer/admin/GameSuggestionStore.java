@@ -39,7 +39,16 @@ public class GameSuggestionStore
 
     public synchronized void submit(String username, String text)
     {
-        String trimmed = text.trim();
+        // One entry is exactly one line, both in memory and in the persisted file
+        // (load() below adds every readLine() result as its own entry) - an
+        // embedded \n or \r in a suggestion would otherwise let anyone forge
+        // additional, indistinguishable-looking entries under a fake "[date]
+        // someusername: ..." prefix of their own choosing (including
+        // impersonating another real player) the moment this reloads from disk,
+        // e.g. on the next server restart. Found during a security pass
+        // (2026-09-27) - not hypothetical, this is a real one-line change from
+        // "type a suggestion with a line break in it" to a forged entry.
+        String trimmed = stripNewlines(text.trim());
         if (trimmed.length() > MAX_SUGGESTION_LENGTH)
         {
             trimmed = trimmed.substring(0, MAX_SUGGESTION_LENGTH);
@@ -47,6 +56,11 @@ public class GameSuggestionStore
         String line = "[" + dateFormat.format(new Date()) + "] " + username + ": " + trimmed;
         entries.add(line);
         append(line);
+    }
+
+    private static String stripNewlines(String text)
+    {
+        return text.replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
     }
 
     /** Newest first, capped so a long-running server doesn't send back its entire history every time someone opens the page. */

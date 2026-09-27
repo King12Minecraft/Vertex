@@ -46,6 +46,26 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Security pass: a real entry-forgery bug found and fixed across three admin
+  stores.** `GameSuggestionStore` (public, reachable by any logged-in player)
+  and `AdminLog` (admin/mod-only) both persist one entry per physical line, but
+  neither stripped embedded newlines from the free text a caller supplies -
+  a suggestion (or an admin's typed action reason) containing a line break
+  could forge a second, indistinguishable-looking entry under any fake
+  `"[date] username: ..."` prefix the attacker chose, including impersonating
+  another real player, the moment the file next reloads on a server restart.
+  `FeedbackManager`'s delimiter-block format had the same bug in miniature - a
+  submission containing a line that was exactly its 64-dash `DELIMITER` string
+  would falsely end that entry early on reload, narrower than the other two
+  but just as deterministic once triggered. All three fixed (strip newlines
+  for the one-line-per-entry stores; escape an exact-delimiter line for the
+  block-based one) without changing how legitimate multi-line text behaves.
+  See `PROGRAM_STRUCTURE.md`'s `admin` package section for the full detail.
+  Verified with an 11-check test: each store produces exactly one entry (not
+  two) both immediately and after a real save-then-reload round trip, no
+  forged entry is ever retrievable, and ordinary embedded newlines still
+  round-trip correctly (a regression check). Mirrored byte-identical across
+  both trees; both compile clean.
 - **Number Nest, a new original single-player number-merge puzzle** - the
   `Threes`/`1010!`-genre concept from the games backlog, deliberately distinct
   from 2048's slide-and-merge-everything mechanic: a 5x5 grid, one piece

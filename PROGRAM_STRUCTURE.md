@@ -845,6 +845,36 @@ gets broadcast to; no message history yet, only what's sent while it's open).
 - **`GameSuggestionStore.java`** — public community wishlist of game ideas (text
   pitches only — no uploaded/executed code).
 
+**A real entry-forgery bug found and fixed across all three stores (security
+pass, 2026-09-27):** `GameSuggestionStore` and `AdminLog` both persist one entry
+per physical line (`load()` treats every `readLine()` result as its own entry);
+neither stripped embedded `\n`/`\r` from the free text a caller supplies before
+formatting and writing that line, so a suggestion (or, lower severity since only
+admins/mods can reach it, an admin's typed action reason) containing a line
+break could forge an entirely separate, indistinguishable-looking entry under
+any fake `"[date] username: ..."` prefix of the attacker's choosing - including
+impersonating another real player - the moment the file next reloads (a server
+restart). `GameSuggestionStore` is the more serious of the two: it's the public,
+everyone-sees-it wishlist, reachable by any logged-in player, not just staff.
+Fixed by stripping/replacing embedded newlines in the free-text field before it
+ever reaches the one-line format. `FeedbackManager`'s block-based format (a
+`DELIMITER` line, not one-line-per-entry) already tolerates embedded newlines
+within an entry by design, but had the same bug in miniature: a submission
+whose title/text/steps happened to contain a line that was *exactly* the
+64-dash `DELIMITER` string would falsely end that entry early on the next
+reload, misparsing everything after it as a second, differently-attributed
+entry - narrower (needs an exact 64-dash line, not just any newline) but
+fully deterministic once triggered. Fixed by escaping any such line in a
+submission before it's stored, changing nothing about how ordinary embedded
+newlines behave. Verified with an 11-check test proving each store still
+produces exactly one entry (not two) both immediately after submission and
+after a real save-then-reload round trip through a fresh instance, that no
+forged entry is retrievable at any point, and (for `FeedbackManager`) that
+ordinary multi-line free text still round-trips intact - a regression check
+that the fix doesn't change legitimate behavior. Mirrored byte-identical
+across both trees (all three files are in the sync-rule's `admin` package);
+both compile clean.
+
 Gating happens server-side in `ClientHandler` (`isAdmin()`/`isModeratorOrAdmin()`
 checked at the top of every admin/mod handler); `handleAdminSetRole` can promote
 PLAYER↔MODERATOR but refuses to grant/revoke ADMIN or touch another admin's role at all

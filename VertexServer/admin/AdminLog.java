@@ -42,9 +42,22 @@ public class AdminLog
 
     public synchronized void log(String actorUsername, String action)
     {
-        String line = "[" + dateFormat.format(new Date()) + "] " + actorUsername + ": " + action;
+        // Same one-line-per-entry format as GameSuggestionStore, same fix for the
+        // same reason (found alongside it in a 2026-09-27 security pass): an
+        // embedded newline in action (e.g. an admin-typed ban reason) would
+        // otherwise let that one log() call splinter into multiple entries on the
+        // next reload from disk, one of which could carry a fabricated "[date]
+        // someusername: ..." prefix. Lower severity here than the public-facing
+        // GameSuggestionStore (only admins/mods ever reach this method at all,
+        // per the class javadoc), but the fix is identical and just as cheap.
+        String line = "[" + dateFormat.format(new Date()) + "] " + actorUsername + ": " + stripNewlines(action);
         entries.add(line);
         append(line);
+    }
+
+    private static String stripNewlines(String text)
+    {
+        return text.replace("\r\n", " ").replace('\n', ' ').replace('\r', ' ');
     }
 
     /** Most recent first, capped at MAX_ENTRIES_RETURNED so a very old server install doesn't send back a huge history on every request. */

@@ -63,11 +63,42 @@ public class FeedbackManager
         entry.type = "BUG".equals(type) ? "BUG" : "SUGGESTION";
         entry.submitterUsername = submitterUsername;
         entry.timestamp = System.currentTimeMillis();
-        entry.title = title == null ? "" : title.trim();
-        entry.text = text.trim();
-        entry.stepsToReproduce = ("BUG".equals(entry.type) && stepsToReproduce != null) ? stepsToReproduce.trim() : "";
+        entry.title = title == null ? "" : escapeDelimiterLines(title.trim());
+        entry.text = escapeDelimiterLines(text.trim());
+        entry.stepsToReproduce = ("BUG".equals(entry.type) && stepsToReproduce != null) ? escapeDelimiterLines(stepsToReproduce.trim()) : "";
         entries.add(entry);
         save();
+    }
+
+    /**
+     * load() below treats any line that's EXACTLY equal to DELIMITER as a block
+     * boundary between entries. Free text is allowed to contain newlines here
+     * (unlike GameSuggestionStore/AdminLog's one-line-per-entry format - that's
+     * the whole reason this class uses a delimiter in the first place), but if a
+     * submitter's title/text/steps happened to contain a line consisting of
+     * exactly that 64-dash string and nothing else, it would falsely end their
+     * own block early on the next reload, and everything after it would be
+     * misparsed as a second, differently-attributed entry. Narrow (needs an
+     * exact 64-dash line, not just any newline) but fully deterministic once
+     * triggered, so still worth closing - found in the same 2026-09-27 security
+     * pass as the GameSuggestionStore/AdminLog fixes. A trailing space is enough
+     * to make the line stop matching exactly, without visibly mangling anyone's
+     * legitimate (if unlikely) use of a dashed separator in their own report.
+     */
+    private static String escapeDelimiterLines(String text)
+    {
+        if (!text.contains(DELIMITER))
+        {
+            return text;
+        }
+        String[] lines = text.split("\n", -1);
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < lines.length; i++)
+        {
+            if (i > 0) result.append('\n');
+            result.append(lines[i].equals(DELIMITER) ? lines[i] + " " : lines[i]);
+        }
+        return result.toString();
     }
 
     /** Every submission, most recent first - for an admin. */
