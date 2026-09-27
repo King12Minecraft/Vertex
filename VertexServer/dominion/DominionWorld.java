@@ -29,12 +29,49 @@ public class DominionWorld
         FoundNationOutcome(FoundNationResult result, Nation nation) { this.result = result; this.nation = nation; }
     }
 
+    /** What can go wrong recruiting an army - see recruitArmy(). */
+    public enum RecruitArmyResult { SUCCESS, NO_NATION, INVALID_TROOP_COUNT, PROVINCE_NOT_FOUND, PROVINCE_NOT_OWNED, INSUFFICIENT_TREASURY }
+
+    /** result plus the created Army (null unless result == SUCCESS) - see recruitArmy(). */
+    public static class RecruitArmyOutcome
+    {
+        public final RecruitArmyResult result;
+        public final Army army;
+        RecruitArmyOutcome(RecruitArmyResult result, Army army) { this.result = result; this.army = army; }
+    }
+
+    /** What can go wrong queuing a march order - see queueMarchForAccount(). Adjacency/war-state legality is deliberately NOT checked here - see queueMarch()'s own javadoc for why that's DominionTickEngine's job at resolution time, not this method's. */
+    public enum QueueMarchResult { SUCCESS, NO_NATION, ARMY_NOT_FOUND, ARMY_NOT_OWNED, TARGET_PROVINCE_NOT_FOUND }
+
+    /** What can go wrong declaring war - see declareWarForAccount(). */
+    public enum DeclareWarResult { SUCCESS, NO_NATION, TARGET_NOT_FOUND, CANNOT_DECLARE_ON_SELF }
+
+    /** What can go wrong proposing Alliance/Non-Aggression - see proposeRelation(). */
+    public enum ProposeRelationResult { SUCCESS, NO_NATION, TARGET_NOT_FOUND, CANNOT_PROPOSE_TO_SELF, INVALID_TYPE, ALREADY_IN_THAT_RELATION }
+
+    /** result plus the created DiplomaticProposal (null unless result == SUCCESS) - see proposeRelation(). */
+    public static class ProposeRelationOutcome
+    {
+        public final ProposeRelationResult result;
+        public final DiplomaticProposal proposal;
+        ProposeRelationOutcome(ProposeRelationResult result, DiplomaticProposal proposal) { this.result = result; this.proposal = proposal; }
+    }
+
+    /** What can go wrong accepting/rejecting a pending proposal - see respondToProposal(). */
+    public enum RespondToProposalResult { SUCCESS, NO_NATION, PROPOSAL_NOT_FOUND, NOT_THE_TARGET }
+
+    /** Placeholder tuning constant, same "deliberately not decided" status as the rest of V1's numbers pending real playtesting - see DOMINION_DESIGN.md. */
+    private static final int TREASURY_COST_PER_TROOP = 2;
+
     private final Map<Integer, Province> provinces = new HashMap<Integer, Province>();
     private final Map<Integer, Nation> nations = new HashMap<Integer, Nation>();
     private final Map<Integer, Army> armies = new HashMap<Integer, Army>();
     private final List<DiplomaticRelation> relations = new ArrayList<DiplomaticRelation>();
+    private final Map<Integer, DiplomaticProposal> pendingProposals = new HashMap<Integer, DiplomaticProposal>();
     private int currentTick = 0;
     private int nextNationId = 1;
+    private int nextArmyId = 1;
+    private int nextProposalId = 1;
 
     public int getCurrentTick() { return currentTick; }
 
@@ -101,15 +138,26 @@ public class DominionWorld
         return new FoundNationOutcome(FoundNationResult.SUCCESS, nation);
     }
 
-    /** A client-facing snapshot of the whole world - see DominionSnapshot's javadoc for why this includes everything rather than just accountId's own nation (no fog of war in V1). */
-    public DominionSnapshot toSnapshot()
+    /** A client-facing snapshot of the whole world for accountId - see DominionSnapshot's javadoc for why province/nation/army/relation data includes everything rather than just accountId's own nation (no fog of war in V1), but pending proposals are scoped to accountId's own Nation only (a proposal IS private between two nations, even in V1). */
+    public DominionSnapshot toSnapshot(int accountId)
     {
+        Nation myNation = getNationForAccount(accountId);
+        List<DiplomaticProposal> myProposals = myNation == null
+            ? new ArrayList<DiplomaticProposal>() : getProposalsForNation(myNation.getId());
         return new DominionSnapshot(currentTick, new ArrayList<Province>(provinces.values()),
             new ArrayList<Nation>(nations.values()), new ArrayList<Army>(armies.values()),
-            new ArrayList<DiplomaticRelation>(relations));
+            new ArrayList<DiplomaticRelation>(relations), myProposals);
     }
 
-    public void addArmy(Army army) { armies.put(army.getId(), army); }
+    /** Adds an Army exactly as given (DominionStore's load() is the intended caller for restoring one from disk - recruiting a brand NEW one is recruitArmy() below). Also bumps the next-id counter, same pattern as addNation(). */
+    public void addArmy(Army army)
+    {
+        armies.put(army.getId(), army);
+        if (army.getId() >= nextArmyId)
+        {
+            nextArmyId = army.getId() + 1;
+        }
+    }
     public void removeArmy(int id) { armies.remove(id); }
     public Collection<Army> getArmies() { return armies.values(); }
 
@@ -126,8 +174,46 @@ public class DominionWorld
         return result;
     }
 
-    /** Queues a march order for the next tick - the target province doesn't need to be a legal destination yet (adjacency/ownership/war-state are all re-checked by DominionTickEngine at resolution time, same "never trust it, re-verify server-side" rule as every other game's move validation). */
-    public void queueMarch(int armyId, int targetProvinceId)
+    /**
+     * Recruits a new Army for accountId's Nation at provinceId, spending
+     * troopCount * TREASURY_COST_PER_TROOP from the Nation's treasury. provinceId
+     * must be owned by the requesting Nation - re-verified here server-side, never
+     * trusting a client-supplied province.
+     */
+    public RecruitArmyOutcome recruitArmy(int accountId, int provinceId, int troopCount)
+    {
+        Nation nation = getNationForAccount(accountId);
+        if (nation == null)
+        {
+            return new RecruitArmyOutcome(RecruitArmyResult.NO_NATION, null);
+        }
+        if (troopCount <= 0)
+        {
+            return new RecruitArmyOutcome(RecruitArmyResult.INVALID_TROOP_COUNT, null);
+        }
+        Province province = provinces.get(provinceId);
+        if (province == null)
+        {
+            return new RecruitArmyOutcome(RecruitArmyResult.PROVINCE_NOT_FOUND, null);
+        }
+        if (province.getOwningNationId() == null || province.getOwningNationId().intValue() != nation.getId())
+        {
+            return new RecruitArmyOutcome(RecruitArmyResult.PROVINCE_NOT_OWNED, null);
+        }
+        int cost = troopCount * TREASURY_COST_PER_TROOP;
+        if (nation.getTreasury() < cost)
+        {
+            return new RecruitArmyOutcome(RecruitArmyResult.INSUFFICIENT_TREASURY, null);
+        }
+
+        nation.setTreasury(nation.getTreasury() - cost);
+        Army army = new Army(nextArmyId++, nation.getId(), troopCount, provinceId);
+        armies.put(army.getId(), army);
+        return new RecruitArmyOutcome(RecruitArmyResult.SUCCESS, army);
+    }
+
+    /** Queues a march order for the next tick - the target province doesn't need to be a legal destination yet (adjacency/ownership/war-state are all re-checked by DominionTickEngine at resolution time, same "never trust it, re-verify server-side" rule as every other game's move validation). Package-visible internal setter - queueMarchForAccount() below is the account-validated entry point everything else should call. */
+    void queueMarch(int armyId, int targetProvinceId)
     {
         Army army = armies.get(armyId);
         if (army != null)
@@ -136,11 +222,56 @@ public class DominionWorld
         }
     }
 
-    /** Declares war from attacker onto defender - replaces whatever relation (if any) already existed between them. Effective starting next tick, never immediately (see DiplomaticRelation's javadoc). */
-    public void declareWar(int attackerNationId, int defenderNationId)
+    /** Validates armyId actually belongs to accountId's Nation before queuing the march - never trusts a client-supplied army id. */
+    public QueueMarchResult queueMarchForAccount(int accountId, int armyId, int targetProvinceId)
+    {
+        Nation nation = getNationForAccount(accountId);
+        if (nation == null)
+        {
+            return QueueMarchResult.NO_NATION;
+        }
+        Army army = armies.get(armyId);
+        if (army == null)
+        {
+            return QueueMarchResult.ARMY_NOT_FOUND;
+        }
+        if (army.getNationId() != nation.getId())
+        {
+            return QueueMarchResult.ARMY_NOT_OWNED;
+        }
+        if (provinces.get(targetProvinceId) == null)
+        {
+            return QueueMarchResult.TARGET_PROVINCE_NOT_FOUND;
+        }
+        queueMarch(armyId, targetProvinceId);
+        return QueueMarchResult.SUCCESS;
+    }
+
+    /** Declares war from attacker onto defender - replaces whatever relation (if any) already existed between them. Effective starting next tick, never immediately (see DiplomaticRelation's javadoc). Package-visible internal mutator - declareWarForAccount() below is the account-validated entry point. */
+    void declareWar(int attackerNationId, int defenderNationId)
     {
         removeRelationBetween(attackerNationId, defenderNationId);
         relations.add(new DiplomaticRelation(attackerNationId, defenderNationId, RelationType.WAR, currentTick + 1));
+    }
+
+    /** Validates accountId has a Nation and targetNationId is a real, different Nation before declaring war. */
+    public DeclareWarResult declareWarForAccount(int accountId, int targetNationId)
+    {
+        Nation nation = getNationForAccount(accountId);
+        if (nation == null)
+        {
+            return DeclareWarResult.NO_NATION;
+        }
+        if (nation.getId() == targetNationId)
+        {
+            return DeclareWarResult.CANNOT_DECLARE_ON_SELF;
+        }
+        if (nations.get(targetNationId) == null)
+        {
+            return DeclareWarResult.TARGET_NOT_FOUND;
+        }
+        declareWar(nation.getId(), targetNationId);
+        return DeclareWarResult.SUCCESS;
     }
 
     /** Alliance and non-aggression are both effective immediately (no next-tick delay - that delay is specific to declaring war, a deliberate asymmetry: peace shouldn't have to wait a day to take effect, only aggression does). */
@@ -152,6 +283,96 @@ public class DominionWorld
         }
         removeRelationBetween(nationAId, nationBId);
         relations.add(new DiplomaticRelation(nationAId, nationBId, type, null));
+    }
+
+    /**
+     * Proposes an Alliance or Non-Aggression pact from accountId's Nation to
+     * targetNationId - awaits the target's respondToProposal() call. Never
+     * immediately effective, unlike declareWar()'s next-tick delay - a proposal
+     * isn't a relation at all until accepted.
+     */
+    public ProposeRelationOutcome proposeRelation(int accountId, int targetNationId, RelationType type)
+    {
+        if (type != RelationType.ALLIANCE && type != RelationType.NON_AGGRESSION)
+        {
+            return new ProposeRelationOutcome(ProposeRelationResult.INVALID_TYPE, null);
+        }
+        Nation nation = getNationForAccount(accountId);
+        if (nation == null)
+        {
+            return new ProposeRelationOutcome(ProposeRelationResult.NO_NATION, null);
+        }
+        if (nation.getId() == targetNationId)
+        {
+            return new ProposeRelationOutcome(ProposeRelationResult.CANNOT_PROPOSE_TO_SELF, null);
+        }
+        if (nations.get(targetNationId) == null)
+        {
+            return new ProposeRelationOutcome(ProposeRelationResult.TARGET_NOT_FOUND, null);
+        }
+        for (DiplomaticRelation relation : relations)
+        {
+            if (relation.involves(nation.getId(), targetNationId) && relation.getType() == type)
+            {
+                return new ProposeRelationOutcome(ProposeRelationResult.ALREADY_IN_THAT_RELATION, null);
+            }
+        }
+
+        DiplomaticProposal proposal = new DiplomaticProposal(nextProposalId++, nation.getId(), targetNationId, type);
+        pendingProposals.put(proposal.getId(), proposal);
+        return new ProposeRelationOutcome(ProposeRelationResult.SUCCESS, proposal);
+    }
+
+    /** Accepts or rejects a pending proposal - only the proposal's target Nation may respond, re-verified here server-side. Accepting establishes the relation immediately via setPeacefulRelation(); rejecting just discards the proposal. Either way the proposal is consumed - it can't be responded to twice. */
+    public RespondToProposalResult respondToProposal(int accountId, int proposalId, boolean accept)
+    {
+        Nation nation = getNationForAccount(accountId);
+        if (nation == null)
+        {
+            return RespondToProposalResult.NO_NATION;
+        }
+        DiplomaticProposal proposal = pendingProposals.get(proposalId);
+        if (proposal == null)
+        {
+            return RespondToProposalResult.PROPOSAL_NOT_FOUND;
+        }
+        if (proposal.getToNationId() != nation.getId())
+        {
+            return RespondToProposalResult.NOT_THE_TARGET;
+        }
+
+        pendingProposals.remove(proposalId);
+        if (accept)
+        {
+            setPeacefulRelation(proposal.getFromNationId(), proposal.getToNationId(), proposal.getProposedType());
+        }
+        return RespondToProposalResult.SUCCESS;
+    }
+
+    /** Every pending proposal, regardless of which nations are involved - DominionStore's save() is the intended caller (unlike getProposalsForNation(), this one is NOT account-scoped, so nothing else should use it to answer a network request). */
+    public Collection<DiplomaticProposal> getAllProposals() { return pendingProposals.values(); }
+
+    public List<DiplomaticProposal> getProposalsForNation(int nationId)
+    {
+        List<DiplomaticProposal> result = new ArrayList<DiplomaticProposal>();
+        for (DiplomaticProposal proposal : pendingProposals.values())
+        {
+            if (proposal.getFromNationId() == nationId || proposal.getToNationId() == nationId)
+            {
+                result.add(proposal);
+            }
+        }
+        return result;
+    }
+
+    /** Adds a proposal exactly as given, restoring one from disk (DominionStore's load() is the intended caller) - also bumps the next-id counter, same pattern as addNation()/addArmy(). */
+    void addProposal(DiplomaticProposal proposal)
+    {
+        pendingProposals.put(proposal.getId(), proposal);
+        if (proposal.getId() >= nextProposalId)
+        {
+            nextProposalId = proposal.getId() + 1;
+        }
     }
 
     private void removeRelationBetween(int nationAId, int nationBId)

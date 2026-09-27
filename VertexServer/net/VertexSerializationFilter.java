@@ -43,7 +43,7 @@ public final class VertexSerializationFilter
         + "games.GameInfo;"
         + "economy.ChallengeProgressInfo;economy.ShopItemInfo;"
         + "dominion.DominionSnapshot;dominion.Province;dominion.Nation;dominion.Army;"
-        + "dominion.DiplomaticRelation;dominion.Terrain;dominion.RelationType;"
+        + "dominion.DiplomaticRelation;dominion.DiplomaticProposal;dominion.Terrain;dominion.RelationType;"
         + "java.lang.String;java.lang.Enum;java.lang.Object;java.lang.Integer;java.lang.Number;"
         + "java.util.ArrayList;"
         + "maxdepth=50;maxarray=100000000;maxrefs=1000000;maxbytes=200000000;"

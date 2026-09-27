@@ -46,6 +46,35 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Vertex: Dominion, build order step 3 complete: recruit army, march,
+  declare war, diplomacy proposals.** The second (and final) slice of step 3's
+  networking, same day as the first: `DOMINION_RECRUIT_ARMY_*`,
+  `DOMINION_QUEUE_MARCH_*`, `DOMINION_DECLARE_WAR_*`,
+  `DOMINION_PROPOSE_RELATION_*`, and `DOMINION_RESPOND_PROPOSAL_*`. Every
+  account-facing `DominionWorld` method (`recruitArmy`/`queueMarchForAccount`/
+  `declareWarForAccount`/`proposeRelation`/`respondToProposal`) independently
+  re-verifies ownership server-side - an army, province, or Nation id a client
+  claims is never trusted, the same rule every match game already follows.
+  `queueMarch`/`declareWar` themselves became package-private internal
+  mutators once the account-validated `*ForAccount` wrappers existed, so
+  nothing outside `DominionWorld` can bypass the validation by calling the raw
+  mutator directly. New `DiplomaticProposal` class models a pending Alliance/
+  Non-Aggression offer awaiting accept-or-reject - deliberately the one piece
+  of V1 world state that's *not* broadcast in the full snapshot
+  (`DominionSnapshot.getMyProposals()` is scoped to the requester's own
+  Nation via `DominionWorld.toSnapshot(accountId)`), since a proposal really
+  is private between the two nations involved even before real fog of war
+  exists (see `DOMINION_DESIGN.md`'s Future Depth section). `DominionStore`
+  now persists proposals too, so one survives a server restart. Verified with
+  a 51-check test: every success/failure outcome of every new method,
+  proposals correctly scoped to only the two involved nations (a third
+  nation sees nothing), a save-reload round trip that includes proposals
+  and confirms a post-reload proposal never collides with a restored id,
+  and a real `ObjectOutputStream`/`ObjectInputStream` round trip through the
+  actual `VertexSerializationFilter` for every new message type and the new
+  `DiplomaticProposal` class. Build order step 3 is now fully done - next is
+  step 4, the client's persistent nav tab/map UI (nothing client-visible
+  exists yet, this was all server request-handling).
 - **Vertex: Dominion, build order step 3 (first slice): networking - found a
   nation, view world state.** New `DominionManager` - the single whole-server
   front door for Dominion (unlike every other game's per-match manager, there is

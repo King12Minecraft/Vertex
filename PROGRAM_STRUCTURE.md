@@ -437,33 +437,52 @@ recomputed relative to the new tick), a real mid-game scenario continuing to
 resolve correctly after a reload, and loading with no file present yielding a
 fresh empty world rather than erroring.
 
-**Networking** (build order step 3, first slice - 2026-09-26): `DominionManager`
+**Networking** (build order step 3, now complete - 2026-09-26): `DominionManager`
 is the single whole-server front door - unlike every other game's per-match
 manager, there is exactly one `DominionWorld` for the entire server (loaded once
 at startup via `DominionStore`; seeds a deterministic placeholder 10x10 map on
 first launch if the loaded world has no provinces, since an empty world has
 nothing to found a Nation on - the real map size/terrain distribution are still
-"deliberately not decided" per `DOMINION_DESIGN.md`, pending playtesting).
-`DOMINION_FOUND_NATION_REQUEST`/`RESPONSE` and `DOMINION_STATE_REQUEST`/`RESPONSE`
-are the two message types so far (`ClientHandler.handleDominionFoundNation`/
-`handleDominionState`) - founding a nation and fetching a full world snapshot to
-render. `DominionSnapshot` is the client-facing DTO for state responses - V1 has
-no fog of war (see `DOMINION_DESIGN.md`'s Future Depth section) so it deliberately
-includes every province/nation/army/relation, not just the requester's own. The
+"deliberately not decided" per `DOMINION_DESIGN.md`, pending playtesting). Seven
+message-type pairs: `DOMINION_FOUND_NATION_*`/`DOMINION_STATE_*` (first slice -
+found a nation, fetch a full world snapshot to render) and, same day,
+`DOMINION_RECRUIT_ARMY_*`/`DOMINION_QUEUE_MARCH_*`/`DOMINION_DECLARE_WAR_*`/
+`DOMINION_PROPOSE_RELATION_*`/`DOMINION_RESPOND_PROPOSAL_*` (second slice - every
+remaining V1 order type). Every one of `DominionWorld`'s account-facing methods
+(`recruitArmy`/`queueMarchForAccount`/`declareWarForAccount`/`proposeRelation`/
+`respondToProposal`) independently re-verifies ownership server-side - an army,
+province, or Nation id a client claims is never trusted, same "server is sole
+authority" rule as every match game. `queueMarch`/`declareWar` themselves are now
+package-private internal mutators; the account-validated `*ForAccount` wrappers
+are the only entry points `ClientHandler` (or a test) should call.
+
+`DominionSnapshot` is the client-facing DTO for state responses - V1 has no fog
+of war (see `DOMINION_DESIGN.md`'s Future Depth section) so province/nation/army/
+relation data deliberately includes everything, not just the requester's own. The
 real domain objects (`Province`/`Nation`/`Army`/`DiplomaticRelation`) double as
 the wire format directly rather than a parallel read-only view hierarchy, since
 V1 has nothing to hide yet - a real DTO split becomes worth it once fog of war is
-built. Every concrete class reachable from a serialized `Message` (including
-`DominionSnapshot` and everything inside it, plus boxed `Integer` for the several
-nullable id fields) is explicitly allow-listed in `VertexSerializationFilter` -
-forgetting an entry here is a real, previously-undocumented failure mode
-(`VertexSerializationFilter`'s own javadoc: a missing class "silently fails to
-deserialize"), so this was verified with a *real* `ObjectOutputStream`/
-`ObjectInputStream` round trip through the actual filter (not just a compile
-check) as part of a 29-check networking test, alongside `foundNation()`'s full
-success/failure-outcome matrix and `toSnapshot()` correctness. Recruit army/march/
-declare war/diplomacy message types are the next slice of this same build-order
-step, not yet built; after that, the client's persistent nav tab/map UI (step 4).
+built. The one exception is `getMyProposals()`: a new `DiplomaticProposal` class
+(a pending Alliance/Non-Aggression offer awaiting accept/reject) is scoped to
+just the requesting account's own Nation (`DominionWorld.toSnapshot(accountId)`)
+rather than broadcast to everyone - a proposal genuinely is private between the
+two nations involved, the one place V1 already needs "not everyone sees
+everything" before real fog of war exists. `DominionStore` persists proposals too
+(a `PROPOSAL` line, same format), so a pending proposal survives a server
+restart.
+
+Every concrete class reachable from a serialized `Message` (including
+`DominionSnapshot`/`DiplomaticProposal` and everything inside them, plus boxed
+`Integer` for the several nullable id fields) is explicitly allow-listed in
+`VertexSerializationFilter` - forgetting an entry here is a real, previously-
+undocumented failure mode (`VertexSerializationFilter`'s own javadoc: a missing
+class "silently fails to deserialize"), so both slices were verified with *real*
+`ObjectOutputStream`/`ObjectInputStream` round trips through the actual filter
+(not just a compile check), across a 29-check test (first slice) and a 51-check
+test (second slice) also covering every success/failure outcome of every new
+`DominionWorld` method and a `DominionStore` round trip that now includes
+proposals. Next: the client's persistent nav tab/map UI (build order step 4) -
+nothing client-visible exists yet, all of this is server request-handling only.
 
 ## ai — four independent toolkits, unified by one philosophy
 

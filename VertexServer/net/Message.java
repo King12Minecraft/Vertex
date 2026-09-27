@@ -801,12 +801,19 @@ public class Message implements Serializable
     private Integer dominionProvinceId;
     private Integer dominionNationId;
     private dominion.DominionSnapshot dominionSnapshot;
+    private Integer dominionArmyId;
+    private int dominionTroopCount;
+    private Integer dominionTargetProvinceId;
+    private Integer dominionTargetNationId;
+    private String dominionRelationType;
+    private Integer dominionProposalId;
+    private boolean dominionAccept;
 
-    /** The player-chosen name for a new Nation - DOMINION_FOUND_NATION_REQUEST. Not yet validated anywhere (see Nation.java's javadoc) - must reject "|" before this reaches DominionStore's pipe-delimited save format. */
+    /** The player-chosen name for a new Nation - DOMINION_FOUND_NATION_REQUEST. Validated by Nation.isValidName() server-side - must reject "|" before this reaches DominionStore's pipe-delimited save format. */
     public String getDominionNationName() { return dominionNationName; }
     public void setDominionNationName(String dominionNationName) { this.dominionNationName = dominionNationName; }
 
-    /** The starting province to claim - DOMINION_FOUND_NATION_REQUEST. Must be unclaimed; the server re-verifies this, never trusts it. */
+    /** The starting province to claim (DOMINION_FOUND_NATION_REQUEST) or the province to recruit an army at (DOMINION_RECRUIT_ARMY_REQUEST). Ownership/availability is always re-verified server-side, never trusted. */
     public Integer getDominionProvinceId() { return dominionProvinceId; }
     public void setDominionProvinceId(Integer dominionProvinceId) { this.dominionProvinceId = dominionProvinceId; }
 
@@ -814,7 +821,35 @@ public class Message implements Serializable
     public Integer getDominionNationId() { return dominionNationId; }
     public void setDominionNationId(Integer dominionNationId) { this.dominionNationId = dominionNationId; }
 
-    /** A full snapshot of the Dominion world - DOMINION_STATE_RESPONSE. V1 has no fog of war (see DOMINION_DESIGN.md's Future Depth section), so this deliberately includes everything, not just the requester's own nation. */
+    /** A full snapshot of the Dominion world - DOMINION_STATE_RESPONSE. V1 has no fog of war (see DOMINION_DESIGN.md's Future Depth section), so provinces/nations/armies/relations deliberately include everything, not just the requester's own nation - only DominionSnapshot.getMyProposals() is scoped to the requester. */
     public dominion.DominionSnapshot getDominionSnapshot() { return dominionSnapshot; }
     public void setDominionSnapshot(dominion.DominionSnapshot dominionSnapshot) { this.dominionSnapshot = dominionSnapshot; }
+
+    /** The army being ordered - DOMINION_QUEUE_MARCH_REQUEST - or the newly recruited army's id - DOMINION_RECRUIT_ARMY_RESPONSE. Ownership is always re-verified server-side, never trusted. */
+    public Integer getDominionArmyId() { return dominionArmyId; }
+    public void setDominionArmyId(Integer dominionArmyId) { this.dominionArmyId = dominionArmyId; }
+
+    /** How many troops to recruit - DOMINION_RECRUIT_ARMY_REQUEST. */
+    public int getDominionTroopCount() { return dominionTroopCount; }
+    public void setDominionTroopCount(int dominionTroopCount) { this.dominionTroopCount = dominionTroopCount; }
+
+    /** The province an army is ordered to march into - DOMINION_QUEUE_MARCH_REQUEST. Legality (adjacency/war-state) is re-checked at tick resolution, not here - see DominionWorld.queueMarch()'s javadoc. */
+    public Integer getDominionTargetProvinceId() { return dominionTargetProvinceId; }
+    public void setDominionTargetProvinceId(Integer dominionTargetProvinceId) { this.dominionTargetProvinceId = dominionTargetProvinceId; }
+
+    /** The Nation being targeted - DOMINION_DECLARE_WAR_REQUEST and DOMINION_PROPOSE_RELATION_REQUEST. */
+    public Integer getDominionTargetNationId() { return dominionTargetNationId; }
+    public void setDominionTargetNationId(Integer dominionTargetNationId) { this.dominionTargetNationId = dominionTargetNationId; }
+
+    /** "ALLIANCE" or "NON_AGGRESSION" - DOMINION_PROPOSE_RELATION_REQUEST. Never "WAR" (declaring war is its own message type, with its own next-tick-delay semantics - see DiplomaticRelation's javadoc) or "NEUTRAL" (nothing to propose). */
+    public String getDominionRelationType() { return dominionRelationType; }
+    public void setDominionRelationType(String dominionRelationType) { this.dominionRelationType = dominionRelationType; }
+
+    /** Which pending proposal is being responded to - DOMINION_RESPOND_PROPOSAL_REQUEST - or the id of a proposal just created - DOMINION_PROPOSE_RELATION_RESPONSE. */
+    public Integer getDominionProposalId() { return dominionProposalId; }
+    public void setDominionProposalId(Integer dominionProposalId) { this.dominionProposalId = dominionProposalId; }
+
+    /** True to accept, false to reject - DOMINION_RESPOND_PROPOSAL_REQUEST. */
+    public boolean isDominionAccept() { return dominionAccept; }
+    public void setDominionAccept(boolean dominionAccept) { this.dominionAccept = dominionAccept; }
 }

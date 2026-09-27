@@ -62,8 +62,58 @@ public class DominionManager
         return outcome;
     }
 
-    public DominionSnapshot getSnapshot()
+    public DominionWorld.RecruitArmyOutcome recruitArmy(int accountId, int provinceId, int troopCount)
     {
-        return world.toSnapshot();
+        DominionWorld.RecruitArmyOutcome outcome = world.recruitArmy(accountId, provinceId, troopCount);
+        if (outcome.result == DominionWorld.RecruitArmyResult.SUCCESS)
+        {
+            store.save(world);
+        }
+        return outcome;
+    }
+
+    public DominionWorld.QueueMarchResult queueMarch(int accountId, int armyId, int targetProvinceId)
+    {
+        DominionWorld.QueueMarchResult result = world.queueMarchForAccount(accountId, armyId, targetProvinceId);
+        if (result == DominionWorld.QueueMarchResult.SUCCESS)
+        {
+            store.save(world);
+        }
+        return result;
+    }
+
+    public DominionWorld.DeclareWarResult declareWar(int accountId, int targetNationId)
+    {
+        DominionWorld.DeclareWarResult result = world.declareWarForAccount(accountId, targetNationId);
+        if (result == DominionWorld.DeclareWarResult.SUCCESS)
+        {
+            store.save(world);
+        }
+        return result;
+    }
+
+    public DominionWorld.ProposeRelationOutcome proposeRelation(int accountId, int targetNationId, RelationType type)
+    {
+        DominionWorld.ProposeRelationOutcome outcome = world.proposeRelation(accountId, targetNationId, type);
+        if (outcome.result == DominionWorld.ProposeRelationResult.SUCCESS)
+        {
+            store.save(world);
+        }
+        return outcome;
+    }
+
+    public DominionWorld.RespondToProposalResult respondToProposal(int accountId, int proposalId, boolean accept)
+    {
+        DominionWorld.RespondToProposalResult result = world.respondToProposal(accountId, proposalId, accept);
+        if (result == DominionWorld.RespondToProposalResult.SUCCESS)
+        {
+            store.save(world);
+        }
+        return result;
+    }
+
+    public DominionSnapshot getSnapshot(int accountId)
+    {
+        return world.toSnapshot(accountId);
     }
 }

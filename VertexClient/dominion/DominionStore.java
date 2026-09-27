@@ -16,13 +16,13 @@ import java.io.PrintWriter;
  * ServerAccountStore's unrelated format). Same pipe-delimited,
  * type-tagged-line, backward-compatible-by-field-count convention every
  * other store in this project uses (see ServerAccountStore) - one line
- * per record, a leading tag distinguishes which kind since this single
- * file holds all of Dominion's state rather than one file per entity
- * type. Build order step 2 from DOMINION_DESIGN.md: the world now
- * survives a server restart. When to actually call save() (every tick?
- * on every order?) is a networking-layer decision, deliberately not
- * made here - this class only knows how to round-trip a DominionWorld,
- * not when that should happen.
+ * per record, a leading tag (TICK/PROVINCE/NATION/ARMY/RELATION/PROPOSAL)
+ * distinguishes which kind since this single file holds all of Dominion's
+ * state rather than one file per entity type. Build order step 2 from
+ * DOMINION_DESIGN.md: the world now survives a server restart. When to
+ * actually call save() (every tick? on every order?) is a networking-layer
+ * decision, deliberately not made here - this class only knows how to
+ * round-trip a DominionWorld, not when that should happen.
  */
 public class DominionStore
 {
@@ -103,6 +103,11 @@ public class DominionStore
             world.addRelation(new DiplomaticRelation(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]),
                 RelationType.valueOf(parts[3]), effectiveFromTick));
         }
+        else if ("PROPOSAL".equals(tag) && parts.length >= 5)
+        {
+            world.addProposal(new DiplomaticProposal(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]),
+                Integer.parseInt(parts[3]), RelationType.valueOf(parts[4])));
+        }
     }
 
     public synchronized void save(DominionWorld world)
@@ -135,6 +140,11 @@ public class DominionStore
                 writer.println("RELATION|" + relation.getNationAId() + "|" + relation.getNationBId() + "|"
                     + relation.getType().name() + "|"
                     + (relation.getEffectiveFromTick() == null ? "" : relation.getEffectiveFromTick()));
+            }
+            for (DiplomaticProposal proposal : world.getAllProposals())
+            {
+                writer.println("PROPOSAL|" + proposal.getId() + "|" + proposal.getFromNationId() + "|"
+                    + proposal.getToNationId() + "|" + proposal.getProposedType().name());
             }
         }
         catch (IOException e)

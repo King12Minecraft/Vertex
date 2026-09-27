@@ -251,16 +251,24 @@ nation feel distinct and worth caring about over a long-running game:
 2. ✅ **Done.** Persistence (`DominionStore`, its own isolated flat file, per the
    Architecture Decision - not reusing `ServerAccountStore`'s format for an
    unrelated domain).
-3. 🔧 **In progress.** Networking: new message types for founding a nation,
-   viewing the map, queuing orders, viewing diplomacy state - additive to
-   `MessageType`, doesn't touch any existing game's protocol. First slice done
+3. ✅ **Done.** Networking: new message types for founding a nation, viewing
+   the map, queuing orders, viewing diplomacy state - additive to
+   `MessageType`, doesn't touch any existing game's protocol. First slice
    (2026-09-26): `DOMINION_FOUND_NATION_REQUEST`/`RESPONSE` and
    `DOMINION_STATE_REQUEST`/`RESPONSE`, via a new whole-server `DominionManager`
-   (see `PROGRAM_STRUCTURE.md`). This is also the point where `dominion` joined
+   (see `PROGRAM_STRUCTURE.md`) - also the point where `dominion` joined
    CLAUDE.md's byte-identical client/server sync-rule list, since `Message`/
-   `ClientHandler` (both already on it) now reference `dominion.*` types
-   directly. Remaining for this step: recruit army, queue a march, declare war,
-   propose/respond to a diplomatic relation.
+   `ClientHandler` (both already on it) started referencing `dominion.*` types
+   directly. Second slice, same day: recruit army (`DOMINION_RECRUIT_ARMY_*`),
+   queue a march (`DOMINION_QUEUE_MARCH_*`), declare war
+   (`DOMINION_DECLARE_WAR_*`), and propose/respond to an Alliance or
+   Non-Aggression proposal (`DOMINION_PROPOSE_RELATION_*`/
+   `DOMINION_RESPOND_PROPOSAL_*`, backed by a new `DiplomaticProposal` class -
+   the one piece of V1 state that's deliberately NOT broadcast in the full
+   world snapshot, since a pending proposal is private between the two
+   nations involved even before real fog of war exists). All account-
+   validated server-side (an army/province a client claims to own is always
+   re-verified, never trusted).
 4. Client: the persistent nav tab (already a settled architecture decision), a
    map view, a nation dashboard, an orders-queue UI.
 5. Only then: multi-member nations, additional resource types, unit-type variety,

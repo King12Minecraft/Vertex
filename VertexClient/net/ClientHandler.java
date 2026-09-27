@@ -548,6 +548,11 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.TELEPHONE_SUBMIT_REQUEST) return handleTelephoneSubmit(request);
         if (request.getType() == MessageType.DOMINION_FOUND_NATION_REQUEST) return handleDominionFoundNation(request);
         if (request.getType() == MessageType.DOMINION_STATE_REQUEST) return handleDominionState();
+        if (request.getType() == MessageType.DOMINION_RECRUIT_ARMY_REQUEST) return handleDominionRecruitArmy(request);
+        if (request.getType() == MessageType.DOMINION_QUEUE_MARCH_REQUEST) return handleDominionQueueMarch(request);
+        if (request.getType() == MessageType.DOMINION_DECLARE_WAR_REQUEST) return handleDominionDeclareWar(request);
+        if (request.getType() == MessageType.DOMINION_PROPOSE_RELATION_REQUEST) return handleDominionProposeRelation(request);
+        if (request.getType() == MessageType.DOMINION_RESPOND_PROPOSAL_REQUEST) return handleDominionRespondProposal(request);
 
         Message response = new Message();
         response.setSuccess(false);
@@ -2243,7 +2248,7 @@ public class ClientHandler implements Runnable
         Message response = new Message();
         response.setType(MessageType.DOMINION_STATE_RESPONSE);
 
-        if (loggedInUsername == null)
+        if (loggedInUsername == null || loggedInAccountId == null)
         {
             response.setSuccess(false);
             response.setErrorText("Not logged in.");
@@ -2251,8 +2256,232 @@ public class ClientHandler implements Runnable
         }
 
         response.setSuccess(true);
-        response.setDominionSnapshot(dominionManager.getSnapshot());
+        response.setDominionSnapshot(dominionManager.getSnapshot(loggedInAccountId));
         return response;
+    }
+
+    private Message handleDominionRecruitArmy(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.DOMINION_RECRUIT_ARMY_RESPONSE);
+
+        if (loggedInUsername == null || loggedInAccountId == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+        if (request.getDominionProvinceId() == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No province chosen.");
+            return response;
+        }
+
+        dominion.DominionWorld.RecruitArmyOutcome outcome = dominionManager.recruitArmy(
+            loggedInAccountId, request.getDominionProvinceId(), request.getDominionTroopCount());
+
+        if (outcome.result == dominion.DominionWorld.RecruitArmyResult.SUCCESS)
+        {
+            response.setSuccess(true);
+            response.setDominionArmyId(outcome.army.getId());
+        }
+        else
+        {
+            response.setSuccess(false);
+            response.setErrorText(describeDominionRecruitArmyFailure(outcome.result));
+        }
+        return response;
+    }
+
+    private String describeDominionRecruitArmyFailure(dominion.DominionWorld.RecruitArmyResult result)
+    {
+        switch (result)
+        {
+            case NO_NATION: return "You don't have a Nation yet.";
+            case INVALID_TROOP_COUNT: return "Choose at least 1 troop.";
+            case PROVINCE_NOT_FOUND: return "That province doesn't exist.";
+            case PROVINCE_NOT_OWNED: return "You don't own that province.";
+            case INSUFFICIENT_TREASURY: return "Not enough treasury to recruit that many troops.";
+            default: return "Could not recruit there.";
+        }
+    }
+
+    private Message handleDominionQueueMarch(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.DOMINION_QUEUE_MARCH_RESPONSE);
+
+        if (loggedInUsername == null || loggedInAccountId == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+        if (request.getDominionArmyId() == null || request.getDominionTargetProvinceId() == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No army or destination chosen.");
+            return response;
+        }
+
+        dominion.DominionWorld.QueueMarchResult result = dominionManager.queueMarch(
+            loggedInAccountId, request.getDominionArmyId(), request.getDominionTargetProvinceId());
+
+        response.setSuccess(result == dominion.DominionWorld.QueueMarchResult.SUCCESS);
+        if (!response.isSuccess())
+        {
+            response.setErrorText(describeDominionQueueMarchFailure(result));
+        }
+        return response;
+    }
+
+    private String describeDominionQueueMarchFailure(dominion.DominionWorld.QueueMarchResult result)
+    {
+        switch (result)
+        {
+            case NO_NATION: return "You don't have a Nation yet.";
+            case ARMY_NOT_FOUND: return "That army doesn't exist.";
+            case ARMY_NOT_OWNED: return "That's not your army.";
+            case TARGET_PROVINCE_NOT_FOUND: return "That province doesn't exist.";
+            default: return "Could not queue that march.";
+        }
+    }
+
+    private Message handleDominionDeclareWar(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.DOMINION_DECLARE_WAR_RESPONSE);
+
+        if (loggedInUsername == null || loggedInAccountId == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+        if (request.getDominionTargetNationId() == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No target Nation chosen.");
+            return response;
+        }
+
+        dominion.DominionWorld.DeclareWarResult result = dominionManager.declareWar(
+            loggedInAccountId, request.getDominionTargetNationId());
+
+        response.setSuccess(result == dominion.DominionWorld.DeclareWarResult.SUCCESS);
+        if (!response.isSuccess())
+        {
+            response.setErrorText(describeDominionDeclareWarFailure(result));
+        }
+        return response;
+    }
+
+    private String describeDominionDeclareWarFailure(dominion.DominionWorld.DeclareWarResult result)
+    {
+        switch (result)
+        {
+            case NO_NATION: return "You don't have a Nation yet.";
+            case TARGET_NOT_FOUND: return "That Nation doesn't exist.";
+            case CANNOT_DECLARE_ON_SELF: return "You can't declare war on yourself.";
+            default: return "Could not declare war.";
+        }
+    }
+
+    private Message handleDominionProposeRelation(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.DOMINION_PROPOSE_RELATION_RESPONSE);
+
+        if (loggedInUsername == null || loggedInAccountId == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+        dominion.RelationType type = parseDominionProposableType(request.getDominionRelationType());
+        if (request.getDominionTargetNationId() == null || type == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No target Nation or relation type chosen.");
+            return response;
+        }
+
+        dominion.DominionWorld.ProposeRelationOutcome outcome = dominionManager.proposeRelation(
+            loggedInAccountId, request.getDominionTargetNationId(), type);
+
+        if (outcome.result == dominion.DominionWorld.ProposeRelationResult.SUCCESS)
+        {
+            response.setSuccess(true);
+            response.setDominionProposalId(outcome.proposal.getId());
+        }
+        else
+        {
+            response.setSuccess(false);
+            response.setErrorText(describeDominionProposeRelationFailure(outcome.result));
+        }
+        return response;
+    }
+
+    /** ALLIANCE or NON_AGGRESSION only - never WAR (its own message type) or NEUTRAL (nothing to propose) or an unrecognized string. Returns null for anything else, same "never trust a client-supplied enum name" caution as everywhere else client input reaches an enum. */
+    private dominion.RelationType parseDominionProposableType(String raw)
+    {
+        if ("ALLIANCE".equals(raw)) return dominion.RelationType.ALLIANCE;
+        if ("NON_AGGRESSION".equals(raw)) return dominion.RelationType.NON_AGGRESSION;
+        return null;
+    }
+
+    private String describeDominionProposeRelationFailure(dominion.DominionWorld.ProposeRelationResult result)
+    {
+        switch (result)
+        {
+            case NO_NATION: return "You don't have a Nation yet.";
+            case TARGET_NOT_FOUND: return "That Nation doesn't exist.";
+            case CANNOT_PROPOSE_TO_SELF: return "You can't propose that to yourself.";
+            case INVALID_TYPE: return "Not a proposable relation type.";
+            case ALREADY_IN_THAT_RELATION: return "You're already in that relation with them.";
+            default: return "Could not send that proposal.";
+        }
+    }
+
+    private Message handleDominionRespondProposal(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.DOMINION_RESPOND_PROPOSAL_RESPONSE);
+
+        if (loggedInUsername == null || loggedInAccountId == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("Not logged in.");
+            return response;
+        }
+        if (request.getDominionProposalId() == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText("No proposal chosen.");
+            return response;
+        }
+
+        dominion.DominionWorld.RespondToProposalResult result = dominionManager.respondToProposal(
+            loggedInAccountId, request.getDominionProposalId(), request.isDominionAccept());
+
+        response.setSuccess(result == dominion.DominionWorld.RespondToProposalResult.SUCCESS);
+        if (!response.isSuccess())
+        {
+            response.setErrorText(describeDominionRespondProposalFailure(result));
+        }
+        return response;
+    }
+
+    private String describeDominionRespondProposalFailure(dominion.DominionWorld.RespondToProposalResult result)
+    {
+        switch (result)
+        {
+            case NO_NATION: return "You don't have a Nation yet.";
+            case PROPOSAL_NOT_FOUND: return "That proposal no longer exists.";
+            case NOT_THE_TARGET: return "That proposal isn't addressed to you.";
+            default: return "Could not respond to that proposal.";
+        }
     }
 
     // ==================== Fight Arena ====================
