@@ -169,6 +169,52 @@ None of this contradicts V1's intentionally small scope - it's exactly the
 depth V1 exists to make room for once the core loop is proven, not a
 replacement for building V1 small first.
 
+### Country concepts - what makes a nation feel like *your* nation
+
+Brainstormed with Bipin 2026-09-27, same status as the list above (not V1,
+not a build queue, just ambition written down). Where the list above is
+mostly about conflict between nations, this one is about what makes a single
+nation feel distinct and worth caring about over a long-running game:
+
+- **National archetypes.** A nation leans Militarist/Mercantile/Diplomatic/
+  Isolationist/Expansionist - a passive flavor rather than a hard class (a
+  Militarist recruits cheaper but taxes less; a Mercantile nation produces
+  more but has a lower army cap). Pairs naturally with government types above.
+- **Capital city.** One province flagged as the capital, with a real cost to
+  losing it - a stability/Honor hit, or past some threshold, risk of the
+  nation collapsing if an enemy holds it long enough. Gives territory a
+  hierarchy instead of every province mattering equally.
+- **Culture/heritage.** A culture tag per nation; sharing one with a
+  neighbor eases diplomacy (cheaper alliances, less friction); a different
+  culture slows "assimilating" conquered provinces and raises their unrest.
+- **Core vs. occupied territory.** A province held since founding is "core"
+  (stable, no unrest); a freshly conquered one is "occupied" and generates
+  unrest/rebellion risk until it's been held long enough to become core -
+  the reason total conquest isn't automatically free or stable.
+- **Vassals & puppet states.** A defeated nation can be reduced to a vassal
+  (pays tribute, can't declare its own wars) instead of always being fully
+  annexed - a middle ground between "destroy" and "ignore."
+- **National ideas / a small focus tree.** A handful of one-time unlockable
+  bonuses per nation (a Naval Focus, a Trade Focus, a Fortification Focus) -
+  smaller and cheaper than the full tech tree, meant purely to make two
+  nations that started identically feel different a hundred ticks in.
+- **Stability, distinct from Honor.** Honor is how a nation is seen
+  internationally; stability is how content its own population is. Low
+  stability raises rebellion risk and hurts production - a separate lever
+  from "did you break a treaty."
+- **Population growth & migration.** Provinces slowly grow population per
+  tick (capped by infrastructure); a war-ravaged province could lose
+  population, with refugees plausibly able to flee toward peaceful neighbors.
+- **Flags & cosmetic identity.** A nation's own color/flag/name flourish -
+  mechanically inert, but this is a persistent thing players return to for a
+  long time, and "this is *my* nation" matters for that kind of engagement.
+- **Wonders.** A rare, expensive, one-per-nation (or one-per-map) building
+  with a strong permanent bonus - a long-horizon aspirational goal beyond
+  ordinary production buildings.
+- **Alliance blocs.** Beyond one-to-one alliances, several nations forming a
+  named bloc with shared benefits - a step toward real multi-nation politics
+  once multi-member nations exist.
+
 ## Data model sketch (server-authoritative; client gets read-only DTOs to render)
 
 - `Province` - id, grid position, terrain type, owning nation id (nullable),
