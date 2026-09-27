@@ -186,6 +186,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         contentPanel.add(new FriendsPanel(), Pages.FRIENDS);
         contentPanel.add(new ChatPanel(), Pages.CHAT);
         contentPanel.add(new ShopPanel(), Pages.SHOP);
+        contentPanel.add(new DominionPanel(), Pages.DOMINION);
         contentPanel.add(new ProfilePanel(), Pages.PROFILE);
         contentPanel.add(new SettingsPanel(), Pages.SETTINGS);
         gameHostContainer = new JPanel(new BorderLayout());
@@ -441,6 +442,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         if (pageKey.equals(Pages.FRIENDS))    return "Friends";
         if (pageKey.equals(Pages.CHAT))       return "Chat";
         if (pageKey.equals(Pages.SHOP))       return "Shop";
+        if (pageKey.equals(Pages.DOMINION))   return "Dominion";
         if (pageKey.equals(Pages.PROFILE))    return "Profile";
         if (pageKey.equals(Pages.SETTINGS))   return "Settings";
         if (pageKey.equals(Pages.MODERATION)) return "Moderation";

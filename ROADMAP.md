@@ -46,6 +46,38 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Vertex: Dominion, build order step 4 (first slice): the client's
+  persistent nav tab.** `DominionPanel`, reached via a new `Pages.DOMINION`
+  `Sidebar` entry alongside Friends/Chat/Shop/Settings - not the
+  `Pages.GAME_HOST` slot every match game uses, per the already-settled
+  Architecture Decision (a standing thing checked in on repeatedly, not
+  launched and left). Covers all of V1's client-visible surface in one pass:
+  a found-a-nation flow (a read-only grid map of the seeded provinces, click
+  an unclaimed one to select it, name the Nation, found it), and once a
+  Nation exists, a dashboard (name/treasury/Honor/current day), the same map
+  now showing every Nation's territory (your own always the theme's ACCENT
+  color, others from a small deterministic palette, a tooltip on every cell
+  for the real detail), an armies list, and all four V1 order types build
+  order step 3 already wired up server-side - recruit an army, queue a march,
+  declare war, and propose/respond to an Alliance or Non-Aggression pact -
+  each a small dropdown-driven form rather than click-to-select map
+  interaction, a deliberate V1 simplification rather than a placeholder for
+  something fancier immediately after. No push-based live updates exist yet
+  (Dominion has no broadcast-on-tick mechanism the way a live match does), so
+  a manual Refresh button re-fetches `DOMINION_STATE_REQUEST` instead of the
+  page silently going stale without any way to catch up - an honest, stated
+  V1 gap, not a hidden one. Verified with a real Xvfb/Swing screenshot
+  harness exercising the actual production code (not a reimplementation): a
+  `DominionSnapshot` built from real domain-object constructors, injected via
+  reflection into a real `DominionPanel` instance to drive both view states -
+  an account with no Nation yet (founding view) and one that owns a Nation
+  already at war with another, with an incoming Non-Aggression proposal
+  pending (full dashboard, confirming the map's ownership coloring, the
+  armies list's march-order text, the relations summary's "declared, not yet
+  active" wording, and the proposal's Accept/Decline buttons all render
+  correctly from real data). Client-only, like every game's own `<Name>Window`/
+  `<Name>Dialog` class - no `VertexServer` counterpart to keep in sync. Client
+  compiles clean.
 - **Vertex: Dominion: offline-war protection and a real tick schedule.** Two
   design facts from a design conversation with Bipin, closed the same night
   they came up rather than left as a documented gap: (1) a nation can no longer

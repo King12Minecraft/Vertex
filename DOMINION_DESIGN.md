@@ -370,8 +370,18 @@ template with their own flavor.
    nations involved even before real fog of war exists). All account-
    validated server-side (an army/province a client claims to own is always
    re-verified, never trusted).
-4. Client: the persistent nav tab (already a settled architecture decision), a
-   map view, a nation dashboard, an orders-queue UI.
+4. ✅ **Done (first slice).** Client: the persistent nav tab (`Pages.DOMINION`,
+   a `Sidebar` entry alongside Friends/Chat/Shop/Settings, not the `GAME_HOST`
+   slot every match game uses - per the settled Architecture Decision), a
+   `DominionPanel` covering the found-a-nation flow, a read-only grid map
+   (colored by owner, your own Nation always the theme's accent color,
+   tooltips for the real detail), a nation dashboard (treasury/Honor/day),
+   and all four V1 order types (recruit, march, declare war, propose/respond
+   to a relation) via simple dropdown-driven forms rather than click-to-select
+   map interaction - a deliberate V1 simplification, not a placeholder for
+   something more polished coming immediately after. No push-based live
+   updates yet (Dominion has no broadcast-on-tick mechanism, unlike a live
+   match) - a manual Refresh re-fetches `DOMINION_STATE_REQUEST` instead.
 5. Only then: multi-member nations, additional resource types, unit-type variety,
    vassalage/trade, and the procedural ruler/succession layer - each a real,
    separately-scoped follow-up, not bundled into getting V1 playable.

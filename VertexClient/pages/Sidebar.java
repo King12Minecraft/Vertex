@@ -83,6 +83,7 @@ public class Sidebar extends RoundedPanel
         addNavButton("Friends", Pages.FRIENDS);
         addNavButton("Chat", Pages.CHAT);
         addNavButton("Shop", Pages.SHOP);
+        addNavButton("Dominion", Pages.DOMINION);
 
         Account current = Session.getCurrentAccount();
         if (PermissionManager.isAtLeastModerator(current))

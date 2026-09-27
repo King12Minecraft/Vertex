@@ -24,6 +24,8 @@ public class Pages
     public static final String SHOP       = "SHOP";
     public static final String PROFILE    = "PROFILE";
     public static final String SETTINGS   = "SETTINGS";
+    /** Vertex: Dominion's own persistent nav destination - NOT the GAME_HOST slot above, per the Architecture Decision in ROADMAP.md (a standing, checked-in-on-repeatedly nation game, not a launched-and-left match). */
+    public static final String DOMINION   = "DOMINION";
     public static final String MODERATION = "MODERATION";
     public static final String ADMIN      = "ADMIN";
 

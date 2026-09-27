@@ -848,7 +848,18 @@ runs, leaving has already been decided one way or another - going through
 `TopBar.java` holds page title, live online-count, notification bell, account menu.
 Page panels: `HomePanel`, `GamesPanel` (Home/All-Games tabs, pin toggles), `ShopPanel`,
 `LeaderboardPanel`, `AchievementsPanel`, `QuestsPanel`, `TournamentsPanel`, `ChatPanel`,
-`FriendsPanel`, `GameSuggestionsPanel`, `AdminPanel`, `ModeratorPanel`, `SettingsPanel`.
+`FriendsPanel`, `GameSuggestionsPanel`, `AdminPanel`, `ModeratorPanel`, `SettingsPanel`,
+`DominionPanel` (`Pages.DOMINION` - Dominion's own persistent nav destination, a
+`Sidebar` entry like Friends/Chat/Shop, deliberately not `Pages.GAME_HOST`; see the
+`dominion` package section above for why). Its own content, not a match-game
+window, so it's the one page panel with no `VertexServer` counterpart to keep
+byte-identical - the same client-only exemption every game's `<Name>Window`/
+`<Name>Dialog` class already gets. Rebuilds its content wholesale from a fresh
+`DominionSnapshot` on load/Refresh (same "clear and rebuild" shape
+`LeaderboardPanel.renderLeaderboard()` already uses) rather than diffing - there's
+no push-based live update for Dominion yet (no broadcast-on-tick mechanism, unlike
+a real match), so staleness between an explicit Refresh is an accepted, honest V1
+gap, not a bug.
 Supporting: `GlobalSearchField`, `NotificationBell`/`NotificationCenter`,
 `QuickPlayDropdown`, `OfflineHubWindow` (currently just Snake), `WindowSizeMemory`.
 
