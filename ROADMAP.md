@@ -46,6 +46,27 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Vertex: Dominion: offline-war protection and a real tick schedule.** Two
+  design facts from a design conversation with Bipin, closed the same night
+  they came up rather than left as a documented gap: (1) a nation can no longer
+  be war-declared on while its player is offline (`DeclareWarResult.TARGET_OFFLINE`,
+  `declareWarForAccount`'s new `targetIsOnline` parameter, computed by
+  `ClientHandler.isDominionNationOnline()` via the same `ChatManager`
+  online-presence check `FriendManager` already uses); (2) `DominionManager`
+  now actually runs the daily tick every 20 real minutes on its own daemon
+  thread, instead of nothing ever advancing the clock outside a test. Building
+  the tick scheduler surfaced a real pre-existing gap along the way: none of
+  `DominionManager`'s methods were synchronized, so a tick landing concurrently
+  with a `ClientHandler` request was a genuine data race on the one whole-server
+  `DominionWorld`, not a hypothetical one - fixed by synchronizing every method
+  that touches `world`. See `PROGRAM_STRUCTURE.md`'s `dominion` section for the
+  full detail; verified with a 13-check test. Both trees compile clean and stay
+  byte-identical. The much larger design conversation that surfaced these two
+  (population/jobs/facilities, per-nation floating currency, trade, a United
+  Nations body, sanctions, toggleable laws, Parliament, realistic migration,
+  pollution/fertility, islands, Navy/Air Force) stays exactly what
+  `DOMINION_DESIGN.md` already calls "Future depth" - explicitly not V1, not
+  started tonight, recorded there rather than built speculatively.
 - **Vertex: Dominion, build order step 3 complete: recruit army, march,
   declare war, diplomacy proposals.** The second (and final) slice of step 3's
   networking, same day as the first: `DOMINION_RECRUIT_ARMY_*`,

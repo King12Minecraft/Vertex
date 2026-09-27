@@ -481,8 +481,43 @@ class "silently fails to deserialize"), so both slices were verified with *real*
 (not just a compile check), across a 29-check test (first slice) and a 51-check
 test (second slice) also covering every success/failure outcome of every new
 `DominionWorld` method and a `DominionStore` round trip that now includes
-proposals. Next: the client's persistent nav tab/map UI (build order step 4) -
-nothing client-visible exists yet, all of this is server request-handling only.
+proposals.
+
+**Offline-war protection and a real tick schedule (2026-09-27):** two design
+facts settled the same night they came up, closing the gap between
+`DOMINION_DESIGN.md` and what actually ran. `DeclareWarResult` gained
+`TARGET_OFFLINE`; `declareWarForAccount` now takes a `targetIsOnline` boolean and
+refuses to declare war on it (checked after `TARGET_NOT_FOUND`, since a
+nonexistent Nation should never even ask whether it's "online") - nobody should
+come home from being away to find themselves attacked while they couldn't
+respond. `DominionWorld` itself has no view of who's connected, so it can't
+compute that boolean; `ClientHandler.isDominionNationOnline()` does, the same way
+`FriendManager`'s online-status features already do - look up the target
+Nation's `accountId` via the new `DominionManager.getNation(id)`, resolve the
+`Account` via `ServerAccountStore.findById()`, then check
+`ChatManager.findByUsername()` for a live session. Separately, `DominionManager`
+now actually runs the tick: a daemon thread (`startTickScheduler()`/`tickLoop()`,
+the same infinite-loop-with-sleep shape `GameServer.acceptLoop()` already uses,
+rather than this codebase's first `Timer`/`ScheduledExecutorService`) calls
+`DominionTickEngine.resolveTick()` every 20 real minutes (one in-game day, per
+the design brief) and persists the result - before this, nothing ever advanced
+the clock outside a test. A tick's exception is caught and logged rather than
+left to silently cancel every future tick, the same reasoning `acceptLoop`'s own
+comment gives for a transient accept() failure. Adding a second kind of thread
+that mutates the one whole-server `DominionWorld` (a tick, concurrently with any
+in-flight `ClientHandler` request) surfaced a real, previously-latent gap: none
+of `DominionManager`'s methods were synchronized, meaning two `ClientHandler`
+threads (or a tick and a request) could already race on `world`'s internal maps
+before this - every public method that touches `world` is now `synchronized`,
+closing that race rather than deepening it. Verified with a 13-check test:
+`TARGET_OFFLINE` returned for an offline target and not for an online one, that
+`TARGET_NOT_FOUND`/`NO_NATION`/`CANNOT_DECLARE_ON_SELF` still take priority over
+the online check exactly as before, and that a fresh `DominionManager` starts
+its tick thread and serves `getNation()`/`declareWar()` correctly without
+blocking on it. Both trees compile clean and stay byte-identical.
+
+Next: the client's persistent nav tab/map UI (build order step 4) - nothing
+client-visible exists yet, all of this is server request-handling only.
 
 ## ai — four independent toolkits, unified by one philosophy
 

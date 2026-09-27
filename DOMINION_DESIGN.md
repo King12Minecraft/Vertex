@@ -215,6 +215,107 @@ nation feel distinct and worth caring about over a long-running game:
   named bloc with shared benefits - a step toward real multi-nation politics
   once multi-member nations exist.
 
+### Economy, governance & military depth - what "basically real life" grows into (part 2)
+
+Brainstormed with Bipin 2026-09-27, same status as the two lists above (not V1,
+not a build queue, just ambition written down - a fuller, more visually organized
+version of this same content lives in a Claude Docs artifact Bipin has, "the
+Dominion Rulebook," but this is the authoritative record). Where the first list is
+about conflict and the second is about national identity, this one is about the
+economy and government actually running underneath a nation, plus the geography
+and military branches that came out of the same conversation.
+
+**Population, jobs & sectors.** Population is assigned by the monarch across
+sectors, each gated by a facility built first, more population producing more
+output up to that facility's capacity: Agriculture (Farm - Food, feeds population,
+no currency), Industry (Factory - a nation's own currency, see below), Education
+(School - Research Points), Communications (Post House - Influence, and pollution
+as a byproduct, see below), Resources (Mine - Oil/Ore/Timber, tradeable raw goods),
+Healthcare (Hospital - cuts Sickness odds/severity, doesn't fully immunize it),
+Sanitation (Waste Disposal Plant - reverses pollution). Research Points aren't just
+a future tech-tree currency sitting idle - spending them is how a nation unlocks
+entirely new sectors and facility types, so investing in education is literally
+how a country creates jobs that didn't exist before.
+
+**Pollution -> Fertility -> Agriculture, a real feedback loop.** Communications
+facilities produce Influence and pollution together; unchecked pollution degrades
+a province's Fertility (a proposed dimension separate from `Terrain`'s existing
+yield/defense multipliers, for food/growth potential specifically), and degraded
+Fertility cuts that province's Farm output. Sanitation is the only fix, and it's
+an ongoing treasury cost, not a one-time purchase - tech growth stops being free.
+
+**Currency: per-nation, and it floats.** Not one shared "Crowns" - every nation
+mints its own currency with an exchange rate that floats with its actual
+situation: weakens under an active war, unrest/rebellion, a United Nations
+sanction, or thin treasury reserves relative to population; strengthens with high
+Honor, stability, and a healthy trade balance. Research Points and Influence stay
+flat, non-tradeable resources, untouched by this. A nation short on treasury can
+take on national debt - borrowed from another nation directly, or a shared fund a
+United Nations body maintains - at interest; unpaid debt is exactly the kind of
+thing that tanks a currency further.
+
+**Trade between nations.** One nation proposes a goods-for-goods or
+goods-for-currency deal to another (same accept/decline shape diplomacy already
+uses); a deal priced in another nation's currency converts at that day's exchange
+rate. A deal with a nation you don't share a land border with needs a Navy to
+carry it (see Geography & military below) - an island nation lives or dies by
+this rule. A standing server-wide marketplace instead of only bilateral deals is a
+believable later step, not promised here.
+
+**Governance: laws as switches, not dials.** Every law is binary - on or off,
+full effect and cost the instant it's flipped, nothing in between. Two concrete
+worked examples: Mandatory Vaccination (compulsory child vaccination, strong
+Sickness immunity, raises Unrest wherever enforced - the reference example for
+what a law actually costs and buys) and Trade Tariffs (skims extra currency off
+every trade deal, but other nations trade with you less). National Holidays are a
+one-off declaration rather than a standing law - spends a day instead of
+Influence, pauses production, drops Unrest. An elected Parliament reacts to the
+monarch's laws (a stability bonus when governed with it, extra Unrest when
+consistently governed against it) and can formally question a specific act (a
+war, a law, a big spend) - the monarch answering it calms Unrest slightly,
+ignoring it repeatedly raises it. Parliament never overrules or replaces the
+monarch - see the locked "you are the permanent ruler" principle in the Country
+concepts section above.
+
+**The United Nations.** Distinct from a Federation (which merges nations into one
+entity): nations stay fully independent, no pooled territory or treasury, no
+single foreign policy - just a body they've agreed to belong to. Founding it needs
+every invited nation to accept; joining an existing one needs a majority vote of
+current members. Its main power is Sanctions: members vote to sanction a nation,
+blocking it from member trade and weighing on its currency's exchange rate -
+ties Diplomacy, Trade, and Currency into one lever instead of three systems that
+never talk to each other.
+
+**Geography & military: islands, fortifications, Navy and Air Force.** At
+founding, a nation picks Island or Mainland - a real choice, not a dice roll. An
+island province can never be reached by a land Army march; only a Navy can land
+troops there or blockade it, and the same isolation cuts off land-adjacent trade
+and migration until a Navy exists. A Fortress facility adds directly to a
+province's defense multiplier (stacking with terrain), and on a coastal or island
+province also raises the cost of a naval landing. Navy and Air Force are two new
+branches beyond the land Army - not reskinned troops - paid in real ticks to
+build rather than instant recruitment, closer in weight to a Wonder. Navy is the
+only way to invade/blockade an island or trade across water; Air Force isn't
+bound by march adjacency and can cheaply scout a distant province's stats without
+needing any relation with its owner. Both get their own Research-funded upgrade
+path - the first concrete example for the vague "tech tree" idea in the first
+Future Depth list above.
+
+**Migration, made realistic.** The actual driver is unemployment, not a vague
+"unrest" pull: population outgrowing a nation's total job capacity across its
+built facilities is what creates people looking to leave. They move toward a
+*bordering* nation with open capacity, gradually, not to whichever nation is
+richest on the map. Open Borders is a law (a switch, like any other) controlling
+whether a nation accepts that immigration at all - a war-torn or sickness-ridden
+neighbor's refugees stop at the border if it's off.
+
+**A Wonder, with a concrete example.** The Golden Dome: one per nation, an
+extreme treasury cost and many ticks to build, dwarfing any ordinary facility -
+most nations will never casually build one. Reward is a permanent, visible
+prestige structure with a strong Honor and stability bonus. Represents Wonders
+generally; later ones can reuse the same extreme-cost/permanent-prestige
+template with their own flavor.
+
 ## Data model sketch (server-authoritative; client gets read-only DTOs to render)
 
 - `Province` - id, grid position, terrain type, owning nation id (nullable),

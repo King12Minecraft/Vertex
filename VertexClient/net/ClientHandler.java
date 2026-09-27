@@ -2366,8 +2366,9 @@ public class ClientHandler implements Runnable
             return response;
         }
 
+        boolean targetIsOnline = isDominionNationOnline(request.getDominionTargetNationId());
         dominion.DominionWorld.DeclareWarResult result = dominionManager.declareWar(
-            loggedInAccountId, request.getDominionTargetNationId());
+            loggedInAccountId, request.getDominionTargetNationId(), targetIsOnline);
 
         response.setSuccess(result == dominion.DominionWorld.DeclareWarResult.SUCCESS);
         if (!response.isSuccess())
@@ -2377,6 +2378,26 @@ public class ClientHandler implements Runnable
         return response;
     }
 
+    /** Whether the account that owns the given Nation is currently connected - the offline-war-protection rule (see DeclareWarResult's javadoc) needs this, and only ClientHandler has a view of who's online (via ChatManager) to compute it. Defaults to true (online) for a Nation id that doesn't exist - declareWarForAccount() already rejects that case with TARGET_NOT_FOUND before this value would ever matter. */
+    private boolean isDominionNationOnline(Integer nationId)
+    {
+        if (nationId == null)
+        {
+            return true;
+        }
+        dominion.Nation nation = dominionManager.getNation(nationId);
+        if (nation == null)
+        {
+            return true;
+        }
+        account.Account owner = accountStore.findById(nation.getAccountId());
+        if (owner == null)
+        {
+            return true;
+        }
+        return chatManager.findByUsername(owner.getUsername()) != null;
+    }
+
     private String describeDominionDeclareWarFailure(dominion.DominionWorld.DeclareWarResult result)
     {
         switch (result)
@@ -2384,6 +2405,7 @@ public class ClientHandler implements Runnable
             case NO_NATION: return "You don't have a Nation yet.";
             case TARGET_NOT_FOUND: return "That Nation doesn't exist.";
             case CANNOT_DECLARE_ON_SELF: return "You can't declare war on yourself.";
+            case TARGET_OFFLINE: return "That nation's ruler is offline right now - try again later.";
             default: return "Could not declare war.";
         }
     }

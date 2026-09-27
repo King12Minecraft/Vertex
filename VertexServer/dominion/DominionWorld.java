@@ -43,8 +43,8 @@ public class DominionWorld
     /** What can go wrong queuing a march order - see queueMarchForAccount(). Adjacency/war-state legality is deliberately NOT checked here - see queueMarch()'s own javadoc for why that's DominionTickEngine's job at resolution time, not this method's. */
     public enum QueueMarchResult { SUCCESS, NO_NATION, ARMY_NOT_FOUND, ARMY_NOT_OWNED, TARGET_PROVINCE_NOT_FOUND }
 
-    /** What can go wrong declaring war - see declareWarForAccount(). */
-    public enum DeclareWarResult { SUCCESS, NO_NATION, TARGET_NOT_FOUND, CANNOT_DECLARE_ON_SELF }
+    /** What can go wrong declaring war - see declareWarForAccount(). TARGET_OFFLINE exists because a nation whose player is currently offline can't be war-declared on at all - nobody should come back from being away to find themselves attacked while they couldn't respond. Whether the target is online isn't something DominionWorld can know on its own (it has no view of who's connected) - the caller (ClientHandler, which does have that view via ChatManager) computes it and passes it in. */
+    public enum DeclareWarResult { SUCCESS, NO_NATION, TARGET_NOT_FOUND, CANNOT_DECLARE_ON_SELF, TARGET_OFFLINE }
 
     /** What can go wrong proposing Alliance/Non-Aggression - see proposeRelation(). */
     public enum ProposeRelationResult { SUCCESS, NO_NATION, TARGET_NOT_FOUND, CANNOT_PROPOSE_TO_SELF, INVALID_TYPE, ALREADY_IN_THAT_RELATION }
@@ -254,8 +254,8 @@ public class DominionWorld
         relations.add(new DiplomaticRelation(attackerNationId, defenderNationId, RelationType.WAR, currentTick + 1));
     }
 
-    /** Validates accountId has a Nation and targetNationId is a real, different Nation before declaring war. */
-    public DeclareWarResult declareWarForAccount(int accountId, int targetNationId)
+    /** Validates accountId has a Nation, targetNationId is a real, different Nation, and (per targetIsOnline, computed by the caller - see DeclareWarResult's javadoc) that its player is actually online, before declaring war. */
+    public DeclareWarResult declareWarForAccount(int accountId, int targetNationId, boolean targetIsOnline)
     {
         Nation nation = getNationForAccount(accountId);
         if (nation == null)
@@ -269,6 +269,10 @@ public class DominionWorld
         if (nations.get(targetNationId) == null)
         {
             return DeclareWarResult.TARGET_NOT_FOUND;
+        }
+        if (!targetIsOnline)
+        {
+            return DeclareWarResult.TARGET_OFFLINE;
         }
         declareWar(nation.getId(), targetNationId);
         return DeclareWarResult.SUCCESS;

@@ -24,8 +24,12 @@ public class DominionManager
      */
     private static final int MAP_SIZE = 10;
 
+    /** One in-game day per 20 real minutes, per the design brief's tick cadence. */
+    private static final long TICK_INTERVAL_MILLIS = 20L * 60L * 1000L;
+
     private final DominionStore store = new DominionStore();
     private final DominionWorld world;
+    private final DominionTickEngine tickEngine = new DominionTickEngine();
 
     public DominionManager()
     {
@@ -35,6 +39,66 @@ public class DominionManager
             seedMap(world);
             store.save(world);
         }
+        startTickScheduler();
+    }
+
+    /**
+     * Runs the daily tick every TICK_INTERVAL_MILLIS, forever, on its own daemon
+     * thread - same "infinite loop on a daemon thread, sleep between iterations"
+     * shape GameServer's own acceptLoop uses, rather than introducing this
+     * codebase's first java.util.Timer/ScheduledExecutorService for one loop.
+     * A tick that throws must not silently cancel every future tick (the same
+     * "a transient failure can't become a permanent outage" reasoning
+     * GameServer.acceptLoop's own comment gives) - caught and logged, not
+     * propagated, so the schedule keeps running even if one tick's resolution
+     * hits a bug.
+     */
+    private void startTickScheduler()
+    {
+        Thread tickThread = new Thread(new Runnable()
+        {
+            public void run() { tickLoop(); }
+        });
+        tickThread.setDaemon(true);
+        tickThread.setName("dominion-tick");
+        tickThread.start();
+    }
+
+    private void tickLoop()
+    {
+        while (true)
+        {
+            try
+            {
+                Thread.sleep(TICK_INTERVAL_MILLIS);
+            }
+            catch (InterruptedException e)
+            {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            try
+            {
+                runTick();
+            }
+            catch (RuntimeException e)
+            {
+                System.err.println("Dominion tick failed, will retry next scheduled tick: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Synchronized, like every other method here that touches world - this is the
+     * one whole-server DominionWorld, and it's now mutated from two kinds of
+     * threads (a ClientHandler thread per connected player, and this tick thread),
+     * not just one, so an unsynchronized method here would be a real, not
+     * hypothetical, data race the moment a tick lands mid-request.
+     */
+    private synchronized void runTick()
+    {
+        tickEngine.resolveTick(world);
+        store.save(world);
     }
 
     private void seedMap(DominionWorld world)
@@ -52,7 +116,7 @@ public class DominionManager
         }
     }
 
-    public DominionWorld.FoundNationOutcome foundNation(int accountId, String name, int startingProvinceId)
+    public synchronized DominionWorld.FoundNationOutcome foundNation(int accountId, String name, int startingProvinceId)
     {
         DominionWorld.FoundNationOutcome outcome = world.foundNation(accountId, name, startingProvinceId);
         if (outcome.result == DominionWorld.FoundNationResult.SUCCESS)
@@ -62,7 +126,7 @@ public class DominionManager
         return outcome;
     }
 
-    public DominionWorld.RecruitArmyOutcome recruitArmy(int accountId, int provinceId, int troopCount)
+    public synchronized DominionWorld.RecruitArmyOutcome recruitArmy(int accountId, int provinceId, int troopCount)
     {
         DominionWorld.RecruitArmyOutcome outcome = world.recruitArmy(accountId, provinceId, troopCount);
         if (outcome.result == DominionWorld.RecruitArmyResult.SUCCESS)
@@ -72,7 +136,7 @@ public class DominionManager
         return outcome;
     }
 
-    public DominionWorld.QueueMarchResult queueMarch(int accountId, int armyId, int targetProvinceId)
+    public synchronized DominionWorld.QueueMarchResult queueMarch(int accountId, int armyId, int targetProvinceId)
     {
         DominionWorld.QueueMarchResult result = world.queueMarchForAccount(accountId, armyId, targetProvinceId);
         if (result == DominionWorld.QueueMarchResult.SUCCESS)
@@ -82,9 +146,9 @@ public class DominionManager
         return result;
     }
 
-    public DominionWorld.DeclareWarResult declareWar(int accountId, int targetNationId)
+    public synchronized DominionWorld.DeclareWarResult declareWar(int accountId, int targetNationId, boolean targetIsOnline)
     {
-        DominionWorld.DeclareWarResult result = world.declareWarForAccount(accountId, targetNationId);
+        DominionWorld.DeclareWarResult result = world.declareWarForAccount(accountId, targetNationId, targetIsOnline);
         if (result == DominionWorld.DeclareWarResult.SUCCESS)
         {
             store.save(world);
@@ -92,7 +156,13 @@ public class DominionManager
         return result;
     }
 
-    public DominionWorld.ProposeRelationOutcome proposeRelation(int accountId, int targetNationId, RelationType type)
+    /** Looks up a Nation by id, e.g. so ClientHandler can find who owns it before checking whether that player is online for the offline-war-protection rule in declareWar() above. Null if no such Nation exists. */
+    public synchronized Nation getNation(int id)
+    {
+        return world.getNation(id);
+    }
+
+    public synchronized DominionWorld.ProposeRelationOutcome proposeRelation(int accountId, int targetNationId, RelationType type)
     {
         DominionWorld.ProposeRelationOutcome outcome = world.proposeRelation(accountId, targetNationId, type);
         if (outcome.result == DominionWorld.ProposeRelationResult.SUCCESS)
@@ -102,7 +172,7 @@ public class DominionManager
         return outcome;
     }
 
-    public DominionWorld.RespondToProposalResult respondToProposal(int accountId, int proposalId, boolean accept)
+    public synchronized DominionWorld.RespondToProposalResult respondToProposal(int accountId, int proposalId, boolean accept)
     {
         DominionWorld.RespondToProposalResult result = world.respondToProposal(accountId, proposalId, accept);
         if (result == DominionWorld.RespondToProposalResult.SUCCESS)
@@ -112,7 +182,7 @@ public class DominionManager
         return result;
     }
 
-    public DominionSnapshot getSnapshot(int accountId)
+    public synchronized DominionSnapshot getSnapshot(int accountId)
     {
         return world.toSnapshot(accountId);
     }
