@@ -136,12 +136,20 @@ the socket → dispatches by `MessageType` (e.g. `FIND_MATCH_REQUEST`) → the m
 
 Two repeating shapes, not 179 individual designs:
 
-1. **Offline/single-player** (Snake, Tetris, 2048, Minesweeper, Sudoku, Simon Says,
-   Whack-a-Mole, Match Three, Maze Chase, Brick Breaker, Flappy Bird, Galaxy Defender,
-   Word Guess, Bubble Shooter, Lights Out, Peg Solitaire, Klondike, Yahtzee, Mancala,
-   Puzzle Quest, Dino Dash, Crossing Road, Aim Trainer, Pong, and more): a
-   `<Name>Game.java` (pure state/logic) + `<Name>Window.java` (Swing host), sometimes a
-   `<Name>Panel.java`. No server involvement.
+1. **Offline/single-player** (Snake, Tetris, 2048, Number Nest, Minesweeper, Sudoku,
+   Simon Says, Whack-a-Mole, Match Three, Maze Chase, Brick Breaker, Flappy Bird,
+   Galaxy Defender, Word Guess, Bubble Shooter, Lights Out, Peg Solitaire, Klondike,
+   Yahtzee, Mancala, Puzzle Quest, Dino Dash, Crossing Road, Aim Trainer, Pong, and
+   more): a `<Name>Game.java` (pure state/logic) + `<Name>Window.java` (Swing host),
+   sometimes a `<Name>Panel.java`. No server involvement. **Number Nest** (added
+   2026-09-27) is the games-backlog's `Threes`/`1010!`-genre concept - a 5x5 grid,
+   place one offered piece at a time into any empty cell (nothing slides, unlike
+   2048), merging with at most one orthogonally-adjacent equal-value neighbor per
+   placement (fixed scan order, deliberately no cascade); game over exactly when the
+   grid is full, since placement never needs adjacency the way 2048's slide does.
+   `NumberNestGame`/`NumberNestWindow` follow `Merge2048Game`/`Merge2048Window`'s
+   exact split and share its tile-color formula for visual consistency between the
+   two number-merge games.
 2. **Online/multiplayer** (~30: Tic-Tac-Toe, Connect Four, Checkers, Chess, Battleship,
    Reversi, Dots and Boxes, Rock Paper Scissors, Memory Match, Air Hockey, Word Duel,
    Dice Duel, Snake Arena, Tetris Duel, Fusion Grid, Typing Duel, Signal Grid, Card

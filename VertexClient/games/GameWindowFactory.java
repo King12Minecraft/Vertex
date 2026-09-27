@@ -36,6 +36,7 @@ public final class GameWindowFactory
         FACTORIES.put("rock-paper-scissors", new Supplier<JComponent>() { public JComponent get() { return new RockPaperScissorsWindow(); } });
         FACTORIES.put("pingpong", new Supplier<JComponent>() { public JComponent get() { return new PongWindow(); } });
         FACTORIES.put("2048", new Supplier<JComponent>() { public JComponent get() { return new Merge2048Window(); } });
+        FACTORIES.put("number-nest", new Supplier<JComponent>() { public JComponent get() { return new NumberNestWindow(); } });
         FACTORIES.put("dino-dash", new Supplier<JComponent>() { public JComponent get() { return new DinoWindow(); } });
         FACTORIES.put("tetris", new Supplier<JComponent>() { public JComponent get() { return new TetrisWindow(); } });
         FACTORIES.put("crossing-road", new Supplier<JComponent>() { public JComponent get() { return new CrossingRoadWindow(); } });

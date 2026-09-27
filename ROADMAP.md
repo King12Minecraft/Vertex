@@ -46,6 +46,37 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Number Nest, a new original single-player number-merge puzzle** - the
+  `Threes`/`1010!`-genre concept from the games backlog, deliberately distinct
+  from 2048's slide-and-merge-everything mechanic: a 5x5 grid, one piece
+  offered at a time (plus a preview of the next one), click any empty cell to
+  place it - nothing slides. If the placed piece lands orthogonally adjacent to
+  exactly one cell holding the same value, they merge into double that value
+  (checked in a fixed up/right/down/left order, at most one merge per
+  placement, deliberately no cascade into a second merge afterward - a
+  placement is one bounded action, not a combo chain). Game ends when the grid
+  is completely full, the only way to run out of legal moves since placement
+  never needs adjacency. `NumberNestGame` (pure model) + `NumberNestWindow`
+  (rendering + mouse-click input), same "model class + window class" split
+  `Merge2048Game`/`Merge2048Window` already established, sharing its tile-color
+  formula (darker for low values, brighter toward the theme accent for high
+  ones) for a consistent visual language between the two number-merge games.
+  Fully offline, single-player - no new networking, reuses the existing
+  generic `GAME_PLAYED_REQUEST` path (`EconomyKernel.awardCompletion` via a new
+  `EconomyConfig.getPracticeReward` entry, `Math.min(30, score / 20)` - a
+  numeric placeholder like every other game's formula, trivially retuned if
+  scores in practice land far from the 30-coin cap) the same way 2048 does.
+  Registered in `GameRegistry` (both trees), `GameWindowFactory`, and
+  `GameMetadata` (Medium difficulty, Puzzle tag). Verified with a 19-check
+  logic test (placement, illegal-cell/out-of-bounds rejection, the merge
+  math, the deliberate no-cascade behavior via reflection-forced board
+  states, and game-over exactly at a full grid) plus a real Xvfb/Swing/Robot
+  screenshot check - actual mouse clicks at real screen coordinates, not a
+  bypass of the click handler, confirming tiles place, merge, and score
+  correctly from genuine user input. Mirrored byte-identical across both
+  trees where shared (`GameRegistry`/`EconomyConfig`; `NumberNestGame`/
+  `NumberNestWindow`/`GameWindowFactory`/`GameMetadata` are client-only, same
+  as every other single-player game's model+window pair); both compile clean.
 - **Word Duel joins the reconnect-aware games, plus a real pre-existing scoring
   bug fixed along the way.** `WordDuelMatch` gained the same grace-period shape
   as Connect Four/Checkers/Reversi/Dots and Boxes (its own direct
@@ -1430,11 +1461,9 @@ formats - not to copy anything:
   genre) — bounce upward off procedurally-placed platforms, camera scrolls up
   forever, moving/breakable/spring platforms add variety, game ends when you fall
   off the bottom of the screen. Distinct from every existing single-player game
-  here (nothing else is a vertical endless climber).
-- **A number-merge puzzle, `Threes`/`1010!` genre, distinct from 2048** — a small
-  grid where you place incoming numbered/colored pieces rather than 2048's
-  slide-and-merge-everything mechanic; genuinely different enough from 2048 to be
-  its own game, not a reskin.
+  here (nothing else is a vertical endless climber). Not yet built.
+- ~~A number-merge puzzle, `Threes`/`1010!` genre, distinct from 2048~~ — **built,
+  see "Done" below (Number Nest).**
 - Both chosen specifically because the ask was "don't make this only multiplayer" -
   the platform already has ~26 single-player games, so 2 well-chosen new ones
   (each a distinct mechanic, not a reskin of something existing) is a more honest

@@ -58,6 +58,7 @@ public class EconomyConfig
         }
         if ("pingpong".equals(gameId))       return Math.min(20, score * 2);
         if ("2048".equals(gameId))           return Math.min(30, score / 150);
+        if ("number-nest".equals(gameId))    return Math.min(30, score / 20);
         if ("dino-dash".equals(gameId))      return Math.min(25, score / 8);
         if ("tetris".equals(gameId))         return Math.min(35, score / 300);
         if ("crossing-road".equals(gameId))  return Math.min(25, score / 3);

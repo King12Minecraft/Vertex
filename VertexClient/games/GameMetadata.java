@@ -32,6 +32,7 @@ public class GameMetadata
         tag("rock-paper-scissors", EASY, "2D", "Single/Multiplayer", "Online", "Turn-Based");
         tag("pingpong", EASY, "2D", "Single Player", "Arcade");
         tag("2048", MEDIUM, "2D", "Single Player", "Puzzle");
+        tag("number-nest", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("dino-dash", EASY, "2D", "Single Player", "Arcade");
         tag("tetris", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("crossing-road", EASY, "2D", "Single Player", "Arcade");

@@ -22,6 +22,7 @@ public class GameRegistry
         games.add(new GameInfo("rock-paper-scissors", "Rock Paper Scissors", "Single/Multiplayer", "Online", true, false, "1.1"));
         games.add(new GameInfo("pingpong", "Ping Pong", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("2048", "2048", "Single Player", "Practice Mode", false, false, "1.0"));
+        games.add(new GameInfo("number-nest", "Number Nest", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("dino-dash", "Dino Dash", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("tetris", "Tetris", "Single Player", "Practice Mode", false, false, "1.0"));
         games.add(new GameInfo("crossing-road", "Crossing Road", "Single Player", "Practice Mode", false, false, "1.0"));
