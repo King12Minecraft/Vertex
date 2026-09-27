@@ -975,7 +975,9 @@ public class ClientHandler implements Runnable
         if (result != null) return result;
         result = reversiMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
         if (result != null) return result;
-        return dotsAndBoxesMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        result = dotsAndBoxesMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        if (result != null) return result;
+        return wordDuelMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
     }
 
     private String describeLoginFailure(ServerAccountStore.LoginResult result)

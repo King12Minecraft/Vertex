@@ -306,13 +306,17 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   implementing the small `ReconnectableMatch` interface (`onReconnectTimeout()`,
   `onReconnect(newHandler)`, `attachToHandler(handler)`) and calling
   `beginGracePeriod(accountId, this)` from its own disconnect handling. Adopters:
-  `TicTacToeMatch` (the original, via `MatchManager`'s own registry instance), plus
+  `TicTacToeMatch` (the original, via `MatchManager`'s own registry instance),
   `ConnectFourMatch`/`CheckersMatch`/`ReversiMatch`/`DotsAndBoxesMatch` (2026-09-26,
-  each via its manager's `MatchmakingKernel`-supplied registry) - the same
-  `disconnectedSlot`/grace-period/timeout shape in every one, differing only in how
-  each match names its two player slots (`DotsAndBoxesMatch` uses a `List<ClientHandler>`
-  and an index rather than two named fields, the one structurally different case).
-  Chess is deliberately not yet adopted - its resign/draw-offer state interacts with a
+  each via its manager's `MatchmakingKernel`-supplied registry), and `WordDuelMatch`
+  (2026-09-27, via its own direct registry field on `WordDuelMatchManager` - proof that
+  adopting this doesn't require `MatchmakingKernel` migration at all, the same
+  stand-alone shape `MatchManager` always used). The same `disconnectedSlot`/
+  grace-period/timeout shape in every one, differing only in how each match names its
+  two player slots (`DotsAndBoxesMatch` uses a `List<ClientHandler>` and an index
+  rather than two named fields; `WordDuelMatch` uses a nullable `Boolean` for the same
+  reason `TicTacToeMatch` uses a char - two named fields, not a list). Chess is
+  deliberately not yet adopted - its resign/draw-offer state interacts with a
   mid-grace-period reconnect in ways not yet designed, tracked in `ROADMAP.md` rather
   than guessed at. `ClientHandler.handleLogin()` tries every reconnect-aware match
   type's own registry in turn (`tryReconnectAllGames()`) and, if one had a match
@@ -320,7 +324,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   (`reconnectGameId`/`reconnectTurnSymbol` plus the existing `matchId`/`symbol`/
   `opponentUsername`/`boardState` fields a match-found push already carries) - the
   client (`AuthWindow.resumeMatchIfPending`, via the small per-game
-  `reconnectMessageTypesFor()` lookup covering all 5 adopters' own message-type pairs)
+  `reconnectMessageTypesFor()` lookup covering all 6 adopters' own message-type pairs)
   reconstructs the equivalent of a fresh match-found + update locally from those fields
   and feeds them straight to a newly-built game window, deliberately not via a second
   server push to the reconnecting client's own socket (that race is explained in
@@ -329,6 +333,20 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   anyone extending this to another game: `ReconnectRegistry`'s own lock must only ever
   be acquired either alone, or immediately before calling into the match (never the
   reverse) - see the class's own javadoc for the full reasoning.
+  **A real limit found adding the 6th adopter (Word Duel, 2026-09-27):**
+  `resumeMatchIfPending()`'s generic reconstruction only ever sets `symbol`/
+  `boardState` on the synthetic push messages - correct for the first 5 adopters
+  purely because they're all flat-board grid games whose real protocol happens to fit
+  those exact two fields, not because the mechanism is actually generic. Word Duel's
+  real protocol uses `triviaQuestion`/`triviaScores` instead, so `WordDuelMatch.
+  onReconnect()` repurposes `ReconnectResult`'s `boardState` slot to carry the match's
+  letters and its `turnSymbol` slot to carry the reconnecting player's own
+  "mine:opponent" length tuple (see that method's javadoc), and
+  `resumeMatchIfPending()` gained one small `if ("word-duel".equals(gameId))` branch
+  to unpack them back into the fields `WordDuelWindow` actually reads. Battleship, RPS,
+  and Trivia Blitz will need the same kind of per-game unpacking branch when their turn
+  comes, not a bigger generalized rewrite of this mechanism (see `ROADMAP.md`'s "In
+  Progress" entry).
 - **`TournamentManager.java`** — 4-player single-elimination bracket for Battleship and
   Rock Paper Scissors only (both always produce a decisive winner). **`TeamTournament-
   Manager.java`** — team version for Fight Arena's 2v2/3v3, registered by whole

@@ -46,6 +46,48 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Word Duel joins the reconnect-aware games, plus a real pre-existing scoring
+  bug fixed along the way.** `WordDuelMatch` gained the same grace-period shape
+  as Connect Four/Checkers/Reversi/Dots and Boxes (its own direct
+  `ReconnectRegistry` field on `WordDuelMatchManager` - no `MatchmakingKernel`
+  migration needed, that's an independent axis, same as `MatchManager`'s
+  original stand-alone registry): a disconnected, logged-in player gets 45s to
+  reconnect before the remaining player wins by forfeit; a guest (no account)
+  still finalizes immediately, same as every other adopter. Found and fixed a
+  real, previously-shipped bug while touching `broadcastProgress()`'s
+  neighboring code: it sent the exact same shared `"lenA:lenB"` string to both
+  players, and `WordDuelWindow` always reads index 1 as "the opponent's" -
+  correct for player A, but for player B this silently mislabeled their OWN
+  progress as their opponent's the entire time this game has been live. Fixed
+  by sending each recipient their own correctly-ordered tuple instead of one
+  shared string. Also closes a real gap in the shared reconnect-resume
+  mechanism: `AuthWindow.resumeMatchIfPending()` only knew how to populate a
+  resuming player's synthetic push messages via `symbol`/`boardState` - true
+  for the first 5 adopters by coincidence (flat-board grid games), false for
+  Word Duel's real `triviaQuestion`/`triviaScores` protocol - fixed with one
+  small per-game branch rather than a bigger rewrite (see "In Progress" below
+  for what this means for Battleship/RPS/Trivia Blitz next). Verified with an
+  18-check test using a real `ClientHandler` subclass (same technique as this
+  project's other reconnect tests): the scoring-bug fix itself, the full
+  disconnect -> notice -> reconnect cycle (confirming the reconnecting
+  player's `ReconnectResult` carries the right letters and their own
+  "mine:opponent" tuple, and that the opponent gets a fresh progress push),
+  guest-disconnect still finalizing immediately with no grace period ever
+  registered, and a real timeout finalizing correctly via
+  `ReconnectRegistry`'s short-grace-window test seam - plus an Xvfb/Swing
+  screenshot confirming `WordDuelWindow`'s new "Opponent disconnected -
+  waiting to reconnect..." state renders correctly in place of the round
+  countdown. One honestly-flagged, narrow gap: the round's real 60s timer
+  keeps running unaffected by a grace period (matching how nothing here
+  pauses server-authoritative state for a disconnect), so a reconnecting
+  player's local countdown can briefly show more time than actually remains,
+  and in the rare case the round's timer fires *during* someone's 45s grace
+  window, that player won't be retroactively shown the result - not a
+  regression (every disconnect had that same limitation before reconnect
+  support existed at all), just narrowed from "always" to "only in that
+  timing window." Mirrored byte-identical across both trees where shared
+  (`WordDuelMatch`/`WordDuelMatchManager`/`ClientHandler`; `AuthWindow`/
+  `WordDuelWindow` are client-only); both compile clean.
 - **Vertex: Dominion, build order step 4 (first slice): the client's
   persistent nav tab.** `DominionPanel`, reached via a new `Pages.DOMINION`
   `Sidebar` entry alongside Friends/Chat/Shop/Settings - not the
@@ -1231,29 +1273,37 @@ recorded below as they're confirmed.
   some games, like a Gartic-Phone-style drawing game, needing chat *restricted* rather
   than open, since free chat would let players just say the answer out loud).
 
-- **Reconnection rollout continues: Chess, then the request/response-style games.**
-  Connect Four, Checkers, Reversi, and Dots and Boxes are now reconnect-aware (2026-09-26,
-  see "Done" below) - the same `disconnectedSlot`/grace-period/timeout shape
-  `TicTacToeMatch` proved, applied to all 4 of the other `ai/search`-backed turn-based
-  games in one pass since they're structurally identical (Reversi/Dots and Boxes also
-  got converted from their own hand-rolled matchmaking queues to `MatchmakingKernel` in
-  the same unit of work, since a kernel-backed manager gets a `ReconnectRegistry` for
-  free - see `MatchmakingKernel.getReconnectRegistry()`). Chess is deliberately NOT yet
+- **Reconnection rollout continues: Chess and the richer-protocol games are next.**
+  Connect Four, Checkers, Reversi, Dots and Boxes, and now Word Duel are reconnect-aware
+  (2026-09-26/27, see "Done" below) - the same `disconnectedSlot`/grace-period/timeout
+  shape `TicTacToeMatch` proved. Word Duel's addition surfaced a real, previously-
+  unexercised limit in the shared client-side resume mechanism worth flagging here for
+  whichever game is next: `AuthWindow.resumeMatchIfPending()`'s generic reconstruction
+  only ever populates a reconnecting player's synthetic MATCH_FOUND/UPDATE pushes with
+  `symbol`/`boardState` - fine for the first 5 adopters purely by coincidence (they're
+  all simple flat-board grid games whose real wire protocol happens to use exactly
+  those two fields), but Word Duel's real protocol uses `triviaQuestion`/`triviaScores`
+  instead, so it needed its own small `if ("word-duel".equals(gameId))` branch in that
+  method to unpack the repurposed `boardState`/`turnSymbol` slots back into the fields
+  its window actually reads (see `WordDuelMatch.onReconnect()`'s javadoc for the full
+  repurposing explanation). Battleship, RPS, and Trivia Blitz all have similarly rich,
+  non-flat-board protocols (hidden per-player fleets, round/question state) and will
+  need the same kind of per-game unpacking branch, not a bigger generalized abstraction
+  - proportionate to "2-3 more special cases," not a rewrite of a mechanism that's
+  correctly serving 5 existing games already. Chess is still deliberately NOT yet
   adopted - its resign/draw-offer state (`CHESS_DRAW_OFFERED` etc.) interacts with a
   mid-grace-period reconnect in ways not designed yet (can a disconnected player's
   pending draw offer survive a reconnect? should the timer pause?) - a real design
   question, not guessed at, tracked here rather than in `BLOCKED_QUESTIONS.md` since
   there's a reversible default (Chess keeps its current immediate-forfeit-on-disconnect
-  behavior until this is actually decided). After Chess, the remaining request/response-
-  style games (Battleship, RPS, Trivia Blitz, Word Duel, etc.) are next. The genuinely
-  continuous-simulation games (Racing, Space Battle, Air Hockey, Fight Arena, Zombie
-  Survival) will need more thought - "resume mid-tick" is a different problem than
-  "resume on your turn" - so those are lower priority for this pattern until a second
-  concrete game proves that shape out too. Client-side, every game window that adopts
-  this needs its own `OPPONENT_DISCONNECTED_NOTICE` handling branch (a few lines each,
-  following `TicTacToeWindow`'s as the template, now also done for all 4 of this
-  round's windows) since each game's `onPush` dispatch is still hand-written per
-  window, not a shared base class.
+  behavior until this is actually decided). The genuinely continuous-simulation games
+  (Racing, Space Battle, Air Hockey, Fight Arena, Zombie Survival) will need more
+  thought - "resume mid-tick" is a different problem than "resume on your turn" - so
+  those are lower priority for this pattern until a second concrete game proves that
+  shape out too. Client-side, every game window that adopts this needs its own
+  `OPPONENT_DISCONNECTED_NOTICE` handling branch (a few lines each, following
+  `TicTacToeWindow`'s as the template, now also done for Word Duel) since each game's
+  `onPush` dispatch is still hand-written per window, not a shared base class.
 
 ## 📋 Planned — infrastructure & shared packages
 

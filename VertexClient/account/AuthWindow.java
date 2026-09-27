@@ -123,7 +123,7 @@ public class AuthWindow extends JFrame
     /**
      * Reconnection: if this login's response carried a pending match (see
      * ReconnectRegistry server-side, now backing TicTacToe/Connect Four/
-     * Checkers/Reversi/Dots and Boxes), jumps straight into that game's window
+     * Checkers/Reversi/Dots and Boxes/Word Duel), jumps straight into that game's window
      * instead of leaving the player on MainMenu with no idea their match
      * survived a disconnect. Deliberately does NOT wait for a separate server
      * push for this - the server already re-associated the match with this
@@ -172,6 +172,16 @@ public class AuthWindow extends JFrame
         found.setSymbol(loginResponse.getSymbol());
         found.setOpponentUsername(loginResponse.getOpponentUsername());
         found.setBoardState(loginResponse.getBoardState());
+        if ("word-duel".equals(gameId))
+        {
+            // Word Duel's real MATCH_FOUND doesn't use symbol/boardState at all - it
+            // carries its letters via triviaQuestion. WordDuelMatch.onReconnect()
+            // packs them into ReconnectResult.boardState anyway (the only free
+            // string slot that shape has), so unpack it back out into the field
+            // WordDuelWindow actually reads. Harmless no-op for every other game,
+            // which never reads triviaQuestion off a MATCH_FOUND push.
+            found.setTriviaQuestion(loginResponse.getBoardState());
+        }
         listener.onPush(found);
 
         // Corrects whose-turn state the match-found push alone can't express (it
@@ -183,6 +193,14 @@ public class AuthWindow extends JFrame
         update.setMatchId(loginResponse.getMatchId());
         update.setSymbol(loginResponse.getReconnectTurnSymbol());
         update.setBoardState(loginResponse.getBoardState());
+        if ("word-duel".equals(gameId))
+        {
+            // Same idea as above: Word Duel's real UPDATE carries progress via
+            // triviaScores (a "mine:opponent" length tuple), not symbol/boardState.
+            // See WordDuelMatch.onReconnect()'s javadoc for the full explanation of
+            // why turnSymbol is repurposed to carry it.
+            update.setTriviaScores(java.util.Arrays.asList(loginResponse.getReconnectTurnSymbol()));
+        }
         listener.onPush(update);
     }
 
@@ -208,6 +226,10 @@ public class AuthWindow extends JFrame
         if ("dots-and-boxes".equals(gameId))
         {
             return new MessageType[] { MessageType.DOTS_MATCH_FOUND, MessageType.DOTS_UPDATE };
+        }
+        if ("word-duel".equals(gameId))
+        {
+            return new MessageType[] { MessageType.WORDDUEL_MATCH_FOUND, MessageType.WORDDUEL_UPDATE };
         }
         return null;
     }

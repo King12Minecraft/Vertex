@@ -79,6 +79,9 @@ public class WordDuelWindow extends JPanel implements NetworkManager.PushListene
     private long roundStartedAt;
     private Timer countdownTimer;
 
+    /** True while the server has told us the opponent disconnected and might reconnect within its grace window (see ReconnectRegistry server-side) - blocks submitWord() the same way gameOver does, without actually ending the match. Cleared the moment a real WORDDUEL_UPDATE arrives, same as every other reconnect-aware game's canPlay flag (see TicTacToeWindow's OPPONENT_DISCONNECTED_NOTICE handling for why no separate "resumed" message is needed). */
+    private boolean awaitingReconnect;
+
     public WordDuelWindow()
     {
         setLayout(new BorderLayout());
@@ -297,7 +300,7 @@ public class WordDuelWindow extends JPanel implements NetworkManager.PushListene
 
     private void submitWord()
     {
-        if (gameOver) return;
+        if (gameOver || awaitingReconnect) return;
         String word = wordField.getValue().trim();
         if (word.isEmpty()) return;
 
@@ -401,7 +404,7 @@ public class WordDuelWindow extends JPanel implements NetworkManager.PushListene
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.WORDDUEL_MATCH_FOUND || type == MessageType.WORDDUEL_UPDATE
-            || type == MessageType.WORDDUEL_RESULT;
+            || type == MessageType.WORDDUEL_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -435,6 +438,8 @@ public class WordDuelWindow extends JPanel implements NetworkManager.PushListene
         }
         else if (type == MessageType.WORDDUEL_UPDATE)
         {
+            awaitingReconnect = false;
+            timeLabel.setText(remainingSecondsText());
             java.util.List<String> scores = message.getTriviaScores();
             if (scores != null && !scores.isEmpty())
             {
@@ -444,6 +449,18 @@ public class WordDuelWindow extends JPanel implements NetworkManager.PushListene
                     opponentBestLabel.setText("Opponent's best: " + parts[1] + " letters");
                 }
             }
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - the server gives the opponent a grace
+            // window to reconnect (see ReconnectRegistry) rather than declaring an
+            // immediate win/loss over what might just be a wifi hiccup. The
+            // follow-up is an ordinary WORDDUEL_UPDATE, sent either when the
+            // opponent reconnects (resuming play, clearing awaitingReconnect above)
+            // or replaced by a real WORDDUEL_RESULT if the grace window expires
+            // first - no separate "resumed" message type needed.
+            awaitingReconnect = true;
+            timeLabel.setText("Opponent disconnected - waiting to reconnect...");
         }
         else if (type == MessageType.WORDDUEL_RESULT)
         {
@@ -499,13 +516,24 @@ public class WordDuelWindow extends JPanel implements NetworkManager.PushListene
 
     private void updateCountdown()
     {
-        long elapsed = System.currentTimeMillis() - roundStartedAt;
-        long remainingSec = Math.max(0, (ROUND_DURATION_MS - elapsed) / 1000);
+        long remainingSec = remainingSeconds();
         timeLabel.setText(remainingSec + "s left");
         if (remainingSec <= 0)
         {
             if (countdownTimer != null) countdownTimer.stop();
             if (isPracticeMode) finishPracticeRound();
         }
+    }
+
+    private long remainingSeconds()
+    {
+        long elapsed = System.currentTimeMillis() - roundStartedAt;
+        return Math.max(0, (ROUND_DURATION_MS - elapsed) / 1000);
+    }
+
+    /** Restores the normal "Ns left" text after an OPPONENT_DISCONNECTED_NOTICE's "waiting to reconnect" message has been showing in timeLabel's place. */
+    private String remainingSecondsText()
+    {
+        return remainingSeconds() + "s left";
     }
 }

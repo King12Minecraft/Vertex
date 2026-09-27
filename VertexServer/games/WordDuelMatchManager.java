@@ -16,7 +16,10 @@ import java.util.Map;
 /**
  * WordDuelMatchManager
  * ---------------------
- * Matchmaking for Word Duel - same shape as CheckersMatchManager.
+ * Matchmaking for Word Duel - same shape as CheckersMatchManager, plus its own
+ * direct ReconnectRegistry field (the same "give a match type its own registry"
+ * shape TicTacToeMatch's MatchManager uses - no MatchmakingKernel dependency
+ * needed for reconnect support, that's a separate, independent axis).
  */
 public class WordDuelMatchManager
 {
@@ -29,6 +32,7 @@ public class WordDuelMatchManager
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
+    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
 
     public WordDuelMatchManager(EconomyManager economyManager, GameHistoryManager gameHistoryManager,
                                  ChatManager chatManager, LeaderboardManager leaderboardManager)
@@ -38,6 +42,8 @@ public class WordDuelMatchManager
         this.chatManager = chatManager;
         this.leaderboardManager = leaderboardManager;
     }
+
+    public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
 
     public synchronized void findMatch(ClientHandler player)
     {
@@ -50,7 +56,7 @@ public class WordDuelMatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "wordduel-" + (nextMatchId++);
-            WordDuelMatch match = new WordDuelMatch(matchId, opponent, player, this, economyManager, leaderboardManager);
+            WordDuelMatch match = new WordDuelMatch(matchId, opponent, player, this, economyManager, leaderboardManager, reconnectRegistry);
             activeMatches.put(matchId, match);
             opponent.setCurrentWordDuelMatch(match);
             player.setCurrentWordDuelMatch(match);
