@@ -1383,6 +1383,52 @@ recorded below as they're confirmed.
   specific triggers fire (a rival general emerges after you conquer 3 provinces, a
   rebel leader after a revolt, etc.) — free, rule-based, no LLM. Fits Dominion's
   leader/succession system especially well, but meant to be usable by other games too.
+- **Testing infrastructure: formalize the harness (audited 2026-09-28, not built -
+  a real architecture decision, not guessed at).** Every verification this project has
+  ever done - roughly 30 of them across this session alone, from the `VertexSerialization
+  Filter` round-trip tests to tonight's injection-fix and reconnection tests - follows
+  the exact same shape without ever being told to: a throwaway `.java` file in the
+  scratchpad, a hand-rolled `checks`/`failures` counter and a `check(label, condition)`
+  helper, compiled against a fresh `javac` output directory, run once, then deleted.
+  It works, and it's genuinely caught real bugs (tonight's `GameSuggestionStore`
+  forgery bug among them) - but nothing survives to catch a *regression* the next time
+  someone touches that code, and every test's `check()` boilerplate gets reinvented
+  from scratch. "Formalizing" this for real means deciding, not assuming:
+  - **No external test framework (JUnit, etc.).** This project has zero external
+    dependencies by design - `build.sh` is plain `javac` + `jar`, no Maven/Gradle, and
+    both trees still open and run directly in BlueJ (`package.bluej` files in each
+    folder). Adding JUnit would mean either a build-tool BlueJ can't see, or manually
+    vendoring a `.jar` - a real philosophy break, not a small addition. The existing
+    hand-rolled `check()` pattern already does everything these tests actually need
+    (a label, a boolean, a running count) and costs nothing to keep using - the honest
+    move is to formalize *that* pattern, not replace it.
+  - **Where committed tests would live.** Not inside `VertexServer`/`VertexClient`
+    themselves - `build.sh` compiles every `.java` file under those trees straight into
+    the shipped jar, so a test class sitting there would ship to every user's install.
+    A sibling `VertexServerTests/` (compiled against `VertexServer`'s classes on the
+    classpath, the same way tonight's scratch tests already do with `-cp`) keeps tests
+    out of the product entirely, mirroring how `VertexClient`/`VertexServer` are
+    already siblings rather than nested.
+  - **A tiny shared harness class**, e.g. `VertexServerTests/support/Check.java`, just
+    formalizing the `check(label, condition)` + running-total pattern every scratch
+    test already reinvents by hand - a few lines, not a framework.
+  - **`test.sh`**, a sibling to `build.sh`: compile every test class against the
+    relevant tree's freshly-built classes, run each `main()`, fail the script (nonzero
+    exit) if any test reports a failure - so this becomes a real, repeatable
+    "did I break anything" step, not something only ever run ad hoc mid-session.
+  - **What's genuinely undecided, worth Bipin's steer rather than a guess**: whether
+    *every* future scratch test should graduate into a permanently-committed
+    regression test (maximum safety, real ongoing maintenance burden as the game
+    catalog keeps growing - close to 50 games and counting), or only the
+    security/correctness-critical ones (the serialization filter, save-format
+    round trips, economy/reward math, anything touching real money-equivalent
+    state) while quick one-off UI/visual checks stay scratch-and-discard as they are
+    today. Recorded here rather than guessed at; a reasonable reversible default
+    if this needs to move before that's answered: commit the shape (`VertexServerTests/`,
+    `Check.java`, `test.sh`) and start by graduating only this session's
+    security-relevant tests (the injection fixes, the serialization filter, Dominion's
+    save-format round trips) as the first, deliberately small batch - not a mandate to
+    commit all ~30 of tonight's tests at once.
 
 ## 📋 Planned — social & community
 

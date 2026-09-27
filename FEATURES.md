@@ -7,7 +7,7 @@ lot of what's below and shouldn't be treated as current. This file is.
 
 ---
 
-## Games (51 playable)
+## Games (52 playable)
 
 ### Online multiplayer, ELO-rated
 - **Chess** — full rules including castling, en passant, checkmate/stalemate. Resign or offer a draw mid-game. Spectate live matches, replay finished ones move-by-move.
@@ -37,7 +37,29 @@ After any Chess, Battleship, or RPS match, challenge the same opponent again wit
 - **Telephone** — 4–8 players, a Gartic-Phone-style draw/guess chain. Everyone writes a starting phrase, then the phrase gets passed player to player, alternating "draw what you were just handed" and "guess what this drawing shows" each round, until every chain has gone all the way around the table. Ends with a reveal - step through every chain from its original phrase to its final, usually-mangled result. Purely social - everyone gets a flat coin reward just for playing, no ranking involved.
 
 ### Single-player (no server required; wins/scores still tracked if logged in)
-Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Gem Match, Maze Chase, Brick Breaker, Flappy Bird, Galaxy Defender, Word Guess, Bubble Shooter, Lights Out, Peg Solitaire, Klondike Solitaire, Yahtzee, Mancala (vs. a built-in AI), and Rock Paper Scissors against a simple AI. Snake, Tetris, and Dino Dash support pausing (**P**). Every game — online or solo — now renders with a fixed color palette that ignores your app theme choice (see Customization below); only the previous 4 games (mostly the newest ones) had this problem before it was fixed platform-wide.
+Snake, Tetris, 2048, Number Nest, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Gem Match, Maze Chase, Brick Breaker, Flappy Bird, Galaxy Defender, Word Guess, Bubble Shooter, Lights Out, Peg Solitaire, Klondike Solitaire, Yahtzee, Mancala (vs. a built-in AI), and Rock Paper Scissors against a simple AI. Number Nest is an original number-merge puzzle distinct from 2048 - place one piece at a time into a 5x5 grid instead of sliding the whole board. Snake, Tetris, and Dino Dash support pausing (**P**). Every game — online or solo — now renders with a fixed color palette that ignores your app theme choice (see Customization below); only the previous 4 games (mostly the newest ones) had this problem before it was fixed platform-wide.
+
+---
+
+## Vertex: Dominion (early, V1 in progress)
+
+A persistent, whole-server nation-building strategy game - not a match you queue
+for and leave, a standing thing reached from its own permanent nav entry
+(alongside Friends/Chat/Shop) that you check in on repeatedly. Time advances on
+a daily tick (every 20 real minutes); orders queued during the day all resolve
+together when it ticks. Full design and current build status:
+[`DOMINION_DESIGN.md`](DOMINION_DESIGN.md).
+
+What's actually usable today: found a nation on any unclaimed province (a small
+seeded map), see a dashboard (treasury, Honor, current day) and a color-coded
+map of every nation's territory, recruit armies, march them, declare war on
+another nation (not possible while its ruler is offline - a fixed grace period
+protects a nation whose player just isn't home right now), and propose or
+respond to Alliance/Non-Aggression pacts with other nations. No push-based live
+updates yet - a Refresh button re-fetches the current state instead. Everything
+past this V1 slice (population, jobs, a real economy, currency, trade, laws,
+diplomacy bodies, islands, navies, and a great deal more) is designed and
+written down, not built yet - see the design doc's "Future depth" sections.
 
 ---
 
@@ -120,6 +142,7 @@ Snake, Tetris, 2048, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, 
 - **Global search** — a search box in the top bar; matches game names (launches directly) and friend usernames (navigates to Messages) as you type.
 - **Escape closes every dialog** — all ~19 custom popups in the app, not just their own Close/Cancel button.
 - **Auto-reconnect** — a dropped server connection is retried automatically.
+- **Match reconnection grace period** — Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes, and Word Duel give a disconnected (logged-in) opponent 45 seconds to log back in and resume before the match forfeits - a wifi hiccup doesn't have to cost you the match you were winning. Guests don't get this (no stable identity to hold a slot open for); every other online game still forfeits immediately on disconnect, same as before this existed.
 - **Confirm-before-close** on any active match, so an accidental click doesn't silently hand your opponent a win.
 - **Low-end hardware support** — `-LowEnd` launcher scripts (smaller heap, serial GC) plus Performance Mode above.
 - **Auto-detecting launchers** — the `.bat` files find Java themselves (checking common install locations, BlueJ's own bundled JDK included) instead of requiring it on PATH.
