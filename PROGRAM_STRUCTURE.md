@@ -351,9 +351,21 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   letters and its `turnSymbol` slot to carry the reconnecting player's own
   "mine:opponent" length tuple (see that method's javadoc), and
   `resumeMatchIfPending()` gained one small `if ("word-duel".equals(gameId))` branch
-  to unpack them back into the fields `WordDuelWindow` actually reads. Battleship, RPS,
-  and Trivia Blitz will need the same kind of per-game unpacking branch when their turn
-  comes, not a bigger generalized rewrite of this mechanism (see `ROADMAP.md`'s "In
+  to unpack them back into the fields `WordDuelWindow` actually reads. **Battleship now
+  joins the reconnect-aware games too** (`BattleshipMatch`/`BattleshipMatchManager` gained
+  the same `ReconnectRegistry`/grace-period shape; `fire()` now also rejects a shot
+  attempt server-side while the opponent is mid-grace-period, matching `TicTacToeMatch`'s
+  freeze check) - its real MATCH_FOUND already uses plain symbol/boardState, so
+  `resumeMatchIfPending()` only needed a "skip the generic second UPDATE message"
+  branch rather than a repurposing one (Battleship has no generic `*_UPDATE` type, only
+  the richly-shaped `BATTLESHIP_FIRE_RESULT`); the still-connected opponent's "waiting to
+  reconnect" UI is cleared via that same message type sent with a `cellIndex` of -1 as a
+  sentinel (`BattleshipWindow` recognizes it as a resync, not a real shot). Honestly-
+  flagged gap: `ReconnectRegistry.ReconnectResult` has no slot for "every past shot," so
+  the *reconnecting* player's own two grids repaint from a fresh fleet-layout MATCH_FOUND
+  rather than replaying their hit-marker history - cosmetic only, server-side state
+  (whose turn, which cells are already fired) is never wrong. RPS and Trivia Blitz still
+  need their own per-game unpacking branch when their turn comes (see `ROADMAP.md`'s "In
   Progress" entry).
 - **`TournamentManager.java`** — 4-player single-elimination bracket for Battleship and
   Rock Paper Scissors only (both always produce a decisive winner). **`TeamTournament-

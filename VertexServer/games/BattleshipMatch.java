@@ -27,10 +27,11 @@ public class BattleshipMatch
     private static final int SIZE = 10;
     private static final int[] SHIP_LENGTHS = { 5, 4, 3, 3, 2 };
     private static final String[] SHIP_NAMES = { "Carrier", "Battleship", "Cruiser", "Submarine", "Destroyer" };
+    private static final String GAME_ID = "battleship";
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final BattleshipMatchManager matchManager;
     private final LeaderboardManager leaderboardManager;
     private final Random random = new Random();
@@ -38,6 +39,10 @@ public class BattleshipMatch
     private final List<String> shotLog = new ArrayList<String>();
     private final ReplayManager replayManager;
     private final EconomyManager economyManager;
+    private final ReconnectRegistry reconnectRegistry;
+
+    /** null when nobody is in a reconnect grace period; true/false for whichever of playerA/playerB just dropped - same Boolean-slot shape WordDuelMatch uses. Shot history (fleetA/fleetB/firedByA/firedByB/shipHitsA/shipHitsB) stays server-authoritative and untouched by a disconnect, so a reconnecting player's turn and fleet layout resume exactly right; the one honestly-flagged gap is that ReconnectRegistry.ReconnectResult has no slot for "every past shot," so the reconnecting player's own two grids repaint from a fresh MATCH_FOUND (fleet layout only) rather than replaying their hit-marker history - cosmetic only, the server's own state (whose turn, which cells are already fired) is never wrong. */
+    private Boolean disconnectedIsA = null;
 
     /** fleet[cell] = ship index (0-4) if occupied, -1 if water. */
     private final int[] fleetA = new int[SIZE * SIZE];
@@ -51,7 +56,7 @@ public class BattleshipMatch
     private boolean over = false;
     private TournamentMatchListener tournamentListener;
 
-    public BattleshipMatch(String matchId, ClientHandler playerA, ClientHandler playerB, BattleshipMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
+    public BattleshipMatch(String matchId, ClientHandler playerA, ClientHandler playerB, BattleshipMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager, ReconnectRegistry reconnectRegistry)
     {
         this.matchId = matchId;
         this.playerA = playerA;
@@ -60,6 +65,7 @@ public class BattleshipMatch
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
         this.economyManager = economyManager;
+        this.reconnectRegistry = reconnectRegistry;
         placeFleet(fleetA);
         placeFleet(fleetB);
     }
@@ -169,8 +175,11 @@ public class BattleshipMatch
 
     public synchronized void fire(ClientHandler requester, int cellIndex)
     {
-        if (over || cellIndex < 0 || cellIndex >= SIZE * SIZE)
+        if (over || disconnectedIsA != null || cellIndex < 0 || cellIndex >= SIZE * SIZE)
         {
+            // Never trusts the client's own input-blocking, same as TicTacToeMatch's
+            // freeze check - a fire attempt while the opponent is mid-grace-period is
+            // rejected server-side, not just discouraged client-side.
             return;
         }
 
@@ -335,21 +344,138 @@ public class BattleshipMatch
         replayManager.save("battleship", playerA.getLoggedInUsername(), playerB.getLoggedInUsername(), result, data);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over)
+        Integer accountIdToRegister = null;
+        ClientHandler remainingForNotice = null;
+        boolean bothNowGone = false;
+
+        synchronized (this)
         {
+            if (over) return;
+            boolean isA = who == playerA;
+            boolean isB = who == playerB;
+            if (!isA && !isB) return;
+
+            if (disconnectedIsA != null)
+            {
+                // The other player was already in a grace period and has now ALSO
+                // disconnected - nobody left to wait for or to notify.
+                over = true;
+                bothNowGone = true;
+            }
+            else if (who.getAccountId() == null)
+            {
+                // Guests never get a grace period - no stable identity to reconnect
+                // against, so a guest disconnect finalizes immediately exactly as
+                // every disconnect here did before reconnect support existed.
+                finalizeAbandoned(isA);
+                return;
+            }
+            else
+            {
+                disconnectedIsA = isA;
+                remainingForNotice = isA ? playerB : playerA;
+                accountIdToRegister = who.getAccountId();
+
+                Message notice = new Message();
+                notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+                notice.setMatchId(matchId);
+                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                remainingForNotice.sendMessage(notice);
+            }
+        }
+
+        if (bothNowGone)
+        {
+            matchManager.endMatch(matchId);
             return;
         }
+
+        // See ReconnectRegistry's class-level threading note - never call this while
+        // holding this match's own lock.
+        reconnectRegistry.beginGracePeriod(accountIdToRegister, new ReconnectRegistry.ReconnectableMatch()
+        {
+            public void onReconnectTimeout()
+            {
+                BattleshipMatch.this.onReconnectTimeout();
+            }
+
+            public ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+            {
+                return BattleshipMatch.this.onReconnect(newHandler);
+            }
+
+            public void attachToHandler(ClientHandler handler)
+            {
+                handler.setCurrentBattleshipMatch(BattleshipMatch.this);
+            }
+        });
+    }
+
+    /** Must be called only while holding this match's own lock (see handleDisconnect/onReconnectTimeout). Finalizes exactly as every disconnect did before reconnect support existed - the remaining player wins by default. */
+    private void finalizeAbandoned(boolean disconnectedWasA)
+    {
         over = true;
         matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
+        ClientHandler remaining = disconnectedWasA ? playerB : playerA;
         Message msg = new Message();
         msg.setType(MessageType.BATTLESHIP_MATCH_OVER);
         msg.setMatchId(matchId);
         msg.setMatchResult("OPPONENT_LEFT");
         remaining.sendMessage(msg);
         notifySpectatorsEnded();
+    }
+
+    private synchronized void onReconnectTimeout()
+    {
+        if (over) return;
+        boolean disconnectedWasA = disconnectedIsA;
+        disconnectedIsA = null;
+        finalizeAbandoned(disconnectedWasA);
+    }
+
+    /**
+     * Called by ReconnectRegistry.tryReconnect() while it holds the registry's own
+     * lock - must never call back into the registry from here. All server-side
+     * state (fleets, shot history, whose turn it is) was never touched by the
+     * disconnect, so the resumed match is fully correct; the one honestly-flagged
+     * gap is that ReconnectRegistry.ReconnectResult has no field for "every past
+     * shot," so the reconnecting player's own two grids repaint from a fresh
+     * fleet-layout MATCH_FOUND rather than replaying their hit-marker history -
+     * cosmetic only, their next shot (or the opponent's) repaints correctly again.
+     */
+    private synchronized ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+    {
+        if (over || disconnectedIsA == null)
+        {
+            return null;
+        }
+
+        boolean reconnectedIsA = disconnectedIsA;
+        if (reconnectedIsA) { playerA = newHandler; } else { playerB = newHandler; }
+        disconnectedIsA = null;
+
+        ClientHandler opponent = reconnectedIsA ? playerB : playerA;
+        int[] myFleet = reconnectedIsA ? fleetA : fleetB;
+        boolean myTurnNow = (reconnectedIsA == aTurn);
+
+        // Nudges the still-connected opponent's UI out of its "waiting to reconnect"
+        // state without disturbing their two grids' shot history - no dedicated
+        // "resumed" message type exists, so this reuses BATTLESHIP_FIRE_RESULT with
+        // a cellIndex of -1 as a sentinel BattleshipWindow recognizes as "just a
+        // resync, not a real shot" (that message's `symbol` field is otherwise
+        // unread client-side today, so repurposing it to carry the recipient-
+        // relative "MINE"/"THEIRS" turn state, same vocabulary MATCH_FOUND already
+        // uses, is a safe, local change - see BattleshipWindow.handleBattleshipMessage).
+        Message resumeNotice = new Message();
+        resumeNotice.setType(MessageType.BATTLESHIP_FIRE_RESULT);
+        resumeNotice.setMatchId(matchId);
+        resumeNotice.setCellIndex(-1);
+        resumeNotice.setSymbol((reconnectedIsA != aTurn) ? "MINE" : "THEIRS");
+        opponent.sendMessage(resumeNotice);
+
+        String mySymbol = myTurnNow ? "MINE" : "THEIRS";
+        return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, mySymbol, opponent.getLoggedInUsername(), fleetToString(myFleet), "");
     }
 }

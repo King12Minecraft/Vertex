@@ -31,6 +31,7 @@ public class BattleshipMatchManager
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
     private final EconomyManager economyManager;
+    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
 
     public BattleshipMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
@@ -40,6 +41,8 @@ public class BattleshipMatchManager
         this.replayManager = replayManager;
         this.economyManager = economyManager;
     }
+
+    public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
 
     public synchronized void findMatch(ClientHandler player)
     {
@@ -52,7 +55,7 @@ public class BattleshipMatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "battleship-" + (nextMatchId++);
-            BattleshipMatch match = new BattleshipMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager);
+            BattleshipMatch match = new BattleshipMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager, reconnectRegistry);
             activeMatches.put(matchId, match);
             opponent.setCurrentBattleshipMatch(match);
             player.setCurrentBattleshipMatch(match);
@@ -95,7 +98,7 @@ public class BattleshipMatchManager
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
     {
         String matchId = "battleship-" + (nextMatchId++);
-        BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager);
+        BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager, reconnectRegistry);
         activeMatches.put(matchId, match);
         playerA.setCurrentBattleshipMatch(match);
         playerB.setCurrentBattleshipMatch(match);

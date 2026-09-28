@@ -123,7 +123,7 @@ public class AuthWindow extends JFrame
     /**
      * Reconnection: if this login's response carried a pending match (see
      * ReconnectRegistry server-side, now backing TicTacToe/Connect Four/
-     * Checkers/Reversi/Dots and Boxes/Word Duel), jumps straight into that game's window
+     * Checkers/Reversi/Dots and Boxes/Word Duel/Battleship), jumps straight into that game's window
      * instead of leaving the player on MainMenu with no idea their match
      * survived a disconnect. Deliberately does NOT wait for a separate server
      * push for this - the server already re-associated the match with this
@@ -184,6 +184,20 @@ public class AuthWindow extends JFrame
         }
         listener.onPush(found);
 
+        if ("battleship".equals(gameId))
+        {
+            // Battleship's real MATCH_FOUND already uses exactly symbol ("MINE"/
+            // "THEIRS") and boardState (own fleet layout) - the same shape the first
+            // 5 adopters happen to use - so BattleshipMatch.onReconnect() packs
+            // "whose turn is it now" straight into ReconnectResult.mySymbol and the
+            // replay above already sets myTurn correctly. No second message: unlike
+            // the other adopters, Battleship has no generic *_UPDATE type (only the
+            // richly-shaped BATTLESHIP_FIRE_RESULT), and sending that with default/
+            // null shot fields would misdraw a phantom hit on cell 0 rather than
+            // just do nothing - so this game deliberately skips it instead.
+            return;
+        }
+
         // Corrects whose-turn state the match-found push alone can't express (it
         // always assumes a brand new match where the first symbol goes first) -
         // reuses the same *_UPDATE shape and handling every online game already
@@ -230,6 +244,13 @@ public class AuthWindow extends JFrame
         if ("word-duel".equals(gameId))
         {
             return new MessageType[] { MessageType.WORDDUEL_MATCH_FOUND, MessageType.WORDDUEL_UPDATE };
+        }
+        if ("battleship".equals(gameId))
+        {
+            // types[1] is never actually sent for Battleship (see the "battleship"
+            // branch in resumeMatchIfPending above) - BATTLESHIP_FIRE_RESULT is only
+            // here so the array has a legal MessageType in both slots.
+            return new MessageType[] { MessageType.BATTLESHIP_MATCH_FOUND, MessageType.BATTLESHIP_FIRE_RESULT };
         }
         return null;
     }

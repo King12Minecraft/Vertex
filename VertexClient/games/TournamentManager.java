@@ -126,7 +126,7 @@ public class TournamentManager
         if ("battleship".equals(tournament.gameId))
         {
             String matchId = tournament.id + "-match-" + System.nanoTime();
-            BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, battleshipMatchManager, leaderboardManager, replayManager, null);
+            BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, battleshipMatchManager, leaderboardManager, replayManager, null, battleshipMatchManager.getReconnectRegistry());
             match.setTournamentListener(listener);
             playerA.setCurrentBattleshipMatch(match);
             playerB.setCurrentBattleshipMatch(match);

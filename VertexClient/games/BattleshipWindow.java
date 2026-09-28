@@ -73,6 +73,7 @@ public class BattleshipWindow extends JPanel implements NetworkManager.PushListe
     private String matchId;
     private String opponentUsername;
     private boolean myTurn;
+    private boolean awaitingReconnect;
     private boolean isSpectator;
     private String spectatorPlayerA;
     private String spectatorPlayerB;
@@ -447,7 +448,7 @@ public class BattleshipWindow extends JPanel implements NetworkManager.PushListe
 
     private void handleFireClick(int cellIndex)
     {
-        if (!myTurn)
+        if (!myTurn || awaitingReconnect)
         {
             return;
         }
@@ -610,7 +611,8 @@ public class BattleshipWindow extends JPanel implements NetworkManager.PushListe
     {
         MessageType type = message.getType();
         boolean isBattleshipType = type == MessageType.BATTLESHIP_MATCH_FOUND || type == MessageType.BATTLESHIP_FIRE_RESULT
-            || type == MessageType.BATTLESHIP_MATCH_OVER || type == MessageType.SPECTATE_ENDED;
+            || type == MessageType.BATTLESHIP_MATCH_OVER || type == MessageType.SPECTATE_ENDED
+            || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isBattleshipType)
         {
             return;
@@ -647,6 +649,7 @@ public class BattleshipWindow extends JPanel implements NetworkManager.PushListe
             matchId = message.getMatchId();
             opponentUsername = message.getOpponentUsername();
             myTurn = "MINE".equals(message.getSymbol());
+            awaitingReconnect = false;
 
             String fleetLayout = message.getBoardState();
             for (int i = 0; i < SIZE * SIZE; i++)
@@ -659,10 +662,39 @@ public class BattleshipWindow extends JPanel implements NetworkManager.PushListe
             statusLabel.setText(myTurn ? "Your turn - fire at Enemy Waters" : "Waiting for " + opponentUsername + "...");
             cardLayout.show(cards, BOARD);
         }
+        else if (message.getType() == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - the server gives the opponent a grace
+            // window to reconnect (see ReconnectRegistry) rather than declaring an
+            // immediate win/loss over what might just be a wifi hiccup. The server
+            // independently rejects a fire attempt during this window too;
+            // awaitingReconnect just blocks the client from trying. Cleared either
+            // by a real BATTLESHIP_FIRE_RESULT (the -1 sentinel resync below, or an
+            // ordinary shot once play resumes) or by BATTLESHIP_MATCH_OVER if the
+            // window expires first.
+            awaitingReconnect = true;
+            statusLabel.setText(message.getErrorText());
+        }
         else if (message.getType() == MessageType.BATTLESHIP_FIRE_RESULT)
         {
             int cellIndex = message.getCellIndex();
+
+            if (cellIndex == -1)
+            {
+                // Resume sentinel: BattleshipMatch.onReconnect() sends this (never a
+                // real shot - fire() never accepts a negative cellIndex) purely to
+                // nudge this client out of "waiting to reconnect" without touching
+                // either grid's shot history. `symbol` is repurposed here to carry
+                // this recipient's own current turn state ("MINE"/"THEIRS"), the same
+                // vocabulary MATCH_FOUND already uses - see onReconnect()'s javadoc.
+                awaitingReconnect = false;
+                myTurn = "MINE".equals(message.getSymbol());
+                statusLabel.setText(myTurn ? "Your turn - fire at Enemy Waters" : "Waiting for " + opponentUsername + "...");
+                return;
+            }
+
             String result = message.getBattleshipResult();
+            awaitingReconnect = false;
 
             if (isSpectator)
             {

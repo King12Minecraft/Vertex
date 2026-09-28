@@ -46,6 +46,49 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Battleship joins the reconnect-aware games** - the same `ReconnectRegistry`
+  grace-period shape (Connect Four/Checkers/Reversi/Dots and Boxes/Word Duel) rolled
+  out to a sixth game, and the first turn-based one since Word Duel to need its own
+  real accommodation in the shared client-side resume mechanism rather than fitting
+  the first-5-adopters' flat-board shape unchanged. `BattleshipMatch`/`Battleship-
+  MatchManager` gained `playerA`/`playerB` reassignment, a `disconnectedIsA` Boolean
+  slot, `onReconnectTimeout()`/`onReconnect()`, and `fire()` now rejects a shot
+  server-side while the opponent is mid-grace-period (never trusting the client's
+  own input-blocking, matching `TicTacToeMatch`'s freeze check - a real gap this game
+  didn't have before, caught while building this). `TournamentManager`'s Battleship
+  bracket matches were threaded onto the same registry rather than passed `null`, so
+  tournament matches get grace-period support for free too. Unlike the first 5
+  adopters (and unlike Word Duel, which needed to *repurpose* boardState/turnSymbol),
+  Battleship's real `BATTLESHIP_MATCH_FOUND` already uses plain symbol ("MINE"/
+  "THEIRS")/boardState (own fleet layout) - so `AuthWindow.resumeMatchIfPending()`
+  only needed a new "skip the generic second UPDATE message" branch for this game,
+  since Battleship has no generic `*_UPDATE` type at all, only the richly-shaped
+  `BATTLESHIP_FIRE_RESULT` (sending that with default/null shot fields would have
+  misdrawn a phantom hit on cell 0, not just done nothing). The still-connected
+  opponent's "waiting to reconnect" UI is cleared by reusing `BATTLESHIP_FIRE_RESULT`
+  with a `cellIndex` of -1 as a sentinel - `fire()` never produces a negative index,
+  so it's unambiguous - `BattleshipWindow` recognizes it as a pure resync and skips
+  `markCell()` entirely. Honestly-flagged gap, not silently skipped: `ReconnectRegistry
+  .ReconnectResult` has no field for "every past shot," so the *reconnecting* player's
+  own two grids repaint from a fresh fleet-layout MATCH_FOUND rather than replaying
+  their hit-marker history - cosmetic only, every piece of server-side state (whose
+  turn it is, which cells are already fired, both fleets) was never touched by the
+  disconnect and resumes exactly right. Verified with an 18-check test (`Battleship
+  ReconnectTest.java`, a real `ClientHandler` subclass capturing `sendMessage()`,
+  same technique as this project's other reconnect tests) covering: the full
+  disconnect → notice → reconnect cycle (matchId/gameId/opponentUsername/boardState
+  all correct, plus the opponent's -1-sentinel resume nudge), a real grace-window
+  timeout finalizing correctly via `ReconnectRegistry`'s short-grace-window test seam,
+  a late reconnect attempt after the window closed finding nothing pending, a guest
+  disconnect still finalizing immediately with no grace period ever registered, a
+  fire attempt rejected server-side while the opponent is mid-grace-period, and both
+  players disconnecting during the same grace period cleaning up without a stray
+  reconnect ever succeeding against the now-ended match. Mirrored byte-identical
+  across both trees where shared (`BattleshipMatch`/`BattleshipMatchManager`/
+  `ClientHandler`/`TournamentManager`; `AuthWindow`/`BattleshipWindow` are client-only
+  Window classes); both trees compile clean. RPS and Trivia Blitz are next for the
+  same rollout - see `PROGRAM_STRUCTURE.md`'s reconnection note for the up-to-date gap
+  list.
 - **Security pass: a real entry-forgery bug found and fixed across three admin
   stores.** `GameSuggestionStore` (public, reachable by any logged-in player)
   and `AdminLog` (admin/mod-only) both persist one entry per physical line, but
@@ -1324,24 +1367,31 @@ recorded below as they're confirmed.
   some games, like a Gartic-Phone-style drawing game, needing chat *restricted* rather
   than open, since free chat would let players just say the answer out loud).
 
-- **Reconnection rollout continues: Chess and the richer-protocol games are next.**
-  Connect Four, Checkers, Reversi, Dots and Boxes, and now Word Duel are reconnect-aware
-  (2026-09-26/27, see "Done" below) - the same `disconnectedSlot`/grace-period/timeout
-  shape `TicTacToeMatch` proved. Word Duel's addition surfaced a real, previously-
-  unexercised limit in the shared client-side resume mechanism worth flagging here for
-  whichever game is next: `AuthWindow.resumeMatchIfPending()`'s generic reconstruction
-  only ever populates a reconnecting player's synthetic MATCH_FOUND/UPDATE pushes with
-  `symbol`/`boardState` - fine for the first 5 adopters purely by coincidence (they're
-  all simple flat-board grid games whose real wire protocol happens to use exactly
-  those two fields), but Word Duel's real protocol uses `triviaQuestion`/`triviaScores`
-  instead, so it needed its own small `if ("word-duel".equals(gameId))` branch in that
-  method to unpack the repurposed `boardState`/`turnSymbol` slots back into the fields
-  its window actually reads (see `WordDuelMatch.onReconnect()`'s javadoc for the full
-  repurposing explanation). Battleship, RPS, and Trivia Blitz all have similarly rich,
-  non-flat-board protocols (hidden per-player fleets, round/question state) and will
-  need the same kind of per-game unpacking branch, not a bigger generalized abstraction
-  - proportionate to "2-3 more special cases," not a rewrite of a mechanism that's
-  correctly serving 5 existing games already. Chess is still deliberately NOT yet
+- **Reconnection rollout continues: Chess and the remaining richer-protocol games are
+  next.** Connect Four, Checkers, Reversi, Dots and Boxes, Word Duel, and now
+  Battleship are reconnect-aware (2026-09-26/27/28, see "Done" below) - the same
+  `disconnectedSlot`/grace-period/timeout shape `TicTacToeMatch` proved. Word Duel's
+  addition surfaced a real, previously-unexercised limit in the shared client-side
+  resume mechanism worth flagging here for whichever game is next:
+  `AuthWindow.resumeMatchIfPending()`'s generic reconstruction only ever populates a
+  reconnecting player's synthetic MATCH_FOUND/UPDATE pushes with `symbol`/`boardState`
+  - fine for the first 5 adopters purely by coincidence (they're all simple flat-board
+  grid games whose real wire protocol happens to use exactly those two fields), but
+  Word Duel's real protocol uses `triviaQuestion`/`triviaScores` instead, so it needed
+  its own small `if ("word-duel".equals(gameId))` branch in that method to unpack the
+  repurposed `boardState`/`turnSymbol` slots back into the fields its window actually
+  reads (see `WordDuelMatch.onReconnect()`'s javadoc for the full repurposing
+  explanation). Battleship turned out to need a *different* shape of per-game
+  accommodation, not the same repurposing one: its real MATCH_FOUND already fits
+  symbol/boardState unchanged, but it has no generic `*_UPDATE` type at all (only the
+  richly-shaped `BATTLESHIP_FIRE_RESULT`), so `resumeMatchIfPending()` gained an
+  `if ("battleship".equals(gameId)) return;` branch that skips sending the generic
+  second message entirely rather than repurposing its fields - see the "Done" entry
+  above and `PROGRAM_STRUCTURE.md`'s reconnection note for the full detail. RPS and
+  Trivia Blitz still remain, each will likely need its own small variant of one of
+  these two shapes (or a third) once picked up - proportionate to "1-2 more special
+  cases," not a rewrite of a mechanism that's correctly serving 6 games already. Chess
+  is still deliberately NOT yet
   adopted - its resign/draw-offer state (`CHESS_DRAW_OFFERED` etc.) interacts with a
   mid-grace-period reconnect in ways not designed yet (can a disconnected player's
   pending draw offer survive a reconnect? should the timer pause?) - a real design
@@ -1353,8 +1403,9 @@ recorded below as they're confirmed.
   those are lower priority for this pattern until a second concrete game proves that
   shape out too. Client-side, every game window that adopts this needs its own
   `OPPONENT_DISCONNECTED_NOTICE` handling branch (a few lines each, following
-  `TicTacToeWindow`'s as the template, now also done for Word Duel) since each game's
-  `onPush` dispatch is still hand-written per window, not a shared base class.
+  `TicTacToeWindow`'s as the template, now also done for Word Duel and Battleship)
+  since each game's `onPush` dispatch is still hand-written per window, not a shared
+  base class.
 
 ## 📋 Planned — infrastructure & shared packages
 
