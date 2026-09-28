@@ -105,12 +105,25 @@ every change; trust it over your own assumptions about project state.
 
 ## Standing schedule (if you're an autonomous/scheduled session)
 
-Bipin runs autonomous work sessions on Monday/Wednesday/Friday nights, roughly
-11 PM–5 AM IST (he's in India) - the standing recurring "Vertex Nightly Work"
-trigger, settled 2026-09-26 to control weekly usage (briefly tried nightly
-that same day when a usage-limit reset removed the immediate pressure, but
-Mon/Wed/Fri is the actual standing schedule - don't unilaterally add nights
-back to the recurring trigger without him asking). Separately, one-off
+**Paused as of 2026-09-28 - do not assume this is running.** The recurring
+"Vertex Nightly Work" trigger (`trig_01FQWPLmt1YM986J2GLGtUFA`) is currently
+*disabled* (not deleted - `list_triggers` will still show it, with
+`enabled: false`). Bipin asked to stop it after the Mon/Wed/Fri cutback below
+still wasn't enough to control usage. Do not re-enable it unilaterally - that's
+his call. If you're a fresh session and see this trigger disabled, that's
+expected, not a bug to fix.
+
+The rest of this section describes how it worked while it *was* active, kept
+for whenever Bipin decides to turn it back on (a schedule change, not a design
+change - the actual autonomous-session conventions below still apply to any
+one-off session he asks for in the meantime):
+
+Bipin ran autonomous work sessions on Monday/Wednesday/Friday nights, roughly
+11 PM–5 AM IST (he's in India) - settled 2026-09-26 to control weekly usage
+(briefly tried nightly that same day when a usage-limit reset removed the
+immediate pressure, but Mon/Wed/Fri was the actual standing schedule before
+the 2026-09-28 pause above - don't unilaterally turn it back on or add nights
+back without him asking). Separately, one-off
 sessions outside that pattern (e.g. a weekend night he specifically wants
 worked) run as their own one-shot triggers bound to this same session rather
 than by changing the recurring one - if you're a fresh session picking this
