@@ -15,6 +15,7 @@ import ui.ThemedButton;
 import ui.ThemedLabel;
 import economy.ShopItemInfo;
 import ui.RoundedPanel;
+import ui.PlaceholderPanel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -158,24 +159,14 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                         else if (itemsResponse == null)
                         {
                             String connectionIssue = NetworkManager.describeIfNotReady();
-                            itemsGrid.removeAll();
-                            itemsGrid.add(mutedLabel(connectionIssue != null ? connectionIssue
-                                : "Couldn't load the shop - try again."));
-                            itemsGrid.revalidate();
-                            itemsGrid.repaint();
+                            PlaceholderPanel.show(itemsGrid, connectionIssue != null ? connectionIssue
+                                : "Couldn't load the shop - try again.");
                         }
                     }
                 });
             }
         });
         worker.start();
-    }
-
-    private JLabel mutedLabel(String text)
-    {
-        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_MUTED);
-        label.setFont(UITheme.FONT_SMALL);
-        return label;
     }
 
     private void renderShopItems(List<ShopItemInfo> items)

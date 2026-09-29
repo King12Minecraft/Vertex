@@ -16,6 +16,7 @@ import net.Message;
 import ui.ThemedTextField;
 import ui.ThemedLabel;
 import ui.RoundedPanel;
+import ui.PlaceholderPanel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -242,11 +243,8 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
                         else if (response == null)
                         {
                             String connectionIssue = NetworkManager.describeIfNotReady();
-                            requestsList.removeAll();
-                            requestsList.add(mutedLabel(connectionIssue != null ? connectionIssue
-                                : "Couldn't load friends - try again."));
-                            requestsList.revalidate();
-                            requestsList.repaint();
+                            PlaceholderPanel.show(requestsList, connectionIssue != null ? connectionIssue
+                                : "Couldn't load friends - try again.");
                             friendsList.removeAll();
                             friendsList.revalidate();
                             friendsList.repaint();
@@ -266,7 +264,7 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         requestsList.removeAll();
         if (pending == null || pending.isEmpty())
         {
-            requestsList.add(mutedLabel("No pending requests."));
+            requestsList.add(PlaceholderPanel.mutedLabel("No pending requests."));
         }
         else
         {
@@ -360,11 +358,11 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         friendsList.removeAll();
         if (friends == null || friends.isEmpty())
         {
-            friendsList.add(mutedLabel("No friends yet - add one above."));
+            friendsList.add(PlaceholderPanel.mutedLabel("No friends yet - add one above."));
         }
         else if (visible.isEmpty())
         {
-            friendsList.add(mutedLabel("No friends match \"" + friendSearchField.getValue() + "\"."));
+            friendsList.add(PlaceholderPanel.mutedLabel("No friends match \"" + friendSearchField.getValue() + "\"."));
         }
         else
         {
@@ -452,13 +450,6 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         row.add(rightWrap, BorderLayout.EAST);
 
         return row;
-    }
-
-    private JLabel mutedLabel(String text)
-    {
-        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_MUTED);
-        label.setFont(UITheme.FONT_SMALL);
-        return label;
     }
 
     @Override

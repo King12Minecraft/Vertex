@@ -969,6 +969,12 @@ Supporting: `GlobalSearchField`, `NotificationBell`/`NotificationCenter`,
 `RoundedPanel`, `ThemedButton`/`ThemedTextField`/`ThemedPasswordField`/
 `ThemedTextArea`/`ThemedScrollBarUI`/`ToggleSwitch`/`StatusDot`/`StatusPill`,
 `GameHubDialog` (themed replacement for raw `JOptionPane`), `DialogUtils`,
+`PlaceholderPanel` (a static helper: `show(container, text)` clears a container
+and drops in one muted-text label for the "couldn't load"/"nothing here yet"
+state every list-backed panel eventually needs; `mutedLabel(text)` alone for a
+caller still mid-way through building a container's other children - the shared
+version of what `FriendsPanel`/`LeaderboardPanel`/`ShopPanel` each hand-rolled
+separately before this existed),
 `ChamferShape` (angular cut-corner geometry - now used only by `GameCardArt`'s
 per-game icon glyphs, deliberately out of scope for the reskin below; no
 longer used by any shared shell component), `NavIcons`,

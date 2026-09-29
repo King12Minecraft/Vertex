@@ -46,6 +46,29 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`ui/PlaceholderPanel.java`** - the shared "clear this container and drop in a
+  muted label" primitive FriendsPanel/LeaderboardPanel/ShopPanel each independently
+  hand-rolled for their own loading-failed/empty-list states, per this file's own
+  earlier note that three real call sites was enough repetition to justify one. A
+  static helper (`show(container, text)` clears and shows a placeholder with its own
+  revalidate()/repaint(); `mutedLabel(text)` for a caller mid-way through building a
+  container's other children that just wants the one label, not a full replace) -
+  the same "static helper, not a base class" shape `GameWindowKernel`'s
+  `centered()`/`center()` already established, not a new stateful widget every panel
+  must be built from. All three original call sites refactored onto it (each
+  panel's own private `mutedLabel()` copy removed): `FriendsPanel`'s connection-error
+  case and both its "no pending requests"/"no friends yet"/"no friends match" empty
+  states, `ShopPanel`'s connection-error case, and `LeaderboardPanel`'s "no one has
+  played this yet" empty state. `LeaderboardPanel`'s own connection-error case
+  deliberately left untouched - it already uses a different, correct shape (a
+  persistent status label's `setText()`, not a container placeholder), and forcing
+  it onto `PlaceholderPanel` would have been the wrong abstraction, not a
+  simplification. Verified visually via an Xvfb+Swing screenshot of `show()` in a
+  real `RoundedPanel` host, plus a full-tree `VertexClient` compile; purely a
+  refactor of already-shipped behavior (same `ThemedLabel` construction, same
+  clear/add/revalidate/repaint sequence as before, just no longer hand-rolled
+  separately in each of the three panels), so no behavior change to verify beyond
+  that.
 - **Testing infrastructure formalized: the reversible default from the
   2026-09-28 audit is now built.** Every verification this project has ever done -
   roughly 30 of them across recent sessions, from the `VertexSerializationFilter`
@@ -1569,15 +1592,6 @@ recorded below as they're confirmed.
 
 ## 📋 Planned — infrastructure & shared packages
 
-- **A real `ui` empty/loading/error placeholder component.** After fixing the
-  FriendsPanel/LeaderboardPanel/ShopPanel silent-failure bugs, all three now hand-roll
-  their own near-identical "clear this container and drop in a muted label" logic. Three
-  real call sites is enough repetition to justify a shared `ui` primitive (something
-  like a `PlaceholderPanel` a caller sets to loading/empty/error state) instead of a
-  fourth hand-rolled copy next time - not done now since the current fix isn't broken,
-  just slightly duplicated, and a refactor of working code carries real risk for no
-  user-facing benefit on its own. Worth doing the next time a panel needs the same
-  three states.
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
 - **`matchmaking` kernel: rollout to the other ~22 `<Name>MatchManager` classes.**

@@ -12,6 +12,7 @@ import net.Message;
 import ui.ThemedButton;
 import ui.ThemedLabel;
 import ui.RoundedPanel;
+import ui.PlaceholderPanel;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -218,9 +219,7 @@ public class LeaderboardPanel extends RoundedPanel
         entriesList.removeAll();
         if (entries == null || entries.isEmpty())
         {
-            JLabel empty = new ThemedLabel("No one has played this yet - be the first!", ThemeColor.TEXT_MUTED);
-            empty.setFont(UITheme.FONT_SMALL);
-            entriesList.add(empty);
+            entriesList.add(PlaceholderPanel.mutedLabel("No one has played this yet - be the first!"));
         }
         else
         {
