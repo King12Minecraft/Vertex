@@ -4,6 +4,7 @@ import games.RematchOfferDialog;
 import social.GameInviteDialog;
 import ui.GameHubDialog;
 import ui.CursorTrailOverlay;
+import ui.ScreenBreakOverlay;
 import games.EmbeddedGamePanel;
 import net.MessageType;
 import net.NetworkManager;
@@ -221,8 +222,15 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         cardLayout.show(contentPanel, Pages.HOME);
 
         CursorTrailOverlay.attach(this, transitionPane);
+        ScreenBreakOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
+
+    /** True while a game is embedded in the GAME_HOST slot and actively being played - the signal ScreenBreakOverlay uses to defer a mandatory break rather than interrupting a match already in progress. */
+    public boolean isGameInProgress()
+    {
+        return Pages.GAME_HOST.equals(currentPageKey);
     }
 
     /**

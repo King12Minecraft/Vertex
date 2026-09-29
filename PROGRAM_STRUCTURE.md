@@ -952,6 +952,21 @@ painted panel - the standard lightweight way to make a Swing overlay
 non-interactive without manual mouse-event redispatching) and both are
 governed by `economy.PartyMode` (off by default, a `Preferences`-backed
 toggle in Settings, same pattern as `PerformanceMode`).
+`ScreenBreakOverlay` (added 2026-09-29, per Bipin's explicit "no exceptions"
+request) is the opposite kind of overlay - attached once, whole-app, from
+`MainMenu`, but deliberately input-*blocking*, not click-through: it sets
+itself as the frame's glass pane and attaches real (if empty) mouse/key
+listeners specifically so events don't fall through. A single 1-second
+`javax.swing.Timer` counts active screen time (paused while the window is
+unfocused or minimized via `MainMenu.isActive()`/`ICONIFIED`) and, every 20
+real minutes of it, shows a full-screen 30-second countdown that can't be
+dismissed early - no close button, no Escape binding, no Settings toggle. If
+`MainMenu.isGameInProgress()` (a new one-line method reading the existing
+`currentPageKey` field - true while `Pages.GAME_HOST` is showing) is true
+when the threshold hits, the break is deferred and rechecked once a second
+until the game ends, rather than interrupting an active match. Client-only
+by design - a wellness/UI feature, not shared game/account/economy logic, so
+it's not part of the byte-identical sync list.
 
 **The "Aurora Glass" reskin** moves the shared app shell - not any individual
 game's own board/HUD screen - off the earlier flat, chamfered "Opera GX" look

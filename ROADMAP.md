@@ -46,6 +46,36 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **A mandatory screen-break timer, per Bipin's explicit request** ("every 20
+  min they have to look away for 30 sec and if in middle of game they wait
+  till end of game. No exceptions"). `ui/ScreenBreakOverlay.java` (new,
+  `VertexClient`-only - a wellness/UI feature, not shared game/account/
+  economy logic, so it's not on the byte-identical sync list): a single
+  `javax.swing.Timer` ticking once a second counts *active* screen time
+  (`MainMenu.isActive()` and not `ICONIFIED` - paused while the window is
+  unfocused or minimized, not wall-clock time); once 20 real minutes of
+  active time accrue, a full-screen glass-pane overlay blocks all mouse/key
+  input for exactly 30 seconds (dark scrim, countdown ring, no close
+  button, no Escape binding, no Settings toggle - genuinely not skippable).
+  If a game is currently embedded in the `GAME_HOST` slot when the
+  threshold is reached (`MainMenu.isGameInProgress()`, a new one-line
+  method reading the existing `currentPageKey` field - reuses the same
+  signal the embedded-games architecture already tracks, rather than
+  inventing a second "is a match active" flag per game), the break is
+  deferred and rechecked every second until that game ends, exactly as
+  asked - "mid-game" never gets interrupted, but the break still fires the
+  instant it's clear. Attached once, whole-app, from `MainMenu`'s
+  constructor - the same "one static `attach()` call from the shell" shape
+  `SignatureOverlay`/`CursorTrailOverlay` already use, via the frame's
+  glass pane rather than a layered-pane child since this one needs to
+  actually block input, not be click-through. Verified with a reflective
+  Xvfb+Swing screenshot smoke test (the overlay's own panel class is
+  intentionally private, so the throwaway harness reflects into it rather
+  than weakening its visibility for testability) rendering the countdown
+  ring/text at three sample values and eyeballed for layout (a
+  subtitle/ring overlap the first render caught was fixed before landing).
+  `VertexClient` compiles clean; no `VertexServer` changes needed since
+  this is purely client-side.
 - **Battleship joins the reconnect-aware games** - the same `ReconnectRegistry`
   grace-period shape (Connect Four/Checkers/Reversi/Dots and Boxes/Word Duel) rolled
   out to a sixth game, and the first turn-based one since Word Duel to need its own
