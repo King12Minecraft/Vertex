@@ -17,13 +17,15 @@ import java.util.List;
  * adopted) - a "zero observable behavior change" refactor, verified rather than
  * assumed. Specifically exercises the exact gotcha MatchmakingKernel's own
  * javadoc calls out: matchIdPrefix can genuinely diverge from gameId (Connect
- * Four hit this first), and all four of these conversions hit it too - the
+ * Four hit this first), and all six of these conversions hit it too - the
  * original hand-rolled matchId formats ("diceduel-1"/"typingduel-1"/
- * "airhockey-1"/"memory-1") diverge from each GAME_ID used for QUEUE_UPDATE/
- * game history ("dice-duel"/"typing-duel"/"air-hockey"/"memory-match"). A
- * naive conversion using the short 4-arg MatchmakingKernel constructor would
- * silently produce "dice-duel-1"/"typing-duel-1"/"air-hockey-1"/
- * "memory-match-1" instead - this test would have caught that regression.
+ * "airhockey-1"/"memory-1"/"signalgrid-1"/"fusiongrid-1") diverge from each
+ * GAME_ID used for QUEUE_UPDATE/game history ("dice-duel"/"typing-duel"/
+ * "air-hockey"/"memory-match"/"signal-grid"/"fusion-grid"). A naive conversion
+ * using the short 4-arg MatchmakingKernel constructor would silently produce
+ * "dice-duel-1"/"typing-duel-1"/"air-hockey-1"/"memory-match-1"/
+ * "signal-grid-1"/"fusion-grid-1" instead - this test would have caught that
+ * regression.
  */
 public class MatchmakingKernelAdoptersTest
 {
@@ -71,6 +73,8 @@ public class MatchmakingKernelAdoptersTest
         testTypingDuelMatchIdPrefixAndPairing(check);
         testAirHockeyMatchIdPrefixAndPairing(check);
         testMemoryMatchMatchIdPrefixAndPairing(check);
+        testSignalGridMatchIdPrefixAndPairing(check);
+        testFusionGridMatchIdPrefixAndPairing(check);
         testQueueingAndCancelling(check);
 
         check.finish();
@@ -158,6 +162,48 @@ public class MatchmakingKernelAdoptersTest
             found == null || !found.getMatchId().startsWith("memory-match-"));
         check.check("MemoryMatch: the opponent also received a match-found message",
             b.lastOfType(MessageType.MEMORY_MATCH_FOUND) != null);
+    }
+
+    private static void testSignalGridMatchIdPrefixAndPairing(Check check)
+    {
+        SignalGridMatchManager manager = new SignalGridMatchManager(null,
+            new economy.GameHistoryManager(), new social.ChatManager(), null);
+
+        FakeHandler a = new FakeHandler("Judy", 10);
+        FakeHandler b = new FakeHandler("Kevin", 11);
+        manager.findMatch(a);
+        manager.findMatch(b);
+
+        Message found = a.lastOfType(MessageType.SIGNALGRID_MATCH_FOUND);
+        check.check("SignalGrid: both players get matched (queue empties)", manager.getQueueCount() == 0);
+        check.check("SignalGrid: a real match-found message was sent", found != null);
+        check.check("SignalGrid: matchId keeps its original no-hyphen prefix ('signalgrid-', not 'signal-grid-')",
+            found != null && found.getMatchId() != null && found.getMatchId().startsWith("signalgrid-"));
+        check.check("SignalGrid: matchId does NOT use the hyphenated GAME_ID as its prefix",
+            found == null || !found.getMatchId().startsWith("signal-grid-"));
+        check.check("SignalGrid: the opponent also received a match-found message",
+            b.lastOfType(MessageType.SIGNALGRID_MATCH_FOUND) != null);
+    }
+
+    private static void testFusionGridMatchIdPrefixAndPairing(Check check)
+    {
+        FusionGridMatchManager manager = new FusionGridMatchManager(null,
+            new economy.GameHistoryManager(), new social.ChatManager(), null);
+
+        FakeHandler a = new FakeHandler("Laura", 12);
+        FakeHandler b = new FakeHandler("Mallory", 13);
+        manager.findMatch(a);
+        manager.findMatch(b);
+
+        Message found = a.lastOfType(MessageType.FUSIONGRID_MATCH_FOUND);
+        check.check("FusionGrid: both players get matched (queue empties)", manager.getQueueCount() == 0);
+        check.check("FusionGrid: a real match-found message was sent", found != null);
+        check.check("FusionGrid: matchId keeps its original no-hyphen prefix ('fusiongrid-', not 'fusion-grid-')",
+            found != null && found.getMatchId() != null && found.getMatchId().startsWith("fusiongrid-"));
+        check.check("FusionGrid: matchId does NOT use the hyphenated GAME_ID as its prefix",
+            found == null || !found.getMatchId().startsWith("fusion-grid-"));
+        check.check("FusionGrid: the opponent also received a match-found message",
+            b.lastOfType(MessageType.FUSIONGRID_MATCH_FOUND) != null);
     }
 
     private static void testQueueingAndCancelling(Check check)

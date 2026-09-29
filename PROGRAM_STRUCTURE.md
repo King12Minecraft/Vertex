@@ -327,10 +327,15 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   `GAME_ID`s "air-hockey"/"memory-match"; this round applied the lesson
   proactively and hardcoded the correct prefixes from the start rather than
   hitting the bug again). Neither's `Match` class takes a `ReconnectRegistry`
-  either, so neither exposes `kernel.getReconnectRegistry()`. A wider rollout to
-  the remaining ~18 `<Name>MatchManager` classes remains optional cleanup, adopted
-  a couple at a time whenever convenient, not a requirement (see `ROADMAP.md` for
-  good next candidates and which games are deliberately NOT drop-in fits as the
+  either, so neither exposes `kernel.getReconnectRegistry()`. Also
+  `SignalGridMatchManager`/`FusionGridMatchManager` (2026-09-29, same day's work) -
+  identical shape and the same `matchIdPrefix` divergence ("signalgrid-"/
+  "fusiongrid-" vs. `GAME_ID`s "signal-grid"/"fusion-grid"), prefixes hardcoded
+  correctly from the start; neither's `Match` class takes a `ReconnectRegistry`
+  either. A wider rollout to the remaining ~16 `<Name>MatchManager` classes
+  remains optional cleanup, adopted a couple at a time whenever convenient, not a
+  requirement (see `ROADMAP.md` for good next candidates and which games are
+  deliberately NOT drop-in fits as the
   kernel exists today). ELO
   deliberately isn't part of this - `LeaderboardManager`'s rating math is a separate,
   already-shared concern untouched by matchmaking queue mechanics.

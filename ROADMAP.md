@@ -46,6 +46,20 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`MatchmakingKernel` rollout continues: Signal Grid and Fusion Grid adopt it
+  (9th and 10th adopters).** Same textbook shape as every round before this one -
+  plain 2-player FIFO managers, no rematch/spectate/tournament glue, neither
+  `Match` class takes a `ReconnectRegistry` so neither manager exposes
+  `kernel.getReconnectRegistry()`. Original matchId prefixes ("signalgrid-"/
+  "fusiongrid-") checked and hardcoded via the kernel's 5-arg constructor before
+  writing any code, same as the last two rounds - they diverge from `GAME_ID`
+  ("signal-grid"/"fusion-grid") the same way every hyphenated-GAME_ID adopter so
+  far has. `MatchmakingKernelAdoptersTest.java` extended with
+  `testSignalGridMatchIdPrefixAndPairing`/`testFusionGridMatchIdPrefixAndPairing`
+  (34 checks in that file now, 70 across the whole suite). Mirrored
+  byte-identical across both trees; `./test.sh` green. ~16 `<Name>MatchManager`
+  classes remain as this optional cleanup's backlog, adopted a couple at a time
+  whenever convenient.
 - **`MatchmakingKernel` rollout continues: Air Hockey and Memory Match adopt it
   (7th and 8th adopters).** Same shape as the Dice Duel/Typing Duel round just
   before this one - plain 2-player FIFO managers, no rematch/spectate/tournament
