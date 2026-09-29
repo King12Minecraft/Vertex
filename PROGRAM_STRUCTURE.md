@@ -233,7 +233,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   that page) is now a single `GameWindowFactory.factoryFor(id)` lookup instead of a
   branch per game: `MainMenu.getInstance().showGame(factory.get())` when a factory
   exists, otherwise the same "not converted yet" notice `launch(...)` already shows
-  for `comingSoon` ids. **All 52 games in the catalog** go through this path - every
+  for `comingSoon` ids. **All 53 games in the catalog** go through this path - every
   offline/single-player game (including Hill Climb, the first new game added after
   the embedded-games rollout - see the "Done" section of `ROADMAP.md` for what it
   demonstrates), both games with `SpectateDialog`/tournament support (Chess, Rock
