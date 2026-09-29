@@ -321,11 +321,17 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   `VertexServerTests/games/MatchmakingKernelAdoptersTest.java` before landing).
   Neither Dice Duel's nor Typing Duel's `Match` class takes a `ReconnectRegistry`
   (neither game has adopted reconnect), so unlike `CheckersMatchManager` these two
-  don't expose `kernel.getReconnectRegistry()`. A wider rollout to the remaining
-  ~20 `<Name>MatchManager` classes remains optional cleanup, adopted a couple at a
-  time whenever convenient, not a requirement (see `ROADMAP.md` for good next
-  candidates and which games are deliberately NOT drop-in fits as the kernel exists
-  today). ELO
+  don't expose `kernel.getReconnectRegistry()`. Also `AirHockeyMatchManager`/
+  `MemoryMatchMatchManager` (2026-09-29 - same textbook shape, same
+  `matchIdPrefix` divergence pattern: real matchIds "airhockey-"/"memory-" vs.
+  `GAME_ID`s "air-hockey"/"memory-match"; this round applied the lesson
+  proactively and hardcoded the correct prefixes from the start rather than
+  hitting the bug again). Neither's `Match` class takes a `ReconnectRegistry`
+  either, so neither exposes `kernel.getReconnectRegistry()`. A wider rollout to
+  the remaining ~18 `<Name>MatchManager` classes remains optional cleanup, adopted
+  a couple at a time whenever convenient, not a requirement (see `ROADMAP.md` for
+  good next candidates and which games are deliberately NOT drop-in fits as the
+  kernel exists today). ELO
   deliberately isn't part of this - `LeaderboardManager`'s rating math is a separate,
   already-shared concern untouched by matchmaking queue mechanics.
 - **`ReconnectRegistry.java`** — generic disconnect-grace-period mechanism, keyed by

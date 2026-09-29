@@ -17,12 +17,13 @@ import java.util.List;
  * adopted) - a "zero observable behavior change" refactor, verified rather than
  * assumed. Specifically exercises the exact gotcha MatchmakingKernel's own
  * javadoc calls out: matchIdPrefix can genuinely diverge from gameId (Connect
- * Four hit this first), and both of these conversions hit it too - the original
- * hand-rolled matchId format ("diceduel-1"/"typingduel-1") has no hyphen, while
- * each GAME_ID used for QUEUE_UPDATE/game history does ("dice-duel"/
- * "typing-duel"). A naive conversion using the short 4-arg MatchmakingKernel
- * constructor would silently produce "dice-duel-1"/"typing-duel-1" instead -
- * this test would have caught that regression.
+ * Four hit this first), and all four of these conversions hit it too - the
+ * original hand-rolled matchId formats ("diceduel-1"/"typingduel-1"/
+ * "airhockey-1"/"memory-1") diverge from each GAME_ID used for QUEUE_UPDATE/
+ * game history ("dice-duel"/"typing-duel"/"air-hockey"/"memory-match"). A
+ * naive conversion using the short 4-arg MatchmakingKernel constructor would
+ * silently produce "dice-duel-1"/"typing-duel-1"/"air-hockey-1"/
+ * "memory-match-1" instead - this test would have caught that regression.
  */
 public class MatchmakingKernelAdoptersTest
 {
@@ -68,6 +69,8 @@ public class MatchmakingKernelAdoptersTest
 
         testDiceDuelMatchIdPrefixAndPairing(check);
         testTypingDuelMatchIdPrefixAndPairing(check);
+        testAirHockeyMatchIdPrefixAndPairing(check);
+        testMemoryMatchMatchIdPrefixAndPairing(check);
         testQueueingAndCancelling(check);
 
         check.finish();
@@ -113,6 +116,48 @@ public class MatchmakingKernelAdoptersTest
             found == null || !found.getMatchId().startsWith("typing-duel-"));
         check.check("TypingDuel: the opponent also received a match-found message",
             b.lastOfType(MessageType.TYPINGDUEL_MATCH_FOUND) != null);
+    }
+
+    private static void testAirHockeyMatchIdPrefixAndPairing(Check check)
+    {
+        AirHockeyMatchManager manager = new AirHockeyMatchManager(null,
+            new economy.GameHistoryManager(), new social.ChatManager(), null);
+
+        FakeHandler a = new FakeHandler("Frank", 6);
+        FakeHandler b = new FakeHandler("Grace", 7);
+        manager.findMatch(a);
+        manager.findMatch(b);
+
+        Message found = a.lastOfType(MessageType.AIRHOCKEY_MATCH_FOUND);
+        check.check("AirHockey: both players get matched (queue empties)", manager.getQueueCount() == 0);
+        check.check("AirHockey: a real match-found message was sent", found != null);
+        check.check("AirHockey: matchId keeps its original no-hyphen prefix ('airhockey-', not 'air-hockey-')",
+            found != null && found.getMatchId() != null && found.getMatchId().startsWith("airhockey-"));
+        check.check("AirHockey: matchId does NOT use the hyphenated GAME_ID as its prefix",
+            found == null || !found.getMatchId().startsWith("air-hockey-"));
+        check.check("AirHockey: the opponent also received a match-found message",
+            b.lastOfType(MessageType.AIRHOCKEY_MATCH_FOUND) != null);
+    }
+
+    private static void testMemoryMatchMatchIdPrefixAndPairing(Check check)
+    {
+        MemoryMatchMatchManager manager = new MemoryMatchMatchManager(null,
+            new economy.GameHistoryManager(), new social.ChatManager(), null);
+
+        FakeHandler a = new FakeHandler("Heidi", 8);
+        FakeHandler b = new FakeHandler("Ivan", 9);
+        manager.findMatch(a);
+        manager.findMatch(b);
+
+        Message found = a.lastOfType(MessageType.MEMORY_MATCH_FOUND);
+        check.check("MemoryMatch: both players get matched (queue empties)", manager.getQueueCount() == 0);
+        check.check("MemoryMatch: a real match-found message was sent", found != null);
+        check.check("MemoryMatch: matchId keeps its original short prefix ('memory-', not 'memory-match-')",
+            found != null && found.getMatchId() != null && found.getMatchId().startsWith("memory-"));
+        check.check("MemoryMatch: matchId does NOT use the hyphenated GAME_ID as its prefix",
+            found == null || !found.getMatchId().startsWith("memory-match-"));
+        check.check("MemoryMatch: the opponent also received a match-found message",
+            b.lastOfType(MessageType.MEMORY_MATCH_FOUND) != null);
     }
 
     private static void testQueueingAndCancelling(Check check)

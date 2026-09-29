@@ -46,6 +46,21 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`MatchmakingKernel` rollout continues: Air Hockey and Memory Match adopt it
+  (7th and 8th adopters).** Same shape as the Dice Duel/Typing Duel round just
+  before this one - plain 2-player FIFO managers, no rematch/spectate/tournament
+  glue, neither `Match` class takes a `ReconnectRegistry` so neither manager
+  exposes `kernel.getReconnectRegistry()`. Applied the matchId-prefix lesson from
+  that prior round proactively this time: checked and hardcoded the real original
+  prefixes ("airhockey-"/"memory-", diverging from `GAME_ID` "air-hockey"/
+  "memory-match" the same way Connect Four/Dots and Boxes/Dice Duel/Typing Duel
+  all did) before writing any code, via the kernel's 5-arg constructor from the
+  start - no buggy first pass this round. `MatchmakingKernelAdoptersTest.java`
+  extended with `testAirHockeyMatchIdPrefixAndPairing`/
+  `testMemoryMatchMatchIdPrefixAndPairing` (24 checks total in that file now,
+  60 across the whole suite). Mirrored byte-identical across both trees;
+  `./test.sh` green. `SignalGridMatchManager`/`FusionGridMatchManager` remain
+  named as good next candidates for whenever this optional cleanup continues.
 - **`MatchmakingKernel` rollout: Dice Duel and Typing Duel adopt it (5th and 6th
   adopters), and a real bug caught before it shipped.** Both were textbook
   candidates - plain 2-player FIFO managers with no rematch/spectate/tournament

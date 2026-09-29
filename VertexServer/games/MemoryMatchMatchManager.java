@@ -1,106 +1,79 @@
 package games;
-
-import net.ClientHandler;
-import net.Message;
-import net.MessageType;
-import economy.EconomyManager;
-import economy.GameHistoryManager;
 import economy.LeaderboardManager;
 import social.ChatManager;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import economy.GameHistoryManager;
+import economy.EconomyManager;
+import net.ClientHandler;
 
 /**
  * MemoryMatchMatchManager
  * ------------------------
- * Matchmaking for Memory Match - same shape as CheckersMatchManager.
+ * Matchmaking for Memory Match - thin wrapper over the shared MatchmakingKernel
+ * (see its javadoc), same conversion CheckersMatchManager/ConnectFourMatchManager/
+ * ReversiMatchManager/DotsAndBoxesMatchManager/DiceDuelMatchManager/
+ * TypingDuelMatchManager already went through. Supplies the two things that
+ * actually vary per game: how to construct+start a MemoryMatchMatch, and how to
+ * attach it to a ClientHandler. MemoryMatchMatch's own constructor doesn't take a
+ * ReconnectRegistry (this game hasn't adopted reconnect support - see
+ * PROGRAM_STRUCTURE.md's note that MemoryMatchWindow's practice mode already runs
+ * on its own bespoke PracticeMatch rather than the shared ai/search one, since
+ * hidden card state doesn't fit that engine's assumptions; the same "genuinely
+ * different game shape" reasoning doesn't block a plain matchmaking-kernel
+ * conversion though, which only cares about the online 1v1 queue, not practice
+ * mode), so unlike CheckersMatchManager this doesn't pass
+ * kernel.getReconnectRegistry() through - exposing it here would be a capability
+ * this game doesn't actually have.
+ * Explicitly passes MATCH_ID_PREFIX ("memory") separately from GAME_ID
+ * ("memory-match") - the original hand-rolled matchId format was just "memory-N",
+ * not "memorymatch-N" or "memory-match-N", the same real divergence Connect
+ * Four/Dots and Boxes/Dice Duel/Typing Duel/Air Hockey all needed. Preserving it
+ * exactly keeps this conversion a genuine zero-observable-behavior-change refactor.
  */
 public class MemoryMatchMatchManager
 {
     private static final String GAME_ID = "memory-match";
+    private static final String MATCH_ID_PREFIX = "memory";
 
-    private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
-    private final Map<String, MemoryMatchMatch> activeMatches = new HashMap<String, MemoryMatchMatch>();
-    private int nextMatchId = 1;
-    private final EconomyManager economyManager;
-    private final GameHistoryManager gameHistoryManager;
-    private final ChatManager chatManager;
-    private final LeaderboardManager leaderboardManager;
+    private final MatchmakingKernel<MemoryMatchMatch> kernel;
 
-    public MemoryMatchMatchManager(EconomyManager economyManager, GameHistoryManager gameHistoryManager,
-                                    ChatManager chatManager, LeaderboardManager leaderboardManager)
+    public MemoryMatchMatchManager(final EconomyManager economyManager, GameHistoryManager gameHistoryManager,
+                                    ChatManager chatManager, final LeaderboardManager leaderboardManager)
     {
-        this.economyManager = economyManager;
-        this.gameHistoryManager = gameHistoryManager;
-        this.chatManager = chatManager;
-        this.leaderboardManager = leaderboardManager;
+        kernel = new MatchmakingKernel<MemoryMatchMatch>(GAME_ID, MATCH_ID_PREFIX, gameHistoryManager, chatManager,
+            new MatchmakingKernel.PairHandler<MemoryMatchMatch>()
+            {
+                public MemoryMatchMatch pair(String matchId, ClientHandler playerA, ClientHandler playerB)
+                {
+                    MemoryMatchMatch match = new MemoryMatchMatch(matchId, playerA, playerB, MemoryMatchMatchManager.this,
+                        economyManager, leaderboardManager);
+                    match.start();
+                    return match;
+                }
+
+                public void attach(ClientHandler handler, MemoryMatchMatch match)
+                {
+                    handler.setCurrentMemoryMatchMatch(match);
+                }
+            });
     }
 
-    public synchronized void findMatch(ClientHandler player)
+    public void findMatch(ClientHandler player)
     {
-        if (waitingPlayers.contains(player))
-        {
-            return;
-        }
-
-        if (!waitingPlayers.isEmpty())
-        {
-            ClientHandler opponent = waitingPlayers.remove(0);
-            String matchId = "memory-" + (nextMatchId++);
-            MemoryMatchMatch match = new MemoryMatchMatch(matchId, opponent, player, this, economyManager, leaderboardManager);
-            activeMatches.put(matchId, match);
-            opponent.setCurrentMemoryMatchMatch(match);
-            player.setCurrentMemoryMatchMatch(match);
-            match.start();
-
-            recordPlay(opponent);
-            recordPlay(player);
-
-            broadcastQueueCount();
-        }
-        else
-        {
-            waitingPlayers.add(player);
-            broadcastQueueCount();
-        }
+        kernel.findMatch(player);
     }
 
-    private void recordPlay(ClientHandler handler)
+    public void cancelWaiting(ClientHandler player)
     {
-        if (handler.getLoggedInUsername() != null && handler.getAccountId() != null)
-        {
-            gameHistoryManager.recordPlay(handler.getAccountId(), GAME_ID);
-        }
+        kernel.cancelWaiting(player);
     }
 
-    public synchronized void cancelWaiting(ClientHandler player)
+    public void endMatch(String matchId)
     {
-        boolean removed = waitingPlayers.remove(player);
-        if (removed)
-        {
-            broadcastQueueCount();
-        }
+        kernel.endMatch(matchId);
     }
 
-    public synchronized void endMatch(String matchId)
+    public int getQueueCount()
     {
-        activeMatches.remove(matchId);
-    }
-
-    public synchronized int getQueueCount()
-    {
-        return waitingPlayers.size();
-    }
-
-    private void broadcastQueueCount()
-    {
-        Message msg = new Message();
-        msg.setType(MessageType.QUEUE_UPDATE);
-        msg.setQueueGameId(GAME_ID);
-        msg.setQueueCount(waitingPlayers.size());
-        chatManager.broadcastToAll(msg);
+        return kernel.getQueueCount();
     }
 }
