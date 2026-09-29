@@ -78,6 +78,7 @@ public class EconomyConfig
         if ("yahtzee".equals(gameId))        return Math.min(35, score / 12);
         if ("mancala".equals(gameId))        return Math.min(35, score / 8);
         if ("hill-climb".equals(gameId))     return Math.min(35, score / 20);
+        if ("sky-hopper".equals(gameId))     return Math.min(35, score / 15);
         // Folded in from the old standalone getSnakeReward()/awardSnakeScore() - same
         // Math.min(cap, score/divisor) shape as every entry above, just previously
         // kept as its own special case (Snake predates this generic table) instead of

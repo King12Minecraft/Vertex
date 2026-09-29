@@ -46,6 +46,36 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Sky Hopper, a new original vertical-climber single-player game** - the games
+  backlog's `Doodle Jump`-genre concept, distinct from every other single-player
+  game here (nothing else is a vertical endless climber). Bounce automatically off
+  procedurally generated platforms (55% normal, 20% moving, 15% breakable/one-bounce,
+  10% spring/extra-height, weighted on generation) as a camera that only ever
+  scrolls up follows the player once they climb past a fixed fraction of the
+  screen - falling below the bottom of the current view ends the run; score is the
+  max height climbed, in meters. `SkyHopperGame`/`SkyHopperWindow` follow the same
+  `<Name>Game`/`<Name>Window` split and `engine.GameLoop` usage `HillClimbGame`/
+  `HillClimbWindow` established, but use a screen-like y-down world convention
+  throughout (climbing decreases y) so physics and rendering share the same numbers
+  1:1 with no separate pixels-per-unit scale to keep in sync. Registered in
+  `GameRegistry`/`GameWindowFactory`/`GameMetadata`/`GameRules`, and a practice
+  reward formula added to `EconomyConfig` (score/15, capped at 35 coins, same shape
+  as every other formula in that table) - the exact bug class flagged in
+  `BLOCKED_QUESTIONS.md`'s resolved Sudoku entry (a new game shipping with no reward
+  formula at all) checked and avoided up front rather than found later. Verified
+  with an 218-check scratch logic test (starting-platform bounce, monotonically
+  increasing score, camera-never-scrolls-back-down, a forced fall reliably ending
+  the game with ticking-after-game-over a confirmed no-op, platforms staying
+  generated ahead of the camera, horizontal wrap-around, and a breakable platform
+  actually breaking after one bounce) plus a real Xvfb+Swing screenshot of a live
+  mid-game frame, eyeballed for correct rendering (sky gradient, all four platform
+  colors including the breakable crack mark, player, score readout). `GameRegistry`/
+  `EconomyConfig` are the only files this needed in `VertexServer` (confirmed by
+  checking - `HillClimbGame`/`HillClimbWindow`/`NumberNestGame`/`NumberNestWindow`
+  don't exist server-side either, since an offline single-player game's logic never
+  runs anywhere but the client; the server only ever sees a final `GAME_PLAYED_
+  REQUEST` score to award a reward against) - both trees compile clean and stay
+  byte-identical on those two files.
 - **Rock Paper Scissors joins the reconnect-aware games (8th adopter)** - the same
   `ReconnectRegistry` grace-period shape as TicTacToe/Connect Four/Checkers/Reversi/
   Dots and Boxes/Word Duel/Battleship, and a third genuinely distinct per-game
@@ -1655,11 +1685,8 @@ even playable.
 Looked at what actually makes multiplayer games popular right now (io-game and
 party-game genres, not any specific game's content/art/code) to find good, provable
 formats - not to copy anything:
-- **A vertical "climber" single-player game** (original mechanic, `Doodle Jump`
-  genre) — bounce upward off procedurally-placed platforms, camera scrolls up
-  forever, moving/breakable/spring platforms add variety, game ends when you fall
-  off the bottom of the screen. Distinct from every existing single-player game
-  here (nothing else is a vertical endless climber). Not yet built.
+- ~~A vertical "climber" single-player game~~ (original mechanic, `Doodle Jump`
+  genre) — **built, see "Done" below (Sky Hopper).**
 - ~~A number-merge puzzle, `Threes`/`1010!` genre, distinct from 2048~~ — **built,
   see "Done" below (Number Nest).**
 - Both chosen specifically because the ask was "don't make this only multiplayer" -

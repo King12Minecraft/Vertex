@@ -62,7 +62,7 @@ hosting feature.
 
 ```
 net (protocol + dispatch)
-  -> games (plugin-style match framework + ~30 online-game triples + ~20 offline games)
+  -> games (plugin-style match framework + ~30 online-game triples + ~21 offline games)
        -> economy / social / ai   (services the match layer calls into - ai.knowledge
                                     only for the server; the rest is client-only)
   -> pages / ui / theme            (Swing client shell - VertexClient/ only)
@@ -132,7 +132,7 @@ the socket → dispatches by `MessageType` (e.g. `FIND_MATCH_REQUEST`) → the m
   + colored-dot widget. **`NavigationListener.java`** — callback interface letting
   `pages/Sidebar` report nav clicks without knowing how paging works.
 
-## games — the match framework, plus ~30 online-game triples and ~20 offline games
+## games — the match framework, plus ~30 online-game triples and ~21 offline games
 
 Two repeating shapes, not 179 individual designs:
 
@@ -149,7 +149,16 @@ Two repeating shapes, not 179 individual designs:
    grid is full, since placement never needs adjacency the way 2048's slide does.
    `NumberNestGame`/`NumberNestWindow` follow `Merge2048Game`/`Merge2048Window`'s
    exact split and share its tile-color formula for visual consistency between the
-   two number-merge games.
+   two number-merge games. **Sky Hopper** (added 2026-09-29) is the games backlog's
+   vertical-climber concept (`Doodle Jump` genre) - bounce automatically off
+   procedurally generated platforms (normal/moving/breakable/spring, weighted
+   55/20/15/10%) as a camera that only ever scrolls up follows the player past a
+   fixed screen fraction; falling below the bottom of the current view ends the run.
+   World coordinates use a screen-like y-down convention throughout (climbing
+   decreases y) so the physics and the renderer share the same numbers with no unit
+   conversion, unlike `HillClimbGame`'s separate `PIXELS_PER_UNIT` scale.
+   `SkyHopperGame`/`SkyHopperWindow` follow the same `<Name>Game`/`<Name>Window`
+   split and `engine.GameLoop` usage `HillClimbGame`/`HillClimbWindow` established.
 2. **Online/multiplayer** (~30: Tic-Tac-Toe, Connect Four, Checkers, Chess, Battleship,
    Reversi, Dots and Boxes, Rock Paper Scissors, Memory Match, Air Hockey, Word Duel,
    Dice Duel, Snake Arena, Tetris Duel, Fusion Grid, Typing Duel, Signal Grid, Card
@@ -224,7 +233,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   that page) is now a single `GameWindowFactory.factoryFor(id)` lookup instead of a
   branch per game: `MainMenu.getInstance().showGame(factory.get())` when a factory
   exists, otherwise the same "not converted yet" notice `launch(...)` already shows
-  for `comingSoon` ids. **All 51 games in the catalog** go through this path - every
+  for `comingSoon` ids. **All 52 games in the catalog** go through this path - every
   offline/single-player game (including Hill Climb, the first new game added after
   the embedded-games rollout - see the "Done" section of `ROADMAP.md` for what it
   demonstrates), both games with `SpectateDialog`/tournament support (Chess, Rock

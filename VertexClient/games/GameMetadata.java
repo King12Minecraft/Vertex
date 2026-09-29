@@ -33,6 +33,7 @@ public class GameMetadata
         tag("pingpong", EASY, "2D", "Single Player", "Arcade");
         tag("2048", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("number-nest", MEDIUM, "2D", "Single Player", "Puzzle");
+        tag("sky-hopper", MEDIUM, "2D", "Single Player", "Arcade");
         tag("dino-dash", EASY, "2D", "Single Player", "Arcade");
         tag("tetris", MEDIUM, "2D", "Single Player", "Puzzle");
         tag("crossing-road", EASY, "2D", "Single Player", "Arcade");

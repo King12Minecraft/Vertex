@@ -230,6 +230,12 @@ public class GameRules
             + "either shared center pile if it's exactly one rank higher or lower than that pile's "
             + "top card. Your hand refills from your own stock after every play. If nobody can move, "
             + "the piles automatically refresh. First to play every card in your hand and stock wins.");
+
+        RULES.put("sky-hopper", "Hold Left/Right (or A/D) to steer - bouncing off a platform is "
+            + "automatic, no jump button. Green platforms are solid, blue ones drift back and forth, "
+            + "orange ones crack and vanish after one bounce, and yellow spring platforms launch you "
+            + "extra high. Falling below the bottom of the screen ends the run - your score is how "
+            + "high you climbed.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */
