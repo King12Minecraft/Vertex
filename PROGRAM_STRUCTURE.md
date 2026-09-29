@@ -382,11 +382,16 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   `RPS_MATCH_FOUND` itself (with real `rpsMyScore`/`rpsOpponentScore` set, unlike the
   login-response DTO's repurposed boardState) since there's no board/turn state a second
   message would need to correct. Verified with a 15-check scratch test covering the same
-  six scenarios Battleship's did. Trivia Blitz remains the one online-multiplayer game
-  still not reconnect-aware (see `ROADMAP.md`'s "In Progress" entry) - genuinely
-  continuous-simulation games (Racing, Space Battle, Air Hockey, Fight Arena,
-  Zombie Survival) and Chess (deliberately not yet adopted, see above) are separate,
-  lower-priority cases.
+  six scenarios Battleship's did. That's all 7 of the platform's 2-player,
+  forfeit-based online games covered. Trivia Blitz is the one online-multiplayer
+  game left with no reconnection story, but audited (2026-09-29) and found NOT to
+  be a small next adopter: it's 2-6 players and `TriviaMatch.handleDisconnect()`
+  already deliberately keeps a match running (score locked in) rather than
+  forfeiting on a disconnect, so `ReconnectRegistry`'s one-opponent/grace-period/
+  forfeit shape doesn't actually fit it - see `BLOCKED_QUESTIONS.md` for the real,
+  un-guessed design question this raises. Genuinely continuous-simulation games
+  (Racing, Space Battle, Air Hockey, Fight Arena, Zombie Survival) and Chess
+  (deliberately not yet adopted, see above) remain separate, lower-priority cases.
 - **`TournamentManager.java`** — 4-player single-elimination bracket for Battleship and
   Rock Paper Scissors only (both always produce a decisive winner). **`TeamTournament-
   Manager.java`** — team version for Fight Arena's 2v2/3v3, registered by whole

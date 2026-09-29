@@ -79,8 +79,12 @@ recorded below as they're confirmed.
   byte-identical across both trees (`RockPaperScissorsMatch`/
   `RockPaperScissorsMatchManager`/`TournamentManager`/`ClientHandler`;
   `AuthWindow`/`RockPaperScissorsWindow` are client-only); both compile clean. Trivia
-  Blitz is now the only online-multiplayer game left needing this pattern - see
-  `PROGRAM_STRUCTURE.md`'s reconnection note.
+  Blitz is the only online-multiplayer game left without any reconnection story -
+  audited 2026-09-29 and found NOT to be a small "9th adopter" the way this entry
+  once assumed (see `BLOCKED_QUESTIONS.md`: it's 2-6 players and deliberately
+  doesn't forfeit on a disconnect, a genuinely different shape than every 2-player
+  forfeit-based game `ReconnectRegistry` was built for) - a real open design
+  question, not guessed at.
 - **A mandatory screen-break timer, per Bipin's explicit request** ("every 20
   min they have to look away for 30 sec and if in middle of game they wait
   till end of game. No exceptions"). `ui/ScreenBreakOverlay.java` (new,
@@ -1432,9 +1436,10 @@ recorded below as they're confirmed.
   some games, like a Gartic-Phone-style drawing game, needing chat *restricted* rather
   than open, since free chat would let players just say the answer out loud).
 
-- **Reconnection rollout continues: Chess and Trivia Blitz are what's left.** Connect
-  Four, Checkers, Reversi, Dots and Boxes, Word Duel, Battleship, and now Rock Paper
-  Scissors are reconnect-aware (2026-09-26/27/28/29, see "Done" below) - the same
+- **Reconnection rollout: every 2-player game is now covered; Chess and Trivia
+  Blitz are the two remaining open questions, for different reasons (see below).**
+  Connect Four, Checkers, Reversi, Dots and Boxes, Word Duel, Battleship, and now
+  Rock Paper Scissors are reconnect-aware (2026-09-26/27/28/29, see "Done" below) - the same
   `disconnectedSlot`/grace-period/timeout shape `TicTacToeMatch` proved, across three
   genuinely distinct per-game accommodations to the shared client-side resume
   mechanism so far, not one mechanism silently failing to generalize:
@@ -1452,11 +1457,23 @@ recorded below as they're confirmed.
   shape again: no board and no turn at all, so it repurposes `boardState` to carry
   `"myScore:opponentScore"` instead, and also skips the second message (see the "Done"
   entry above and `PROGRAM_STRUCTURE.md`'s reconnection note for the full detail on
-  all three). Trivia Blitz is the last online-multiplayer game needing this pattern -
-  proportionate to "one more special case," not a rewrite of a mechanism that's
-  correctly serving 7 games across three different accommodation shapes already. Chess
+  all three). That's all 7 of the platform's 2-player forfeit-based online games -
+  proportionate to "the mechanism generalizes across three different accommodation
+  shapes," not a claim that every online game fits it. **Trivia Blitz turned out NOT
+  to be a small "one more special case" once actually audited (2026-09-29)** - it's
+  2-6 players, not 2, and `TriviaMatch.handleDisconnect()` already deliberately
+  keeps the match running with the disconnected player's score locked in, rather
+  than forfeiting. `ReconnectRegistry`/`ReconnectableMatch` is built entirely around
+  "one named opponent, one grace period, then a forfeit" - retrofitting that onto an
+  N-player non-forfeiting match isn't a per-game accommodation like RPS's was, it's
+  a real, different design question (does this even need "reconnection" as a
+  concept, or is losing your locked-in score on disconnect already fine?) - recorded
+  in `BLOCKED_QUESTIONS.md` rather than guessed at, with `TriviaMatch` left
+  completely untouched in the meantime (its current behavior isn't a regression, so
+  there's no code debt riding on the answer). Chess
   is still deliberately NOT yet
-  adopted - its resign/draw-offer state (`CHESS_DRAW_OFFERED` etc.) interacts with a
+  adopted for its own, unrelated reason - its resign/draw-offer state
+  (`CHESS_DRAW_OFFERED` etc.) interacts with a
   mid-grace-period reconnect in ways not designed yet (can a disconnected player's
   pending draw offer survive a reconnect? should the timer pause?) - a real design
   question, not guessed at, tracked here rather than in `BLOCKED_QUESTIONS.md` since

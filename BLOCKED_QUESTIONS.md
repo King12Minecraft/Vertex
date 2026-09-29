@@ -18,7 +18,38 @@ raised.
 
 ## Open
 
-*(none open right now)*
+- **Does Trivia Blitz actually need `ReconnectRegistry`-style reconnection at all,
+  and if so, what should it look like?** Raised 2026-09-29 while working through the
+  reconnection backlog (ROADMAP.md previously listed "RPS and Trivia Blitz still
+  remain," assuming both needed the same treatment as the other 6 games). On closer
+  read, Trivia Blitz isn't actually the same shape of problem: every other
+  reconnect-aware game (TicTacToe, Connect Four, Checkers, Reversi, Dots and Boxes,
+  Word Duel, Battleship, RPS) is strictly 2-player and forfeit-based - one
+  disconnect means the match can't continue, so the whole point of
+  `ReconnectRegistry`/`ReconnectableMatch` is "give the other player a 45s grace
+  window before declaring them the winner by default." `TriviaMatch` is 2-6 players
+  and already deliberately does NOT forfeit on a disconnect -
+  `TriviaMatch.handleDisconnect()`'s own comment: "Their score stays locked in at
+  whatever they'd earned so far - the match keeps running for whoever's left." That
+  existing behavior is correct, not a bug: a 4-player trivia match shouldn't end
+  just because one person's wifi dropped. Retrofitting the current
+  `ReconnectableMatch` interface (built entirely around one named "opponent",
+  `mySymbol`, a single `boardState`) onto an N-player, non-forfeiting match would
+  mean either a real API redesign affecting all 8 existing adopters, or a
+  fundamentally different standalone mechanism ("let a disconnected player's
+  session rejoin and catch up on the current round" - closer to spectator-catch-up
+  than grace-period-forfeit) - not a small per-game accommodation like RPS's
+  boardState-repurposing was. Three real options, not guessed at: (a) build that
+  standalone rejoin-and-catch-up mechanism specifically for N-player matches
+  (genuinely new scope, not a `ReconnectRegistry` adopter), (b) decide Trivia
+  Blitz's current behavior (keep playing, lost score is just lost) is already good
+  enough and this doesn't need "reconnection" as a feature at all, or (c) something
+  else Bipin has in mind. **Reversible default applied to keep moving**: left
+  `TriviaMatch.handleDisconnect()` completely untouched - its current behavior is
+  reasonable and not a regression risk either way, so there's no code debt sitting
+  under this question, just an open design decision. `ROADMAP.md`'s reconnection
+  entry updated to describe this precisely rather than repeating "Trivia Blitz still
+  remains" as if it needs the same treatment as RPS did.
 
 ---
 
