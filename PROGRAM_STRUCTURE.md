@@ -310,11 +310,22 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   - every kernel-backed match type gets grace-period reconnect support for free the
   moment it adopts the kernel, added 2026-09-26 alongside the reconnect rollout below.
   Adopters: `CheckersMatchManager` and `ConnectFourMatchManager` (the original two,
-  proving the shape generalizes and the `matchIdPrefix` divergence case), plus
-  `ReversiMatchManager` and `DotsAndBoxesMatchManager` (converted from their own
-  hand-rolled queues while adding reconnect, since they needed a registry anyway) - a
-  wider rollout to the other ~22 `<Name>MatchManager` classes remains optional cleanup
-  for whenever one is next touched, not a requirement (see `ROADMAP.md`). ELO
+  proving the shape generalizes and the `matchIdPrefix` divergence case), `Reversi-
+  MatchManager` and `DotsAndBoxesMatchManager` (converted from their own hand-rolled
+  queues while adding reconnect, since they needed a registry anyway), and
+  `DiceDuelMatchManager`/`TypingDuelMatchManager` (2026-09-29 - plain 2-player FIFO
+  managers with no rematch/spectate/tournament glue, textbook conversions; hit the
+  same `matchIdPrefix` divergence Connect Four did - each game's real matchId format
+  has no hyphen while its `GAME_ID` does, and a first-pass conversion using the
+  kernel's short constructor would have silently changed it server-wide, caught by
+  `VertexServerTests/games/MatchmakingKernelAdoptersTest.java` before landing).
+  Neither Dice Duel's nor Typing Duel's `Match` class takes a `ReconnectRegistry`
+  (neither game has adopted reconnect), so unlike `CheckersMatchManager` these two
+  don't expose `kernel.getReconnectRegistry()`. A wider rollout to the remaining
+  ~20 `<Name>MatchManager` classes remains optional cleanup, adopted a couple at a
+  time whenever convenient, not a requirement (see `ROADMAP.md` for good next
+  candidates and which games are deliberately NOT drop-in fits as the kernel exists
+  today). ELO
   deliberately isn't part of this - `LeaderboardManager`'s rating math is a separate,
   already-shared concern untouched by matchmaking queue mechanics.
 - **`ReconnectRegistry.java`** — generic disconnect-grace-period mechanism, keyed by
@@ -1102,6 +1113,15 @@ and both trees still open/run directly in BlueJ).
   war whose `effectiveFromTick` must survive exactly rather than being
   reinterpreted relative to whatever tick the reloaded world starts at, and
   loading with no file present yielding a fresh empty world rather than an error.
+- **`games/MatchmakingKernelAdoptersTest.java`** (added alongside Dice Duel/Typing
+  Duel's `MatchmakingKernel` conversion, 2026-09-29) - added because it actually
+  caught a real bug before it shipped: a first-pass conversion of both managers
+  would have silently changed their matchId format (using the kernel's short
+  constructor defaults `matchIdPrefix` to `gameId`, but each game's real format
+  has no hyphen while `GAME_ID` does), and this test asserts the exact prefix a
+  real match-found message carries, not just that pairing happens at all - a
+  correctness-critical regression this project would otherwise have no way to
+  catch the next time this kernel gets a new adopter.
 - All five tests that touch a flat-file store hardcoding a relative file name
   (`GameSuggestionStore`/`AdminLog`/`FeedbackManager`/`DominionStore` all do -
   same pattern as `ServerAccountStore`) run from their own fresh temp working

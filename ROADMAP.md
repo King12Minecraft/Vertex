@@ -46,6 +46,26 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`MatchmakingKernel` rollout: Dice Duel and Typing Duel adopt it (5th and 6th
+  adopters), and a real bug caught before it shipped.** Both were textbook
+  candidates - plain 2-player FIFO managers with no rematch/spectate/tournament
+  glue to preserve, identical in shape to `CheckersMatchManager` before its own
+  conversion. Converting them surfaced the exact matchId-prefix-vs-gameId
+  divergence `MatchmakingKernel`'s own javadoc already warns about (Connect Four
+  hit it first): each game's original hand-rolled matchId format has no hyphen
+  ("diceduel-1"/"typingduel-1") while its `GAME_ID` (used for `QUEUE_UPDATE`/game
+  history) does ("dice-duel"/"typing-duel") - a first-pass conversion using the
+  kernel's short 4-arg constructor would have silently changed the matchId format
+  server-wide (defaults `matchIdPrefix` to `gameId`). Caught and fixed before
+  landing by explicitly passing a `MATCH_ID_PREFIX` constant via the kernel's 5-arg
+  constructor, and a new committed regression test
+  (`VertexServerTests/games/MatchmakingKernelAdoptersTest.java`, 14 checks) now
+  locks this in permanently - it would have failed against the buggy first pass.
+  Neither game's own `Match` class takes a `ReconnectRegistry` (neither has adopted
+  reconnect support), so unlike `CheckersMatchManager` these two don't expose
+  `kernel.getReconnectRegistry()` - not a capability either game actually has, so
+  not pretending it does. Mirrored byte-identical across both trees; `./test.sh`
+  green (6 tests, 50 checks total now).
 - **`ui/PlaceholderPanel.java`** - the shared "clear this container and drop in a
   muted label" primitive FriendsPanel/LeaderboardPanel/ShopPanel each independently
   hand-rolled for their own loading-failed/empty-list states, per this file's own
@@ -1594,15 +1614,27 @@ recorded below as they're confirmed.
 
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
-- **`matchmaking` kernel: rollout to the other ~22 `<Name>MatchManager` classes.**
-  `MatchmakingKernel`/`CheckersMatchManager`/`ConnectFourMatchManager`/
-  `ReversiMatchManager`/`DotsAndBoxesMatchManager` (done - see "Done" below) prove the
-  FIFO queue shape generalizes, including the real matchId-prefix-vs-gameId divergence
-  Connect Four and Dots and Boxes both needed; ELO itself already lives in
-  `LeaderboardManager` separately and isn't part of this kernel (queue mechanics and
-  rating are genuinely different concerns) - "shared ELO/queue logic" in this item's
-  original wording turned out to already be two separate, already-correct systems once
-  actually looked at, not one that needed merging.
+- **`matchmaking` kernel: rollout to the remaining ~20 `<Name>MatchManager`
+  classes continues - optional cleanup, not a requirement, adopted a couple more at
+  a time whenever convenient.** `MatchmakingKernel`/`CheckersMatchManager`/
+  `ConnectFourMatchManager`/`ReversiMatchManager`/`DotsAndBoxesMatchManager`/
+  `DiceDuelMatchManager`/`TypingDuelMatchManager` (all done - see "Done" below) prove
+  the FIFO queue shape generalizes, including the real matchId-prefix-vs-gameId
+  divergence Connect Four/Dots and Boxes/Dice Duel/Typing Duel all needed (a real bug
+  caught by a test before it shipped in the latter two - see the "Done" entry); ELO
+  itself already lives in `LeaderboardManager` separately and isn't part of this
+  kernel (queue mechanics and rating are genuinely different concerns) - "shared
+  ELO/queue logic" in this item's original wording turned out to already be two
+  separate, already-correct systems once actually looked at, not one that needed
+  merging. Good next candidates when this is picked up again: `AirHockeyMatchManager`,
+  `MemoryMatchMatchManager`, `SignalGridMatchManager`, `FusionGridMatchManager` -
+  each a plain 2-player FIFO manager with no rematch/spectate/tournament glue to
+  preserve, the same shape that made Dice Duel/Typing Duel easy conversions. Games
+  with real extra complexity (rematch support like Battleship/RPS/Word Duel's
+  `createDirectMatch`, tournament brackets, 3+ player queues like Trivia Blitz,
+  team-forming like Fight Arena) are deliberately NOT drop-in candidates for the
+  kernel as it exists today - forcing them in would mean growing the kernel's own
+  API, not just adopting it as-is.
 - **Procedural/emergent character system** — a general engine capability (not tied to
   one game): a pool of name/trait/role combinations that get spawned into a game when
   specific triggers fire (a rival general emerges after you conquer 3 provinces, a
