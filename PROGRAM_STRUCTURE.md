@@ -332,7 +332,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   (`reconnectGameId`/`reconnectTurnSymbol` plus the existing `matchId`/`symbol`/
   `opponentUsername`/`boardState` fields a match-found push already carries) - the
   client (`AuthWindow.resumeMatchIfPending`, via the small per-game
-  `reconnectMessageTypesFor()` lookup covering all 6 adopters' own message-type pairs)
+  `reconnectMessageTypesFor()` lookup covering all 8 adopters' own message-type pairs)
   reconstructs the equivalent of a fresh match-found + update locally from those fields
   and feeds them straight to a newly-built game window, deliberately not via a second
   server push to the reconnecting client's own socket (that race is explained in
@@ -364,9 +364,29 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   flagged gap: `ReconnectRegistry.ReconnectResult` has no slot for "every past shot," so
   the *reconnecting* player's own two grids repaint from a fresh fleet-layout MATCH_FOUND
   rather than replaying their hit-marker history - cosmetic only, server-side state
-  (whose turn, which cells are already fired) is never wrong. RPS and Trivia Blitz still
-  need their own per-game unpacking branch when their turn comes (see `ROADMAP.md`'s "In
-  Progress" entry).
+  (whose turn, which cells are already fired) is never wrong. **Rock Paper Scissors is the
+  8th adopter (2026-09-29)** (`RockPaperScissorsMatch`/`RockPaperScissorsMatchManager`
+  gained the same shape; `submitMove()` now rejects a move server-side while the opponent
+  is mid-grace-period, same freeze check as Battleship's `fire()`) - a third distinct
+  per-game accommodation, not a repeat of either earlier one: RPS has no board and no
+  turn at all (moves are blind and simultaneous), so neither `mySymbol` nor `boardState`
+  carries anything meaningful by default - `RockPaperScissorsMatch.onReconnect()` instead
+  packs the running score into `ReconnectResult.boardState` as `"myScore:opponentScore"`,
+  which `resumeMatchIfPending()`'s new `if ("rock-paper-scissors".equals(gameId))` branch
+  unpacks into the synthetic push's `rpsMyScore`/`rpsOpponentScore` fields before it's
+  replayed (client-side, `RockPaperScissorsWindow`'s `RPS_MATCH_FOUND` handling was
+  reading those two fields as an unconditional reset to 0-0 - now reads them off the
+  message instead, a one-line fix that costs a genuinely fresh match nothing since those
+  fields are simply unset/0 on one). No generic `*_UPDATE` message needed either, same as
+  Battleship: the live "resume" push to the still-connected opponent just reuses
+  `RPS_MATCH_FOUND` itself (with real `rpsMyScore`/`rpsOpponentScore` set, unlike the
+  login-response DTO's repurposed boardState) since there's no board/turn state a second
+  message would need to correct. Verified with a 15-check scratch test covering the same
+  six scenarios Battleship's did. Trivia Blitz remains the one online-multiplayer game
+  still not reconnect-aware (see `ROADMAP.md`'s "In Progress" entry) - genuinely
+  continuous-simulation games (Racing, Space Battle, Air Hockey, Fight Arena,
+  Zombie Survival) and Chess (deliberately not yet adopted, see above) are separate,
+  lower-priority cases.
 - **`TournamentManager.java`** — 4-player single-elimination bracket for Battleship and
   Rock Paper Scissors only (both always produce a decisive winner). **`TeamTournament-
   Manager.java`** — team version for Fight Arena's 2v2/3v3, registered by whole

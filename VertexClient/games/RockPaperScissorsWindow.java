@@ -448,7 +448,8 @@ public class RockPaperScissorsWindow extends JPanel implements NetworkManager.Pu
     {
         MessageType type = message.getType();
         boolean isRpsType = type == MessageType.RPS_MATCH_FOUND || type == MessageType.RPS_ROUND_RESULT
-            || type == MessageType.RPS_MATCH_OVER || type == MessageType.SPECTATE_ENDED;
+            || type == MessageType.RPS_MATCH_OVER || type == MessageType.SPECTATE_ENDED
+            || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isRpsType)
         {
             return;
@@ -470,13 +471,30 @@ public class RockPaperScissorsWindow extends JPanel implements NetworkManager.Pu
         {
             matchId = message.getMatchId();
             opponentUsername = message.getOpponentUsername();
-            myScore = 0;
-            opponentScore = 0;
+            // A genuinely fresh match-found never sets these fields (default 0), but
+            // this same message is also reused as the reconnect "resume" push (see
+            // RockPaperScissorsMatch.onReconnect()), which carries the real running
+            // score - reading it here rather than hardcoding 0 handles both cases
+            // with no separate branch needed.
+            myScore = message.getRpsMyScore();
+            opponentScore = message.getRpsOpponentScore();
             moveButtonRow.setVisible(true);
             statusLabel.setText("Choose your move.");
-            scoreLabel.setText("You 0 - " + opponentUsername + " 0");
+            scoreLabel.setText("You " + myScore + " - " + opponentUsername + " " + opponentScore);
 
             cardLayout.show(cards, GAME);
+        }
+        else if (message.getType() == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Match is paused, not over - the server gives the opponent a grace
+            // window to reconnect (see ReconnectRegistry) rather than declaring an
+            // immediate win/loss over what might just be a wifi hiccup. The server
+            // independently rejects a move submitted during this window too; hiding
+            // the move buttons just stops the player from clicking into what would
+            // be a silently-dropped request. Cleared by the RPS_MATCH_FOUND resume
+            // push above (or by RPS_MATCH_OVER if the window expires first).
+            moveButtonRow.setVisible(false);
+            statusLabel.setText(message.getErrorText());
         }
         else if (message.getType() == MessageType.RPS_ROUND_RESULT)
         {

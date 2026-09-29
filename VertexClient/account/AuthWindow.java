@@ -182,6 +182,33 @@ public class AuthWindow extends JFrame
             // which never reads triviaQuestion off a MATCH_FOUND push.
             found.setTriviaQuestion(loginResponse.getBoardState());
         }
+        if ("rock-paper-scissors".equals(gameId))
+        {
+            // RPS has no board and no turn (moves are blind and simultaneous), so
+            // neither symbol nor boardState carries anything meaningful by default -
+            // RockPaperScissorsMatch.onReconnect() instead packs the running score
+            // into boardState as "myScore:opponentScore" (see its own javadoc), which
+            // gets unpacked here into the two score fields RockPaperScissorsWindow's
+            // RPS_MATCH_FOUND handling already reads. Must happen before onPush below,
+            // not after (unlike the battleship/rock-paper-scissors early-returns
+            // further down, which only skip a later message rather than mutate this
+            // one).
+            String[] scores = loginResponse.getBoardState() != null
+                ? loginResponse.getBoardState().split(":") : new String[0];
+            if (scores.length == 2)
+            {
+                try
+                {
+                    found.setRpsMyScore(Integer.parseInt(scores[0]));
+                    found.setRpsOpponentScore(Integer.parseInt(scores[1]));
+                }
+                catch (NumberFormatException ignored)
+                {
+                    // Falls back to the Message default (0-0) - matches what a
+                    // genuinely fresh match-found already shows either way.
+                }
+            }
+        }
         listener.onPush(found);
 
         if ("battleship".equals(gameId))
@@ -195,6 +222,14 @@ public class AuthWindow extends JFrame
             // richly-shaped BATTLESHIP_FIRE_RESULT), and sending that with default/
             // null shot fields would misdraw a phantom hit on cell 0 rather than
             // just do nothing - so this game deliberately skips it instead.
+            return;
+        }
+
+        if ("rock-paper-scissors".equals(gameId))
+        {
+            // Same reasoning as battleship above - there's no generic RPS *_UPDATE
+            // type either, and the running score is already fully carried by the one
+            // MATCH_FOUND message just pushed above.
             return;
         }
 
@@ -251,6 +286,14 @@ public class AuthWindow extends JFrame
             // branch in resumeMatchIfPending above) - BATTLESHIP_FIRE_RESULT is only
             // here so the array has a legal MessageType in both slots.
             return new MessageType[] { MessageType.BATTLESHIP_MATCH_FOUND, MessageType.BATTLESHIP_FIRE_RESULT };
+        }
+        if ("rock-paper-scissors".equals(gameId))
+        {
+            // types[1] is never actually sent for RPS either (see the
+            // "rock-paper-scissors" branch in resumeMatchIfPending above) -
+            // RPS_ROUND_RESULT is only here so the array has a legal MessageType in
+            // both slots.
+            return new MessageType[] { MessageType.RPS_MATCH_FOUND, MessageType.RPS_ROUND_RESULT };
         }
         return null;
     }

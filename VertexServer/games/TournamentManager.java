@@ -135,7 +135,7 @@ public class TournamentManager
         else
         {
             String matchId = tournament.id + "-match-" + System.nanoTime();
-            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, rpsMatchManager, leaderboardManager, replayManager, null);
+            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, rpsMatchManager, leaderboardManager, replayManager, null, rpsMatchManager.getReconnectRegistry());
             match.setTournamentListener(listener);
             playerA.setCurrentRpsMatch(match);
             playerB.setCurrentRpsMatch(match);
