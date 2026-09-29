@@ -46,6 +46,25 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **The game-detail page is now a real in-app step, not a popup.** `GameDetailDialog`
+  (a full-window modal `JDialog`) is replaced by `games/GameDetailPanel`, a page in
+  `MainMenu`'s `CardLayout` (`Pages.GAME_DETAIL`), reached through the new
+  `MainMenu.showGameDetails(GameInfo)`. All 3 call sites moved over (`GameLauncher.launch`
+  - which covers Play buttons, quick-play, search results and invites - plus `GamesPanel`'s
+  art and name clicks). Back (or Escape) returns to **whichever page opened it**, per
+  Bipin's choice - not a fixed destination; opened from inside a running game (e.g.
+  accepting an invite mid-match) it falls back to the Games page, and it runs the same
+  "leave this match?" guard sidebar navigation does, now shared as
+  `confirmLeaveGameHost()`. Also fixed a real bug that predated the move: the rules
+  text was clipped at the card's right edge, because `<body style='width:520px'>` is
+  ignored on newer JDKs (the label reports ~676px and wraps too late) - the new panel
+  uses an HTML table width, which is honored everywhere. Verified with an Xvfb+Swing
+  screenshot (old dialog reproduced the clipping, new panel wraps inside the card) and
+  a live-`MainMenu` navigation test (open from All Games/Friends/Home/Shop and Back
+  returns to each; double-open keeps the original return page; leaving via the sidebar
+  works - 14 checks). All client-only, no `VertexServer` copy. **Not fixed, flagged:**
+  24 other labels across the client use the same `style='width:...'` pattern (e.g.
+  `GameRulesDialog`, `GameSuggestionsPanel`) and may clip the same way on a newer JDK.
 - **Real bug found and fixed: Trivia Blitz has been paying its winner(s) zero
   coins since the game shipped.** `TriviaMatch.finishMatch()` computes a pot via
   `EconomyConfig.getWinReward("trivia-blitz")` and splits it across everyone tied
@@ -1636,15 +1655,12 @@ recorded below as they're confirmed.
   future game/window**: grep for every external construction site of that game's
   window (not just `GameLauncher.java`) before considering it done - Chess's
   spectate-path bug is exactly the kind of thing that slips through otherwise.
-- Also still wanted: a true embedded `CardLayout` "Details" step (Discover -> Details
-  -> Mode -> ... -> Return, continuous with the rest of the flow) rather than
-  `GameDetailDialog`'s current modal popup (now full-screen-sized, see "Done" above,
-  but still a separate `JDialog` on top of the app rather than a step inside it) -
-  would mean auditing and rewriting all 3 of its call sites to hand off into
-  `MainMenu`'s game-host slot instead of `dialog.setVisible(true)`. Also still wanted:
-  a game should be able to have chat "popped out" alongside it while playing (with
-  some games, like a Gartic-Phone-style drawing game, needing chat *restricted* rather
-  than open, since free chat would let players just say the answer out loud).
+- Also still wanted: a game should be able to have chat "popped out" alongside it
+  while playing (with some games, like a Gartic-Phone-style drawing game, needing chat
+  *restricted* rather than open, since free chat would let players just say the answer
+  out loud) - approved 2026-09-29, to be built with a small shared package so a game
+  restricts chat with one line rather than bespoke code. (The other half of this note,
+  the true embedded "Details" step, is done - see "Done" above.)
 
 - **Reconnection rollout: every 2-player game is now covered; Chess and Trivia
   Blitz are the two remaining open questions, for different reasons (see below).**
@@ -1731,7 +1747,9 @@ recorded below as they're confirmed.
 ## 📋 Planned — social & community
 
 - **Standalone Forums section** — Reddit-style boards (one per game, plus general
-  discussion), separate from group chats.
+  discussion), separate from group chats. **Approved 2026-09-29 as a new tab in the
+  left sidebar** (its own `Pages` key, like Chat/Shop). Still needs a scoped design
+  (boards, posting, replies, moderation, server storage) agreed before any code.
 - **`GameSuggestionsPanel` structuring** — the other half of this item; `FeedbackDialog`
   (bug reports/suggestions about Vertex itself) is done, see "Done" below.
   `GameSuggestionsPanel` is a genuinely different, smaller feature though (pitching a
@@ -1740,11 +1758,9 @@ recorded below as they're confirmed.
   the right amount of structure rather than needing the same title/description/steps
   treatment. Left open rather than guessed at; worth a real look (not just copying
   FeedbackDialog's shape) before changing it.
-- **Slash commands + a free pattern-matching chatbot** — `/help`, `/rules chess`,
-  `/theme`, `/challenge @friend`, etc. Deliberately *not* a real LLM chatbot (that
-  costs money per message and needs an API key) — free and instant by design. A
-  bring-your-own-API-key *option* for real chat later is a separate, explicitly
-  opt-in idea, not the default.
+- ~~**Slash commands + a free pattern-matching chatbot**~~ — **removed from the backlog
+  2026-09-29 at Bipin's request** - no chatbot, no slash-command system. (Was: `/help`,
+  `/rules chess`, `/theme`, `/challenge @friend`; deliberately never a paid LLM chatbot.)
 - ~~**Discord**~~ — **resolved 2026-09-26: no platform integration wanted.** Bipin is
   running a Discord server for the project but will just share the invite link with
   the group directly - no webhook, no bot, nothing to build here.

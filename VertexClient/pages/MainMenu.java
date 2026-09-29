@@ -6,6 +6,8 @@ import ui.GameHubDialog;
 import ui.CursorTrailOverlay;
 import ui.ScreenBreakOverlay;
 import games.EmbeddedGamePanel;
+import games.GameDetailPanel;
+import games.GameInfo;
 import net.MessageType;
 import net.NetworkManager;
 import account.PermissionManager;
@@ -94,7 +96,10 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     private final JLayeredPane transitionPane;
     private final GamesPanel gamesPanel;
     private JPanel gameHostContainer;
+    private JPanel gameDetailContainer;
     private String currentPageKey = Pages.HOME;
+    /** Where the game-detail page's Back button goes - whichever page opened it (see showGameDetails). */
+    private String detailReturnPage = Pages.GAMES;
 
     public MainMenu()
     {
@@ -193,6 +198,9 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         gameHostContainer = new JPanel(new BorderLayout());
         gameHostContainer.setOpaque(false);
         contentPanel.add(gameHostContainer, Pages.GAME_HOST);
+        gameDetailContainer = new JPanel(new BorderLayout());
+        gameDetailContainer.setOpaque(false);
+        contentPanel.add(gameDetailContainer, Pages.GAME_DETAIL);
 
         Account current = Session.getCurrentAccount();
         if (PermissionManager.isAtLeastModerator(current))
@@ -314,21 +322,64 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
             return;
         }
 
-        if (Pages.GAME_HOST.equals(currentPageKey) && !Pages.GAME_HOST.equals(pageKey))
+        if (!Pages.GAME_HOST.equals(pageKey) && !confirmLeaveGameHost())
         {
-            Component hosted = gameHostContainer.getComponentCount() > 0 ? gameHostContainer.getComponent(0) : null;
-            if (hosted instanceof EmbeddedGamePanel && !((EmbeddedGamePanel) hosted).requestLeave())
-            {
-                // The game itself is handling this (e.g. showing its own
-                // "leave match?" confirm dialog) - don't navigate away yet.
-                // If the player does confirm, the game calls
-                // returnToGames() itself, which bypasses this guard since
-                // it's already been asked and answered once.
-                return;
-            }
+            return;
         }
 
         switchToPage(pageKey);
+    }
+
+    /**
+     * True if it's fine to navigate away from the current page. Only matters while a
+     * game is embedded in the GAME_HOST slot: if the game itself is handling this
+     * (e.g. showing its own "leave match?" confirm dialog) this returns false and the
+     * caller must not navigate yet - if the player does confirm, the game calls
+     * returnToGames() itself, which bypasses this guard since it's already been asked
+     * and answered once.
+     */
+    private boolean confirmLeaveGameHost()
+    {
+        if (!Pages.GAME_HOST.equals(currentPageKey))
+        {
+            return true;
+        }
+        Component hosted = gameHostContainer.getComponentCount() > 0 ? gameHostContainer.getComponent(0) : null;
+        return !(hosted instanceof EmbeddedGamePanel) || ((EmbeddedGamePanel) hosted).requestLeave();
+    }
+
+    /**
+     * Shows the "about this game" step for the given game - every Play action goes
+     * through this first (GameLauncher.launch and GamesPanel's art/name clicks). Back
+     * returns to whichever page opened it; if it was opened from inside a running game
+     * (e.g. accepting an invite mid-match) that page is the Games page instead, since
+     * the game itself is gone by then.
+     */
+    public void showGameDetails(final GameInfo game)
+    {
+        if (!confirmLeaveGameHost())
+        {
+            return;
+        }
+        if (!Pages.GAME_DETAIL.equals(currentPageKey))
+        {
+            detailReturnPage = Pages.GAME_HOST.equals(currentPageKey) ? Pages.GAMES : currentPageKey;
+        }
+        gameDetailContainer.removeAll();
+        gameDetailContainer.add(new GameDetailPanel(game, new Runnable()
+        {
+            public void run() { leaveGameDetails(); }
+        }), BorderLayout.CENTER);
+        gameDetailContainer.revalidate();
+        switchToPage(Pages.GAME_DETAIL);
+    }
+
+    /** Back from the game-detail page - clears it and returns to the page that opened it. */
+    private void leaveGameDetails()
+    {
+        gameDetailContainer.removeAll();
+        gameDetailContainer.revalidate();
+        switchToPage(detailReturnPage);
     }
 
     /** The actual page swap, without the leave-confirmation guard - onNavigate goes through that guard first; showGame(...)/returnToGames() call this directly since by the time either runs, leaving has already been decided (there was nothing at stake, or the game itself already asked and got a yes). */
@@ -454,6 +505,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         if (pageKey.equals(Pages.PROFILE))    return "Profile";
         if (pageKey.equals(Pages.SETTINGS))   return "Settings";
         if (pageKey.equals(Pages.MODERATION)) return "Moderation";
+        if (pageKey.equals(Pages.GAME_DETAIL)) return "Game Details";
         return "Games";
     }
 

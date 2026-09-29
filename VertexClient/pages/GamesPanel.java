@@ -2,7 +2,6 @@ package pages;
 import games.GameRulesDialog;
 import games.GameLauncher;
 import ui.StatusPill;
-import games.GameDetailDialog;
 import games.GameCardArt;
 import ui.HeroBanner;
 import economy.PinnedGamesStore;
@@ -588,7 +587,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         art.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         art.addMouseListener(new MouseAdapter()
         {
-            public void mouseClicked(MouseEvent e) { GameDetailDialog.show(art, game); }
+            public void mouseClicked(MouseEvent e) { MainMenu.getInstance().showGameDetails(game); }
         });
         artWrap.add(art, BorderLayout.CENTER);
 
@@ -621,7 +620,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         name.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         name.addMouseListener(new MouseAdapter()
         {
-            public void mouseClicked(MouseEvent e) { GameDetailDialog.show(name, game); }
+            public void mouseClicked(MouseEvent e) { MainMenu.getInstance().showGameDetails(game); }
         });
 
         JLabel type = new ThemedLabel(game.getType(), ThemeColor.TEXT_MUTED);

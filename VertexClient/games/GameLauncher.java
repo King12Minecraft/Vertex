@@ -17,14 +17,14 @@ import java.util.function.Supplier;
  * safety net.
  *
  * launch(...) is the ONLY public entry point, and every existing call
- * site already goes through it - it now shows GameDetailDialog (art,
- * tags, difficulty, full rules/controls text, a Play button) rather
- * than opening the game's window immediately, so there's no separate
- * "skip the rules page" path to accidentally wire a future button
- * into. GameDetailDialog's own Play button calls openGame(...) below
- * once someone has actually seen that page - package-private on
- * purpose, since GameDetailDialog is the only caller meant to reach
- * it directly.
+ * site already goes through it - it now shows the in-app game-detail
+ * page (GameDetailPanel via MainMenu.showGameDetails: art, tags,
+ * difficulty, full rules/controls text, a Play button) rather than
+ * opening the game's window immediately, so there's no separate "skip
+ * the rules page" path to accidentally wire a future button into.
+ * GameDetailPanel's own Play button calls openGame(...) below once
+ * someone has actually seen that page - package-private on purpose,
+ * since GameDetailPanel is the only caller meant to reach it directly.
  *
  * openGame itself used to be a 49-branch if/else, one per converted
  * game - by the time the embedded-games conversion finished, every
@@ -42,7 +42,7 @@ public class GameLauncher
         // Static utility class - never instantiated.
     }
 
-    /** Shows the game's rules/controls page first - see GameDetailDialog, whose own Play button is what actually starts the game (openGame(...) below). Coming-soon games skip straight to the existing "not converted yet" notice, since there's nothing to preview yet. */
+    /** Shows the game's rules/controls page first - see GameDetailPanel, whose own Play button is what actually starts the game (openGame(...) below). Coming-soon games skip straight to the existing "not converted yet" notice, since there's nothing to preview yet. */
     public static void launch(Component anchor, GameInfo game)
     {
         if (game.isComingSoon())
@@ -53,10 +53,10 @@ public class GameLauncher
             return;
         }
 
-        GameDetailDialog.show(anchor, game);
+        MainMenu.getInstance().showGameDetails(game);
     }
 
-    /** Actually opens the game's window - only meant to be called by GameDetailDialog's own Play button, once someone has already seen the rules page that launch(...) shows. */
+    /** Actually opens the game's window - only meant to be called by GameDetailPanel's own Play button, once someone has already seen the rules page that launch(...) shows. */
     static void openGame(Component anchor, GameInfo game)
     {
         try

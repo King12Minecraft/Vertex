@@ -11,7 +11,7 @@ import java.util.Map;
  * Extra descriptive info per game that GameInfo itself doesn't carry -
  * tags (2D, Multiplayer, Online, ELO-Rated, etc.) and a rough
  * difficulty rating. Purely client-side presentation data for
- * GameDetailDialog; none of this affects matchmaking or gameplay.
+ * GameDetailPanel; none of this affects matchmaking or gameplay.
  */
 public class GameMetadata
 {

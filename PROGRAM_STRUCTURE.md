@@ -226,10 +226,11 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
 - **`GameLauncher.java`** — the plugin **launch** dispatch, and the mandatory
   rules-page gate every "Play" entry point (games page, quick-play dropdown, global
   search, hero banner, game invites) already shares: `launch(Component, GameInfo)`,
-  the only public method, shows `GameDetailDialog` (art, tags, difficulty, rules,
-  a real Play button) instead of opening the game directly - there's no way to skip
+  the only public method, shows the in-app game-detail page (`GameDetailPanel` via
+  `MainMenu.showGameDetails(...)`: art, tags, difficulty, rules, a real Play button)
+  instead of opening the game directly - there's no way to skip
   straight to playing. Package-private `openGame(...)` (callable only from
-  `GameDetailDialog`'s own Play button, same package, once someone has actually seen
+  `GameDetailPanel`'s own Play button, same package, once someone has actually seen
   that page) is now a single `GameWindowFactory.factoryFor(id)` lookup instead of a
   branch per game: `MainMenu.getInstance().showGame(factory.get())` when a factory
   exists, otherwise the same "not converted yet" notice `launch(...)` already shows
@@ -442,7 +443,13 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
 - **`FileHash.java`** *(shared)* — SHA-256 helper backing the auto-update jar-hash
   check. **`GameRules.java`**/`GameRulesDialog.java` — static per-game "how to play"
   text + popup.
-- Shared dialog chrome reused across many games: `GamePickerDialog`, `GameDetailDialog`,
+- **`GameDetailPanel.java`** (replaced `GameDetailDialog`, 2026-09-29) — the "about
+  this game" step as a real page in `MainMenu`'s `CardLayout` (`Pages.GAME_DETAIL`), not
+  a modal popup. `MainMenu.showGameDetails(game)` builds one and remembers which page
+  opened it; Back/Escape returns there (Games page if it was opened from inside a running
+  game). Client-only. Wraps its rules text with an HTML table width because
+  `<body style='width:..'>` is ignored on newer JDKs.
+- Shared dialog chrome reused across many games: `GamePickerDialog`,
   `ConnectDialog`, `ServerBrowserDialog`, `SpectateDialog`
   (Chess-only), `RematchOfferDialog`, `ReplayBrowserDialog`. (`HostServerDialog` was
   removed 2026-09-25 along with the in-app hosting feature - see above.)
