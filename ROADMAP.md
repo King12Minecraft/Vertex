@@ -46,6 +46,21 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Audit + fix: 3 games had no `GameRules` entry, 2 had no `GameMetadata` entry.**
+  Found by actually diffing `GameRegistry`'s 53 real game IDs against both maps'
+  keys rather than assuming per-game setup was complete - `GameRules.get()`'s own
+  fallback ("No rules written for this game yet.") meant Hill Climb, Number Nest,
+  and Telephone were silently showing that placeholder to any player who clicked
+  their Rules button, and Hill Climb/Telephone were silently defaulting to
+  "Medium" difficulty with no tags at all in `GameDetailDialog`. Wrote real rules
+  text for all three (verified against each game's actual mechanics/controls in
+  code - `HillClimbWindow`'s real key bindings, `NumberNestGame`'s own javadoc,
+  `TelephoneWindow`'s real round-alternation flow - not guessed from the name) and
+  metadata tags for Hill Climb/Telephone. Verified via a scratch harness calling
+  `GameRules.get()`/`GameMetadata.getDifficulty()`/`getTags()` for all three ids
+  directly, and reran the diff to confirm zero gaps remain across all 53 games.
+  Both files are client-only presentation data (no `VertexServer` copy exists),
+  so no mirroring needed.
 - **`MatchmakingKernel` rollout continues: Card Rush, Snake Arena, and Tetris
   Duel adopt it (11th, 12th, and 13th adopters).** Same textbook shape as every
   round before this one - plain 2-player FIFO managers, no rematch/spectate/

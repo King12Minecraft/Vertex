@@ -75,6 +75,8 @@ public class GameMetadata
         tag("typing-duel", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated");
         tag("signal-grid", MEDIUM, "2D", "Multiplayer", "Online", "Turn-Based", "ELO-Rated", "Original");
         tag("card-rush", MEDIUM, "2D", "Multiplayer", "Online", "Real-Time", "ELO-Rated", "Card Game");
+        tag("hill-climb", MEDIUM, "2D", "Single Player", "Arcade");
+        tag("telephone", EASY, "2D", "Multiplayer", "Online", "Social", "Drawing");
     }
 
     private static void tag(String gameId, String difficulty, String... tags)

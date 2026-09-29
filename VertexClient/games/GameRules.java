@@ -46,6 +46,11 @@ public class GameRules
             + "with the same number merge into one with double the value when they collide. Reach "
             + "2048 to win - the board fills up fast, so plan your merges.");
 
+        RULES.put("number-nest", "A 5x5 grid, one piece at a time - place the offered number into any "
+            + "empty cell you choose (nothing slides). If your placement lands next to exactly one "
+            + "cell holding the same value, they merge into double that value. The game ends when the "
+            + "grid is completely full, so use the preview of the next piece to plan ahead.");
+
         RULES.put("dino-dash", "An endless runner - press Space (or Up) to jump over obstacles. "
             + "Speed increases the longer you survive. Press P to pause.");
 
@@ -236,6 +241,16 @@ public class GameRules
             + "orange ones crack and vanish after one bounce, and yellow spring platforms launch you "
             + "extra high. Falling below the bottom of the screen ends the run - your score is how "
             + "high you climbed.");
+
+        RULES.put("hill-climb", "Hold Right/D to accelerate, Left/A or Down/S to brake, as you drive "
+            + "across procedurally rolling hills. Your fuel tank drains while you drive - running "
+            + "dry ends the run. Score is how far you get before that happens.");
+
+        RULES.put("telephone", "4-8 players take turns writing a starting phrase, then the chain "
+            + "passes player to player: each round alternates between drawing what you were just "
+            + "handed and guessing what someone else's drawing shows, until every chain has gone all "
+            + "the way around the table. No scoring or winner - it ends with a reveal, stepping "
+            + "through every chain from its original phrase to its final, usually-mangled result.");
     }
 
     /** Falls back to a generic message for any game without a specific entry (shouldn't normally happen, but a missing lookup shouldn't crash the dialog). */
