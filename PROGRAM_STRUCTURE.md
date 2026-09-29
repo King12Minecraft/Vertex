@@ -1054,6 +1054,59 @@ repaint the inside of Snake/Tetris/etc. `ThemeDropdown.java` = the settings pick
 `ui` widgets consume `theme` (via `ThemeManager.getColor(role)`); `pages` panels are
 built from `ui` widgets; `NavIcons` lives in `ui`, consumed by `pages/Sidebar`.
 
+## VertexServerTests — the committed regression suite
+
+A sibling to `VertexServer/` and `VertexClient/`, not nested inside either -
+`build.sh` globs every `.java` file under those two trees straight into the
+shipped jars, so a test class living there would ship to every user's install.
+Compiled against `VertexServer`'s freshly-built classes on the classpath and run
+by `test.sh` (repo root, sibling to `build.sh`), which fails (nonzero exit) if any
+test reports a failure. No external test framework (JUnit etc.) - matches this
+project's zero-external-dependency philosophy (`build.sh` is plain `javac` + `jar`,
+and both trees still open/run directly in BlueJ).
+
+- **`support/Check.java`** - the one shared harness class every test uses: a
+  `check(label, condition)` call per assertion, a running `checks`/`failures`
+  count, and `finish()` as the last line of `main()` (prints the summary, calls
+  `System.exit(1)` on any failure) - formalizes the exact hand-rolled pattern every
+  prior scratch test already reinvented, not a new framework.
+- **`net/VertexSerializationFilterTest.java`** - a REAL `ObjectOutputStream`/
+  `ObjectInputStream` round trip through `VertexSerializationFilter.FILTER` (not
+  just a compile check): a `Message` carrying an `Account` and a full
+  `DominionSnapshot` (every `dominion.*` class the filter allow-lists, nested
+  three deep through a `List`) deserializes correctly, and a deliberately
+  non-allow-listed `java.util.HashMap` is actually rejected with an
+  `InvalidClassException` - proves the filter's deny-by-default `"!*"` tail
+  really denies, not just that the config string reads that way.
+- **`admin/GameSuggestionStoreTest.java`/`AdminLogTest.java`/
+  `FeedbackManagerTest.java`** - each submits an adversarial payload (an embedded
+  newline for the first two's one-line-per-entry format, an exact 64-dash
+  delimiter line for `FeedbackManager`'s block format) through the real
+  `submit()`/`log()` API, forces a real save-then-reload round trip via a second
+  fresh instance, and asserts the reloaded entries are byte-for-byte identical to
+  the pre-reload list - the unambiguous proof nothing split into a second, forged
+  entry. (An earlier version of the first two instead scanned for the *absence* of
+  a `"] admin:"`-shaped substring, which false-failed against correct behavior -
+  that exact forged-looking text is still legitimately present inline, as part of
+  the one correctly-merged entry the fix produces, since the fix strips the
+  newline rather than the attacker's characters. Caught and fixed before this
+  landed, not shipped flaky.)
+- **`dominion/DominionStoreTest.java`** - a full save/load round trip for every
+  entity type `DominionStore` persists, including a declared-but-not-yet-active
+  war whose `effectiveFromTick` must survive exactly rather than being
+  reinterpreted relative to whatever tick the reloaded world starts at, and
+  loading with no file present yielding a fresh empty world rather than an error.
+- All five tests that touch a flat-file store hardcoding a relative file name
+  (`GameSuggestionStore`/`AdminLog`/`FeedbackManager`/`DominionStore` all do -
+  same pattern as `ServerAccountStore`) run from their own fresh temp working
+  directory (`test.sh`'s job, not the test classes' own) so they never touch this
+  repo or collide with each other.
+- **Deliberately a small first batch, not a mandate to graduate every future
+  scratch test** - the reversible default from the 2026-09-28 testing-
+  infrastructure audit: the security/correctness-critical ones now, quick
+  one-off UI/visual checks stay scratch-and-discard. Whether *every* future test
+  should eventually graduate is still open - see `ROADMAP.md`.
+
 ---
 
 *Regenerated periodically as the codebase evolves — see the repo's commit history for

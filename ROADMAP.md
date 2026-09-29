@@ -46,6 +46,55 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Testing infrastructure formalized: the reversible default from the
+  2026-09-28 audit is now built.** Every verification this project has ever done -
+  roughly 30 of them across recent sessions, from the `VertexSerializationFilter`
+  round-trip tests to the injection-fix and reconnection tests - followed the exact
+  same shape without ever being told to: a throwaway `.java` file in the scratchpad,
+  a hand-rolled `checks`/`failures` counter, compiled once, run once, then deleted.
+  That worked and genuinely caught real bugs, but nothing survived to catch a
+  *regression* the next time someone touched that code. Built exactly the shape the
+  audit already decided, not guessed at further: `VertexServerTests/support/Check.java`
+  (a tiny shared harness formalizing the `check(label, condition)` + running-total
+  pattern every scratch test already reinvented by hand - a few lines, not a
+  framework, and deliberately no external test dependency like JUnit, matching this
+  project's zero-external-dependency `build.sh`/BlueJ philosophy) and `test.sh`
+  (sibling to `build.sh`: builds `VertexServer` fresh, compiles every
+  `VertexServerTests` class against it, runs each `main()` in its own fresh temp
+  working directory - several of these tests exercise flat-file stores that
+  hardcode a relative file name, so isolating each test's CWD keeps them from
+  colliding with each other or writing into the repo itself - and fails, nonzero
+  exit, if any test reports a failure). `VertexServerTests/` is a sibling to
+  `VertexServer/`, not nested inside it, so nothing here ships in the jar
+  (`build.sh` only ever globs `.java` files under `VertexServer/`/`VertexClient/`
+  themselves).
+  **First graduated batch (per the audit's own stated reversible default - the
+  security-relevant tests, not a mandate to commit all ~30 at once)**: the
+  `VertexSerializationFilter` round trip (a REAL `ObjectOutputStream`/
+  `ObjectInputStream` pair through the actual filter - a rich `Message` carrying an
+  `Account` and a full `DominionSnapshot` all correctly deserialize, and a
+  deliberately non-allow-listed `java.util.HashMap` is actually rejected with an
+  `InvalidClassException`, proving the deny-by-default tail really denies rather
+  than just reading that way in the config string), the three admin-store
+  entry-forgery fixes (`GameSuggestionStore`/`AdminLog`/`FeedbackManager` - each
+  submits an adversarial embedded-newline or exact-delimiter-line payload, then
+  forces a real save-then-reload round trip via a second fresh instance and asserts
+  the reloaded entries are byte-for-byte identical to what went in, not a forged
+  extra entry), and `DominionStore`'s full save/load round trip (every entity type,
+  including a declared-but-not-yet-active war whose `effectiveFromTick` must
+  survive exactly rather than being reinterpreted relative to the reloaded tick,
+  and loading with no file present yielding a fresh empty world rather than
+  erroring). 36 checks total across 5 committed tests, `./test.sh` green.
+  **A real bug caught in the tests themselves, not the product, while wiring this
+  up**: two of the admin-store tests originally scanned the reloaded output for the
+  *absence* of a `"] admin:"`-shaped substring as proof nothing was forged - but
+  that string legitimately still appears, inline, as part of the one correctly-merged
+  entry the fix produces (the fix strips the newline, it doesn't remove the
+  attacker's characters), so the check false-failed against passing code. Fixed by
+  asserting exact equality between the pre-reload and post-reload entry lists
+  instead - the actually-unambiguous way to prove nothing split into two entries -
+  rather than leaving a flaky assertion in a newly-"permanent" regression test.
+  README.md's file listing updated to mention `test.sh` alongside `build.sh`.
 - **Sky Hopper, a new original vertical-climber single-player game** - the games
   backlog's `Doodle Jump`-genre concept, distinct from every other single-player
   game here (nothing else is a vertical endless climber). Bounce automatically off
@@ -1545,53 +1594,6 @@ recorded below as they're confirmed.
   specific triggers fire (a rival general emerges after you conquer 3 provinces, a
   rebel leader after a revolt, etc.) — free, rule-based, no LLM. Fits Dominion's
   leader/succession system especially well, but meant to be usable by other games too.
-- **Testing infrastructure: formalize the harness (audited 2026-09-28, not built -
-  a real architecture decision, not guessed at).** Every verification this project has
-  ever done - roughly 30 of them across this session alone, from the `VertexSerialization
-  Filter` round-trip tests to tonight's injection-fix and reconnection tests - follows
-  the exact same shape without ever being told to: a throwaway `.java` file in the
-  scratchpad, a hand-rolled `checks`/`failures` counter and a `check(label, condition)`
-  helper, compiled against a fresh `javac` output directory, run once, then deleted.
-  It works, and it's genuinely caught real bugs (tonight's `GameSuggestionStore`
-  forgery bug among them) - but nothing survives to catch a *regression* the next time
-  someone touches that code, and every test's `check()` boilerplate gets reinvented
-  from scratch. "Formalizing" this for real means deciding, not assuming:
-  - **No external test framework (JUnit, etc.).** This project has zero external
-    dependencies by design - `build.sh` is plain `javac` + `jar`, no Maven/Gradle, and
-    both trees still open and run directly in BlueJ (`package.bluej` files in each
-    folder). Adding JUnit would mean either a build-tool BlueJ can't see, or manually
-    vendoring a `.jar` - a real philosophy break, not a small addition. The existing
-    hand-rolled `check()` pattern already does everything these tests actually need
-    (a label, a boolean, a running count) and costs nothing to keep using - the honest
-    move is to formalize *that* pattern, not replace it.
-  - **Where committed tests would live.** Not inside `VertexServer`/`VertexClient`
-    themselves - `build.sh` compiles every `.java` file under those trees straight into
-    the shipped jar, so a test class sitting there would ship to every user's install.
-    A sibling `VertexServerTests/` (compiled against `VertexServer`'s classes on the
-    classpath, the same way tonight's scratch tests already do with `-cp`) keeps tests
-    out of the product entirely, mirroring how `VertexClient`/`VertexServer` are
-    already siblings rather than nested.
-  - **A tiny shared harness class**, e.g. `VertexServerTests/support/Check.java`, just
-    formalizing the `check(label, condition)` + running-total pattern every scratch
-    test already reinvents by hand - a few lines, not a framework.
-  - **`test.sh`**, a sibling to `build.sh`: compile every test class against the
-    relevant tree's freshly-built classes, run each `main()`, fail the script (nonzero
-    exit) if any test reports a failure - so this becomes a real, repeatable
-    "did I break anything" step, not something only ever run ad hoc mid-session.
-  - **What's genuinely undecided, worth Bipin's steer rather than a guess**: whether
-    *every* future scratch test should graduate into a permanently-committed
-    regression test (maximum safety, real ongoing maintenance burden as the game
-    catalog keeps growing - close to 50 games and counting), or only the
-    security/correctness-critical ones (the serialization filter, save-format
-    round trips, economy/reward math, anything touching real money-equivalent
-    state) while quick one-off UI/visual checks stay scratch-and-discard as they are
-    today. Recorded here rather than guessed at; a reasonable reversible default
-    if this needs to move before that's answered: commit the shape (`VertexServerTests/`,
-    `Check.java`, `test.sh`) and start by graduating only this session's
-    security-relevant tests (the injection fixes, the serialization filter, Dominion's
-    save-format round trips) as the first, deliberately small batch - not a mandate to
-    commit all ~30 of tonight's tests at once.
-
 ## 📋 Planned — social & community
 
 - **Standalone Forums section** — Reddit-style boards (one per game, plus general
