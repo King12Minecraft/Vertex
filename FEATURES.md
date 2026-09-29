@@ -7,7 +7,7 @@ lot of what's below and shouldn't be treated as current. This file is.
 
 ---
 
-## Games (52 playable)
+## Games (53 playable)
 
 ### Online multiplayer, ELO-rated
 - **Chess** — full rules including castling, en passant, checkmate/stalemate. Resign or offer a draw mid-game. Spectate live matches, replay finished ones move-by-move.
@@ -23,6 +23,7 @@ lot of what's below and shouldn't be treated as current. This file is.
 - **Zombie Survival** — 2–4 players, co-op wave shooter. Everyone gets the same seeded zombie spawn sequence and fights it out independently; survive all 8 waves for the full coin reward.
 - **Space Battle** — 3–6 players, arcade dogfight against asteroids/enemy fighters over a fixed time limit. Ranked by score; 1st/2nd/3rd earn coins.
 - **Among Us** — round-based social deduction with a small group.
+- **Trivia Blitz** — 2–6 players answer the same 8 general-knowledge questions; correct answers score points with a speed bonus, highest total wins. Disconnecting doesn't forfeit the match for everyone else - your score just stays locked in at whatever you'd earned (see `BLOCKED_QUESTIONS.md` for why this genuinely-different-shaped game hasn't adopted the 2-player reconnection grace period below).
 
 ### Solo tournaments
 Battleship & Rock Paper Scissors only (both games always produce a clear winner): 4-player single-elimination brackets, browsable and joinable from the Tournaments page.
@@ -37,7 +38,7 @@ After any Chess, Battleship, or RPS match, challenge the same opponent again wit
 - **Telephone** — 4–8 players, a Gartic-Phone-style draw/guess chain. Everyone writes a starting phrase, then the phrase gets passed player to player, alternating "draw what you were just handed" and "guess what this drawing shows" each round, until every chain has gone all the way around the table. Ends with a reveal - step through every chain from its original phrase to its final, usually-mangled result. Purely social - everyone gets a flat coin reward just for playing, no ranking involved.
 
 ### Single-player (no server required; wins/scores still tracked if logged in)
-Snake, Tetris, 2048, Number Nest, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Gem Match, Maze Chase, Brick Breaker, Flappy Bird, Galaxy Defender, Word Guess, Bubble Shooter, Lights Out, Peg Solitaire, Klondike Solitaire, Yahtzee, Mancala (vs. a built-in AI), and Rock Paper Scissors against a simple AI. Number Nest is an original number-merge puzzle distinct from 2048 - place one piece at a time into a 5x5 grid instead of sliding the whole board. Snake, Tetris, and Dino Dash support pausing (**P**). Every game — online or solo — now renders with a fixed color palette that ignores your app theme choice (see Customization below); only the previous 4 games (mostly the newest ones) had this problem before it was fixed platform-wide.
+Snake, Tetris, 2048, Number Nest, Pong, Dino Dash, Crossing Road, Puzzle Quest, Aim Trainer, Minesweeper, Sudoku, Simon Says, Whack-a-Mole, Gem Match, Maze Chase, Brick Breaker, Flappy Bird, Galaxy Defender, Word Guess, Bubble Shooter, Lights Out, Peg Solitaire, Klondike Solitaire, Yahtzee, Mancala (vs. a built-in AI), Rock Paper Scissors against a simple AI, **Hill Climb** — drive a simple two-wheel vehicle across procedurally-generated rolling hills, managed by a limited fuel tank; score is how far you get before running dry - and **Sky Hopper** — an original vertical climber (`Doodle Jump` genre): bounce up a procedurally-generated tower of platforms, some moving, some breakable, some one-time springs, without falling off the bottom of the screen; score is how high you climb. Both share an `engine` package (`GameLoop`/`Vector2`) for their physics/game-loop plumbing. Number Nest is an original number-merge puzzle distinct from 2048 - place one piece at a time into a 5x5 grid instead of sliding the whole board. Snake, Tetris, and Dino Dash support pausing (**P**). Every game — online or solo — now renders with a fixed color palette that ignores your app theme choice (see Customization below); only the previous 4 games (mostly the newest ones) had this problem before it was fixed platform-wide.
 
 ---
 
@@ -142,8 +143,9 @@ written down, not built yet - see the design doc's "Future depth" sections.
 - **Global search** — a search box in the top bar; matches game names (launches directly) and friend usernames (navigates to Messages) as you type.
 - **Escape closes every dialog** — all ~19 custom popups in the app, not just their own Close/Cancel button.
 - **Auto-reconnect** — a dropped server connection is retried automatically.
-- **Match reconnection grace period** — Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes, and Word Duel give a disconnected (logged-in) opponent 45 seconds to log back in and resume before the match forfeits - a wifi hiccup doesn't have to cost you the match you were winning. Guests don't get this (no stable identity to hold a slot open for); every other online game still forfeits immediately on disconnect, same as before this existed.
+- **Match reconnection grace period** — Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes, Word Duel, Battleship, and Rock Paper Scissors give a disconnected (logged-in) opponent 45 seconds to log back in and resume before the match forfeits - a wifi hiccup doesn't have to cost you the match you were winning. Guests don't get this (no stable identity to hold a slot open for); every other online game still forfeits immediately on disconnect, same as before this existed.
 - **Confirm-before-close** on any active match, so an accidental click doesn't silently hand your opponent a win.
+- **Mandatory screen break** — every 20 minutes of active screen time, a full-screen overlay forces a non-skippable 30-second look-away break before you can keep using the app; if you're mid-match it waits until the match ends rather than interrupting it. No way to dismiss or opt out early - it's a health nudge, not a suggestion.
 - **Low-end hardware support** — `-LowEnd` launcher scripts (smaller heap, serial GC) plus Performance Mode above.
 - **Auto-detecting launchers** — the `.bat` files find Java themselves (checking common install locations, BlueJ's own bundled JDK included) instead of requiring it on PATH.
 
