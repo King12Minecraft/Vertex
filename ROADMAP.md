@@ -46,6 +46,30 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`MatchmakingKernel` rollout continues: Card Rush, Snake Arena, and Tetris
+  Duel adopt it (11th, 12th, and 13th adopters).** Same textbook shape as every
+  round before this one - plain 2-player FIFO managers, no rematch/spectate/
+  tournament glue, none of the three `Match` classes take a `ReconnectRegistry`
+  so none of the three managers expose `kernel.getReconnectRegistry()`. Original
+  matchId prefixes ("cardrush-"/"snakearena-"/"tetrisduel-") checked and
+  hardcoded via the kernel's 5-arg constructor before writing any code, the same
+  as every round since the Dice Duel/Typing Duel bug taught this lesson - they
+  diverge from `GAME_ID` ("card-rush"/"snake-arena"/"tetris-duel") the same way
+  every hyphenated-GAME_ID adopter so far has. Also screened out three managers
+  that look similar but aren't 1v1 fits for this kernel: `RacingMatchManager`/
+  `SpaceBattleMatchManager` (3-6 player group races, not pairs) and
+  `SquareWarsMatchManager` (2-4 player groups) - the kernel only pairs exactly
+  two waiting players, so a group-formation manager isn't a drop-in conversion
+  without kernel changes it doesn't need yet. Also confirmed `ChessMatchManager`
+  isn't a "textbook" candidate either - it has `createDirectMatch`/
+  `addSpectator`/`listSpectatableMatches` the kernel doesn't support, same
+  reasoning that excluded other spectate-capable managers from earlier rounds.
+  `MatchmakingKernelAdoptersTest.java` extended with three more test methods
+  (49 checks in that file now, 85 across the whole suite). Mirrored
+  byte-identical across both trees; `./test.sh` green. ~13
+  `<Name>MatchManager` classes remain as this optional cleanup's backlog
+  (multiplayer/spectate-shaped ones excluded, since the kernel doesn't fit them
+  as it stands today).
 - **`MatchmakingKernel` rollout continues: Signal Grid and Fusion Grid adopt it
   (9th and 10th adopters).** Same textbook shape as every round before this one -
   plain 2-player FIFO managers, no rematch/spectate/tournament glue, neither

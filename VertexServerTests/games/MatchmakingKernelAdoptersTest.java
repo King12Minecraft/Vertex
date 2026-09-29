@@ -17,15 +17,15 @@ import java.util.List;
  * adopted) - a "zero observable behavior change" refactor, verified rather than
  * assumed. Specifically exercises the exact gotcha MatchmakingKernel's own
  * javadoc calls out: matchIdPrefix can genuinely diverge from gameId (Connect
- * Four hit this first), and all six of these conversions hit it too - the
+ * Four hit this first), and all nine of these conversions hit it too - the
  * original hand-rolled matchId formats ("diceduel-1"/"typingduel-1"/
- * "airhockey-1"/"memory-1"/"signalgrid-1"/"fusiongrid-1") diverge from each
- * GAME_ID used for QUEUE_UPDATE/game history ("dice-duel"/"typing-duel"/
- * "air-hockey"/"memory-match"/"signal-grid"/"fusion-grid"). A naive conversion
- * using the short 4-arg MatchmakingKernel constructor would silently produce
- * "dice-duel-1"/"typing-duel-1"/"air-hockey-1"/"memory-match-1"/
- * "signal-grid-1"/"fusion-grid-1" instead - this test would have caught that
- * regression.
+ * "airhockey-1"/"memory-1"/"signalgrid-1"/"fusiongrid-1"/"cardrush-1"/
+ * "snakearena-1"/"tetrisduel-1") diverge from each GAME_ID used for
+ * QUEUE_UPDATE/game history ("dice-duel"/"typing-duel"/"air-hockey"/
+ * "memory-match"/"signal-grid"/"fusion-grid"/"card-rush"/"snake-arena"/
+ * "tetris-duel"). A naive conversion using the short 4-arg MatchmakingKernel
+ * constructor would silently produce the hyphenated form instead - this test
+ * would have caught that regression.
  */
 public class MatchmakingKernelAdoptersTest
 {
@@ -75,6 +75,9 @@ public class MatchmakingKernelAdoptersTest
         testMemoryMatchMatchIdPrefixAndPairing(check);
         testSignalGridMatchIdPrefixAndPairing(check);
         testFusionGridMatchIdPrefixAndPairing(check);
+        testCardRushMatchIdPrefixAndPairing(check);
+        testSnakeArenaMatchIdPrefixAndPairing(check);
+        testTetrisDuelMatchIdPrefixAndPairing(check);
         testQueueingAndCancelling(check);
 
         check.finish();
@@ -204,6 +207,69 @@ public class MatchmakingKernelAdoptersTest
             found == null || !found.getMatchId().startsWith("fusion-grid-"));
         check.check("FusionGrid: the opponent also received a match-found message",
             b.lastOfType(MessageType.FUSIONGRID_MATCH_FOUND) != null);
+    }
+
+    private static void testCardRushMatchIdPrefixAndPairing(Check check)
+    {
+        CardRushMatchManager manager = new CardRushMatchManager(null,
+            new economy.GameHistoryManager(), new social.ChatManager(), null);
+
+        FakeHandler a = new FakeHandler("Niaj", 14);
+        FakeHandler b = new FakeHandler("Olivia", 15);
+        manager.findMatch(a);
+        manager.findMatch(b);
+
+        Message found = a.lastOfType(MessageType.CARDRUSH_MATCH_FOUND);
+        check.check("CardRush: both players get matched (queue empties)", manager.getQueueCount() == 0);
+        check.check("CardRush: a real match-found message was sent", found != null);
+        check.check("CardRush: matchId keeps its original no-hyphen prefix ('cardrush-', not 'card-rush-')",
+            found != null && found.getMatchId() != null && found.getMatchId().startsWith("cardrush-"));
+        check.check("CardRush: matchId does NOT use the hyphenated GAME_ID as its prefix",
+            found == null || !found.getMatchId().startsWith("card-rush-"));
+        check.check("CardRush: the opponent also received a match-found message",
+            b.lastOfType(MessageType.CARDRUSH_MATCH_FOUND) != null);
+    }
+
+    private static void testSnakeArenaMatchIdPrefixAndPairing(Check check)
+    {
+        SnakeArenaMatchManager manager = new SnakeArenaMatchManager(null,
+            new economy.GameHistoryManager(), new social.ChatManager(), null);
+
+        FakeHandler a = new FakeHandler("Peggy", 16);
+        FakeHandler b = new FakeHandler("Quentin", 17);
+        manager.findMatch(a);
+        manager.findMatch(b);
+
+        Message found = a.lastOfType(MessageType.SNAKEARENA_MATCH_FOUND);
+        check.check("SnakeArena: both players get matched (queue empties)", manager.getQueueCount() == 0);
+        check.check("SnakeArena: a real match-found message was sent", found != null);
+        check.check("SnakeArena: matchId keeps its original no-hyphen prefix ('snakearena-', not 'snake-arena-')",
+            found != null && found.getMatchId() != null && found.getMatchId().startsWith("snakearena-"));
+        check.check("SnakeArena: matchId does NOT use the hyphenated GAME_ID as its prefix",
+            found == null || !found.getMatchId().startsWith("snake-arena-"));
+        check.check("SnakeArena: the opponent also received a match-found message",
+            b.lastOfType(MessageType.SNAKEARENA_MATCH_FOUND) != null);
+    }
+
+    private static void testTetrisDuelMatchIdPrefixAndPairing(Check check)
+    {
+        TetrisDuelMatchManager manager = new TetrisDuelMatchManager(null,
+            new economy.GameHistoryManager(), new social.ChatManager(), null);
+
+        FakeHandler a = new FakeHandler("Rupert", 18);
+        FakeHandler b = new FakeHandler("Sybil", 19);
+        manager.findMatch(a);
+        manager.findMatch(b);
+
+        Message found = a.lastOfType(MessageType.TETRISDUEL_MATCH_FOUND);
+        check.check("TetrisDuel: both players get matched (queue empties)", manager.getQueueCount() == 0);
+        check.check("TetrisDuel: a real match-found message was sent", found != null);
+        check.check("TetrisDuel: matchId keeps its original no-hyphen prefix ('tetrisduel-', not 'tetris-duel-')",
+            found != null && found.getMatchId() != null && found.getMatchId().startsWith("tetrisduel-"));
+        check.check("TetrisDuel: matchId does NOT use the hyphenated GAME_ID as its prefix",
+            found == null || !found.getMatchId().startsWith("tetris-duel-"));
+        check.check("TetrisDuel: the opponent also received a match-found message",
+            b.lastOfType(MessageType.TETRISDUEL_MATCH_FOUND) != null);
     }
 
     private static void testQueueingAndCancelling(Check check)

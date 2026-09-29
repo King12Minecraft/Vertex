@@ -332,8 +332,17 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   identical shape and the same `matchIdPrefix` divergence ("signalgrid-"/
   "fusiongrid-" vs. `GAME_ID`s "signal-grid"/"fusion-grid"), prefixes hardcoded
   correctly from the start; neither's `Match` class takes a `ReconnectRegistry`
-  either. A wider rollout to the remaining ~16 `<Name>MatchManager` classes
-  remains optional cleanup, adopted a couple at a time whenever convenient, not a
+  either. Also `CardRushMatchManager`/`SnakeArenaMatchManager`/
+  `TetrisDuelMatchManager` (2026-09-29, same day's work) - identical shape and
+  the same `matchIdPrefix` divergence ("cardrush-"/"snakearena-"/"tetrisduel-"
+  vs. `GAME_ID`s "card-rush"/"snake-arena"/"tetris-duel"), prefixes hardcoded
+  correctly from the start; none of the three `Match` classes take a
+  `ReconnectRegistry` either. `RacingMatchManager`/`SpaceBattleMatchManager`
+  (3-6 player group races)/`SquareWarsMatchManager` (2-4 player groups) and
+  `ChessMatchManager` (spectator support the kernel doesn't have) were checked
+  and screened out as not drop-in fits for this kernel as it exists today. A
+  wider rollout to the remaining ~13 `<Name>MatchManager` classes remains
+  optional cleanup, adopted a couple at a time whenever convenient, not a
   requirement (see `ROADMAP.md` for good next candidates and which games are
   deliberately NOT drop-in fits as the
   kernel exists today). ELO
