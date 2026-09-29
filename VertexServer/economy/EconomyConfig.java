@@ -36,6 +36,14 @@ public class EconomyConfig
         if ("card-rush".equals(gameId))        return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         if ("telephone".equals(gameId))        return 20;
+        // Found missing during an audit (2026-09-29): TriviaMatch.finishMatch() has
+        // always called getWinReward("trivia-blitz") to compute the pot every winner
+        // splits, but "trivia-blitz" was never added to this table - every Trivia
+        // Blitz match has been silently paying its winner(s) zero coins since the game
+        // shipped. 20 matches Among Us's tier (also a small multiplayer group, EASY
+        // difficulty here vs. Among Us's Medium) - a reasonable, retunable default,
+        // not a guess at an untested balance number.
+        if ("trivia-blitz".equals(gameId))     return 20;
         return 0;
     }
 

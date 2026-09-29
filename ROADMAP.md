@@ -46,6 +46,26 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Real bug found and fixed: Trivia Blitz has been paying its winner(s) zero
+  coins since the game shipped.** `TriviaMatch.finishMatch()` computes a pot via
+  `EconomyConfig.getWinReward("trivia-blitz")` and splits it across everyone tied
+  for the top score - but `"trivia-blitz"` was never added to `getWinReward()`'s
+  table, so the lookup silently fell through to the `return 0` default and the
+  `perWinnerReward > 0` guard meant `awardMatchWinCoins()` never even got called.
+  Found by extending the same "diff the real ids against what a per-game table
+  actually covers" audit technique from the `GameRules`/`GameMetadata` fix above
+  to `EconomyConfig` - grepped every `Match` class for a call to
+  `EconomyManager.awardWin(...)` or `EconomyConfig.getWinReward(...)` directly
+  (the two real call paths) to get the complete list of 24 games that actually
+  need a `getWinReward()` entry, confirmed all 24 were now covered after adding
+  trivia-blitz (worth 20, matching Among Us's small-multiplayer-group tier - a
+  reasonable, retunable default, not a guessed balance number), and found no
+  other gaps. New committed regression test
+  (`VertexServerTests/economy/EconomyConfigTest.java`, 25 checks) locks in the
+  full set so a future game that calls either award path without a matching
+  table entry fails a test instead of silently paying nothing forever.
+  Mirrored byte-identical across both trees; `./test.sh` green (7 tests, 110
+  checks total).
 - **Audit + fix: 3 games had no `GameRules` entry, 2 had no `GameMetadata` entry.**
   Found by actually diffing `GameRegistry`'s 53 real game IDs against both maps'
   keys rather than assuming per-game setup was complete - `GameRules.get()`'s own

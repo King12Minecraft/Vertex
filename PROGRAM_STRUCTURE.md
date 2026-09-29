@@ -838,7 +838,14 @@ already happen rather than needing their own call site in every match.
   score→coin formulas (Snake folded in here 2026-09-26 — see `EconomyKernel.java`, it
   used to be its own `getSnakeReward()` special case), one shared placement-reward table
   for Racing/Space Battle, the 7-day daily-login streak table, challenge definitions,
-  shop catalog. The one place all economy numbers live.
+  shop catalog. The one place all economy numbers live. **`getWinReward()`'s table was
+  missing a "trivia-blitz" entry until 2026-09-29** — `TriviaMatch` had always looked
+  it up to compute its winner pot, so the game had been silently paying zero coins
+  since it shipped; found by grepping every `Match` class for its actual
+  `EconomyManager.awardWin(...)`/`EconomyConfig.getWinReward(...)` call site to get
+  the real list of 24 games this table needs to cover (see `ROADMAP.md`'s "Done"
+  section), not by guessing from the games list. `VertexServerTests/economy/
+  EconomyConfigTest.java` now locks that full set in.
 - **`LeaderboardManager.java`** — per-game ELO (K=32, start 1200) for symmetric 1v1
   games; a pairwise-ELO approximation for Fight Arena's N-player matches; separate
   best-score tracking for score-based games. Among Us is deliberately excluded from ELO
@@ -1142,6 +1149,15 @@ and both trees still open/run directly in BlueJ).
   real match-found message carries, not just that pairing happens at all - a
   correctness-critical regression this project would otherwise have no way to
   catch the next time this kernel gets a new adopter.
+- **`economy/EconomyConfigTest.java`** (added 2026-09-29) - same "it actually
+  caught a real bug" bar as the test above: Trivia Blitz had been silently
+  paying its winner(s) zero coins since it shipped (`getWinReward()`'s table was
+  missing a "trivia-blitz" entry the game's own code had always looked up - see
+  `EconomyConfig.java`'s note and `ROADMAP.md`'s "Done" section). Asserts every
+  one of the 24 game ids that actually call `EconomyManager.awardWin(...)`/
+  `EconomyConfig.getWinReward(...)` gets a real, nonzero reward rather than
+  silently falling through to the "unrecognized id" default - the exact
+  category of bug this file's own zero-coins incident was.
 - All five tests that touch a flat-file store hardcoding a relative file name
   (`GameSuggestionStore`/`AdminLog`/`FeedbackManager`/`DominionStore` all do -
   same pattern as `ServerAccountStore`) run from their own fresh temp working
