@@ -312,6 +312,10 @@ public class AuthWindow extends JFrame
         {
             return new MessageType[] { MessageType.FUSIONGRID_MATCH_FOUND, MessageType.FUSIONGRID_UPDATE };
         }
+        if ("card-rush".equals(gameId))
+        {
+            return new MessageType[] { MessageType.CARDRUSH_MATCH_FOUND, MessageType.CARDRUSH_UPDATE };
+        }
         if ("typing-duel".equals(gameId))
         {
             return new MessageType[] { MessageType.TYPINGDUEL_MATCH_FOUND, MessageType.TYPINGDUEL_ROUND_START };

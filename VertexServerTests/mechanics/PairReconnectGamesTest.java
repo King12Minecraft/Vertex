@@ -6,6 +6,8 @@ import account.ServerAccountStore;
 import games.DiceDuelMatch;
 import games.DiceDuelMatchManager;
 import games.FusionGridMatch;
+import games.CardRushMatch;
+import games.CardRushMatchManager;
 import games.MemoryMatchMatch;
 import games.TypingDuelMatch;
 import games.TypingDuelMatchManager;
@@ -245,6 +247,37 @@ public class PairReconnectGamesTest
             public String startTurn() { return "0:0|0:0"; }
             public String slotOneSymbol() { return "B"; }
         }, 600);
+
+        run(check, new Game()
+        {
+            public Object create(ClientHandler a, ClientHandler b)
+            {
+                CardRushMatchManager m = new CardRushMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+                CardRushMatch match = new CardRushMatch("cr-t", a, b, m, economy(), null);
+                match.start();
+                return match;
+            }
+            /** Forces a legal play (a 6 onto a 5) so the test doesn't depend on the random deal. */
+            public void moveByA(Object match, ClientHandler a)
+            {
+                try
+                {
+                    Field hand = CardRushMatch.class.getDeclaredField("handA");
+                    hand.setAccessible(true);
+                    Field pile = CardRushMatch.class.getDeclaredField("centerPile1");
+                    pile.setAccessible(true);
+                    ((java.util.List<Integer>) hand.get(match)).set(0, 60);
+                    pile.setInt(match, 50);
+                }
+                catch (Exception e) { throw new RuntimeException(e); }
+                ((CardRushMatch) match).playCard(a, 60, 1);
+            }
+            public MessageType updateType() { return MessageType.CARDRUSH_UPDATE; }
+            public MessageType resultType() { return MessageType.CARDRUSH_RESULT; }
+            public String gameId() { return "card-rush"; }
+            public String startTurn() { return "-"; }
+            public String slotOneSymbol() { return "B"; }
+        }, 800);
 
         // --- Typing Duel only: a round that comes due while a player is away starts when they return ---
         {
