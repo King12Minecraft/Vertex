@@ -1,4 +1,6 @@
 package games;
+import mechanics.ReconnectPolicy;
+import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
 import economy.EconomyManager;
@@ -266,7 +268,7 @@ public class RockPaperScissorsMatch
                 over = true;
                 bothNowGone = true;
             }
-            else if (who.getAccountId() == null)
+            else if (!ReconnectPolicy.canReconnect(who, GAME_ID))
             {
                 // Guests never get a grace period - no stable identity to reconnect
                 // against, so a guest disconnect finalizes immediately exactly as
@@ -283,7 +285,7 @@ public class RockPaperScissorsMatch
                 Message notice = new Message();
                 notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
                 notice.setMatchId(matchId);
-                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                notice.setErrorText(ReconnectPolicy.waitingNotice());
                 remainingForNotice.sendMessage(notice);
             }
         }

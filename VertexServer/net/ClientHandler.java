@@ -1095,7 +1095,7 @@ public class ClientHandler implements Runnable
             // against every reconnect-aware match type's own registry in turn - a player
             // is only ever in one online match at a time, so at most one of these can
             // ever return non-null.
-            games.ReconnectRegistry.ReconnectResult reconnect = tryReconnectAllGames();
+            mechanics.ReconnectRegistry.ReconnectResult reconnect = tryReconnectAllGames();
             if (reconnect != null)
             {
                 response.setMatchId(reconnect.matchId);
@@ -1115,9 +1115,9 @@ public class ClientHandler implements Runnable
     }
 
     /** Tries every reconnect-aware match type's registry in turn, returning the first non-null result (see the call site's comment on why at most one ever can be). */
-    private games.ReconnectRegistry.ReconnectResult tryReconnectAllGames()
+    private mechanics.ReconnectRegistry.ReconnectResult tryReconnectAllGames()
     {
-        games.ReconnectRegistry.ReconnectResult result = matchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        mechanics.ReconnectRegistry.ReconnectResult result = matchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
         if (result != null) return result;
         result = connectFourMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
         if (result != null) return result;

@@ -1,4 +1,4 @@
-package games;
+package mechanics;
 import net.ClientHandler;
 
 import java.util.HashMap;
@@ -18,7 +18,9 @@ import java.util.TimerTask;
  * TicTacToeMatch first (see its handleDisconnect/onReconnect/
  * onReconnectTimeout) as the proof this generalizes, matching the
  * "prove it on one game first" approach ai/search and engine both took
- * before scaling to more games. Guests (no account) never get a grace
+ * before scaling to more games. Lives in the shared `mechanics` package (with
+ * ReconnectPolicy: the grace window and which games are exceptions) - the home
+ * for cross-game systems. Guests (no account) never get a grace
  * period - there's no stable identity to reconnect against, so a guest
  * disconnect still finalizes immediately, exactly like every match type
  * that hasn't adopted this registry yet.
@@ -36,7 +38,7 @@ import java.util.TimerTask;
  */
 public class ReconnectRegistry
 {
-    private static final long DEFAULT_GRACE_MS = 45_000;
+    private static final long DEFAULT_GRACE_MS = ReconnectPolicy.GRACE_MS;
 
     private final long graceMs;
 
@@ -45,7 +47,7 @@ public class ReconnectRegistry
         this(DEFAULT_GRACE_MS);
     }
 
-    /** Package-visible seam for tests - lets a test use a short grace window (e.g. a few hundred ms) instead of waiting out the real 45s default. */
+    /** Package-visible seam for tests - lets a test use a short grace window (e.g. a few hundred ms) instead of waiting out the real 30s default. */
     ReconnectRegistry(long graceMs)
     {
         this.graceMs = graceMs;

@@ -1,4 +1,5 @@
 package games;
+import mechanics.ReconnectRegistry;
 import chat.GameChatPolicies;
 import chat.MatchChatRoom;
 import net.MessageType;

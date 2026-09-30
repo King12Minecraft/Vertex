@@ -1,4 +1,5 @@
 package games;
+import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
 import economy.EconomyManager;

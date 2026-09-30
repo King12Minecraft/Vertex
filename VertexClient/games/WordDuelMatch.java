@@ -1,4 +1,6 @@
 package games;
+import mechanics.ReconnectPolicy;
+import mechanics.ReconnectRegistry;
 
 import net.ClientHandler;
 import net.Message;
@@ -208,7 +210,7 @@ public class WordDuelMatch
                 over = true;
                 bothNowGone = true;
             }
-            else if (who.getAccountId() == null)
+            else if (!ReconnectPolicy.canReconnect(who, GAME_ID))
             {
                 // Guests never get a grace period - no stable identity to reconnect
                 // against, so a guest disconnect finalizes immediately exactly as
@@ -230,7 +232,7 @@ public class WordDuelMatch
                 Message notice = new Message();
                 notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
                 notice.setMatchId(matchId);
-                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                notice.setErrorText(ReconnectPolicy.waitingNotice());
                 remainingForNotice.sendMessage(notice);
             }
         }
@@ -291,7 +293,7 @@ public class WordDuelMatch
      * player was disconnected - a narrow timing edge case unique to this game among
      * today's reconnect-aware matches (the others are purely turn-based, with no
      * independent clock that can end a match while a grace period is pending): if
-     * a player disconnects with less time left in the round than the 45s grace
+     * a player disconnects with less time left in the round than the reconnect grace
      * window allows, the round can finish() before they reconnect, and they won't
      * be retroactively shown the result. Not a regression - the exact same "a
      * disconnected player never learns the outcome" limitation already existed for

@@ -1,4 +1,6 @@
 package games;
+import mechanics.ReconnectPolicy;
+import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
 import economy.LeaderboardManager;
@@ -260,7 +262,7 @@ public class ConnectFourMatch
                 over = true;
                 bothNowGone = true;
             }
-            else if (who.getAccountId() == null)
+            else if (!ReconnectPolicy.canReconnect(who, GAME_ID))
             {
                 over = true;
                 ClientHandler remaining = (who == playerRed) ? playerYellow : playerRed;
@@ -279,7 +281,7 @@ public class ConnectFourMatch
                 notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
                 notice.setMatchId(matchId);
                 notice.setBoardState(boardString());
-                notice.setErrorText("Opponent disconnected - waiting to reconnect (up to 45s)...");
+                notice.setErrorText(ReconnectPolicy.waitingNotice());
                 remainingForNotice.sendMessage(notice);
             }
         }
