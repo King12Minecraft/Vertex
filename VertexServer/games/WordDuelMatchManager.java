@@ -33,7 +33,7 @@ public class WordDuelMatchManager
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
-    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
+    private final ReconnectRegistry reconnectRegistry = ReconnectRegistry.shared();
 
     public WordDuelMatchManager(EconomyManager economyManager, GameHistoryManager gameHistoryManager,
                                  ChatManager chatManager, LeaderboardManager leaderboardManager)

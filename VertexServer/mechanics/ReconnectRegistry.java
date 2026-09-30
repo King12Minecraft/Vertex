@@ -40,6 +40,20 @@ public class ReconnectRegistry
 {
     private static final long DEFAULT_GRACE_MS = ReconnectPolicy.GRACE_MS;
 
+    /**
+     * The one registry the whole server uses. A player can only be waiting to reconnect
+     * to one match at a time (beginGracePeriod already enforces one pending entry per
+     * account), so a single registry keyed by accountId serves every game - which means
+     * the login path asks it once instead of polling each game's own registry, and
+     * adding a game needs no extra plumbing there.
+     */
+    private static final ReconnectRegistry SHARED = new ReconnectRegistry();
+
+    public static ReconnectRegistry shared()
+    {
+        return SHARED;
+    }
+
     private final long graceMs;
 
     public ReconnectRegistry()

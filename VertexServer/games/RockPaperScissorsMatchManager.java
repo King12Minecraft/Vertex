@@ -31,7 +31,7 @@ public class RockPaperScissorsMatchManager
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
     private final EconomyManager economyManager;
-    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
+    private final ReconnectRegistry reconnectRegistry = ReconnectRegistry.shared();
 
     public RockPaperScissorsMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {

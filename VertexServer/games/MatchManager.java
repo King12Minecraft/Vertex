@@ -24,7 +24,7 @@ public class MatchManager
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
-    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
+    private final ReconnectRegistry reconnectRegistry = ReconnectRegistry.shared();
 
     public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
 

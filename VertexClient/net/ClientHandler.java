@@ -1115,23 +1115,10 @@ public class ClientHandler implements Runnable
     }
 
     /** Tries every reconnect-aware match type's registry in turn, returning the first non-null result (see the call site's comment on why at most one ever can be). */
+    /** One shared registry serves every game (see ReconnectRegistry.shared()), so this is a single lookup - a game adopting the mechanic needs nothing added here. */
     private mechanics.ReconnectRegistry.ReconnectResult tryReconnectAllGames()
     {
-        mechanics.ReconnectRegistry.ReconnectResult result = matchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = connectFourMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = checkersMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = reversiMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = dotsAndBoxesMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = wordDuelMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = battleshipMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        return rpsMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        return mechanics.ReconnectRegistry.shared().tryReconnect(loggedInAccountId, this);
     }
 
     private String describeLoginFailure(ServerAccountStore.LoginResult result)
