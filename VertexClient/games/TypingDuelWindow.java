@@ -62,6 +62,8 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
     private String opponentUsername;
     private String currentSentence = "";
     private boolean roundLocked;
+    /** True while the opponent is inside their reconnect window - typing isn't sent, and the next server update (their return) clears it. */
+    private boolean awaitingReconnect;
     private boolean gameOver;
 
     public TypingDuelWindow()
@@ -268,7 +270,7 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
 
     private void onTyped()
     {
-        if (gameOver || roundLocked) return;
+        if (gameOver || roundLocked || awaitingReconnect) return;
         Message request = new Message();
         request.setType(MessageType.TYPINGDUEL_PROGRESS_REQUEST);
         request.setMatchId(matchId);
@@ -282,7 +284,7 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
         MessageType type = message.getType();
         boolean isType = type == MessageType.TYPINGDUEL_MATCH_FOUND || type == MessageType.TYPINGDUEL_ROUND_START
             || type == MessageType.TYPINGDUEL_UPDATE || type == MessageType.TYPINGDUEL_ROUND_RESULT
-            || type == MessageType.TYPINGDUEL_RESULT;
+            || type == MessageType.TYPINGDUEL_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -298,6 +300,15 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
         });
     }
 
+    private void clearReconnectWait()
+    {
+        if (awaitingReconnect)
+        {
+            awaitingReconnect = false;
+            statusLabel.setText("vs " + opponentUsername);
+        }
+    }
+
     private void handleServerMessage(Message message)
     {
         MessageType type = message.getType();
@@ -310,8 +321,15 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
             statusLabel.setText("vs " + opponentUsername);
             cardLayout.show(cards, ROUND);
         }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
+            awaitingReconnect = true;
+            statusLabel.setText(message.getErrorText());
+        }
         else if (type == MessageType.TYPINGDUEL_ROUND_START)
         {
+            clearReconnectWait();
             currentSentence = message.getTriviaQuestion();
             sentenceLabel.setText("<html><body style='width:440px'>" + escapeHtml(currentSentence) + "</body></html>");
             roundLocked = false;
@@ -323,6 +341,7 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
         }
         else if (type == MessageType.TYPINGDUEL_UPDATE)
         {
+            clearReconnectWait();
             java.util.List<String> scores = message.getTriviaScores();
             if (scores != null && !scores.isEmpty() && currentSentence != null && !currentSentence.isEmpty())
             {

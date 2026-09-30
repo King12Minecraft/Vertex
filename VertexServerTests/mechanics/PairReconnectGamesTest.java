@@ -7,6 +7,8 @@ import games.DiceDuelMatch;
 import games.DiceDuelMatchManager;
 import games.FusionGridMatch;
 import games.MemoryMatchMatch;
+import games.TypingDuelMatch;
+import games.TypingDuelMatchManager;
 import games.MemoryMatchMatchManager;
 import games.FusionGridMatchManager;
 import games.SignalGridMatch;
@@ -41,6 +43,8 @@ public class PairReconnectGamesTest
         String gameId();
         /** What ReconnectResult.turnSymbol should read for a fresh match at the start (player 0 to move). */
         String startTurn();
+        /** How the game names player B (slot 1) in a reconnect result. */
+        String slotOneSymbol();
     }
 
     private static EconomyManager economy()
@@ -83,8 +87,8 @@ public class PairReconnectGamesTest
             Object match = g.create(a, b);
             disconnect(match, b);
             check.check(name + ": remaining player gets the waiting notice", a.countOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE) == 1);
-            check.check(name + ": notice carries the state and the 30s text",
-                a.lastOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE).getBoardState() != null
+            check.check(name + ": notice carries the state (where the game has a board) and the 30s text",
+                (a.lastOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE).getBoardState() != null || "typing-duel".equals(name))
                 && a.lastOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE).getErrorText().contains("30"));
             check.check(name + ": no result during the pause", a.countOfType(result) == 0);
 
@@ -96,7 +100,7 @@ public class PairReconnectGamesTest
             ReconnectRegistry.ReconnectResult r = ReconnectRegistry.shared().tryReconnect(idBase + 1, bAgain);
             check.check(name + ": reconnect returns a result", r != null);
             check.check(name + ": result names the game, slot, opponent and turn",
-                r != null && name.equals(r.gameId) && "1".equals(r.mySymbol) && ("a" + idBase).equals(r.opponentUsername) && g.startTurn().equals(r.turnSymbol));
+                r != null && name.equals(r.gameId) && g.slotOneSymbol().equals(r.mySymbol) && ("a" + idBase).equals(r.opponentUsername) && g.startTurn().equals(r.turnSymbol));
             check.check(name + ": opponent gets a fresh update", a.countOfType(update) == 1);
 
             g.moveByA(match, a);
@@ -171,6 +175,7 @@ public class PairReconnectGamesTest
             public MessageType resultType() { return MessageType.DICEDUEL_RESULT; }
             public String gameId() { return "dice-duel"; }
             public String startTurn() { return "0"; }
+            public String slotOneSymbol() { return "1"; }
         }, 100);
 
         run(check, new Game()
@@ -187,6 +192,7 @@ public class PairReconnectGamesTest
             public MessageType resultType() { return MessageType.SIGNALGRID_RESULT; }
             public String gameId() { return "signal-grid"; }
             public String startTurn() { return "0"; }
+            public String slotOneSymbol() { return "1"; }
         }, 200);
 
         run(check, new Game()
@@ -203,6 +209,7 @@ public class PairReconnectGamesTest
             public MessageType resultType() { return MessageType.FUSIONGRID_RESULT; }
             public String gameId() { return "fusion-grid"; }
             public String startTurn() { return "0"; }
+            public String slotOneSymbol() { return "1"; }
         }, 300);
 
         run(check, new Game()
@@ -219,7 +226,48 @@ public class PairReconnectGamesTest
             public MessageType resultType() { return MessageType.MEMORY_RESULT; }
             public String gameId() { return "memory-match"; }
             public String startTurn() { return "0|0:0"; }
+            public String slotOneSymbol() { return "1"; }
         }, 400);
+
+        run(check, new Game()
+        {
+            public Object create(ClientHandler a, ClientHandler b)
+            {
+                TypingDuelMatchManager m = new TypingDuelMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+                TypingDuelMatch match = new TypingDuelMatch("td-t", a, b, m, economy(), null);
+                match.start();
+                return match;
+            }
+            public void moveByA(Object match, ClientHandler a) { ((TypingDuelMatch) match).reportProgress(a, ""); }
+            public MessageType updateType() { return MessageType.TYPINGDUEL_UPDATE; }
+            public MessageType resultType() { return MessageType.TYPINGDUEL_RESULT; }
+            public String gameId() { return "typing-duel"; }
+            public String startTurn() { return "0:0|0:0"; }
+            public String slotOneSymbol() { return "B"; }
+        }, 600);
+
+        // --- Typing Duel only: a round that comes due while a player is away starts when they return ---
+        {
+            FakeClientHandler a = new FakeClientHandler("td-a", 700);
+            FakeClientHandler b = new FakeClientHandler("td-b", 701);
+            TypingDuelMatchManager m = new TypingDuelMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+            TypingDuelMatch match = new TypingDuelMatch("td-t2", a, b, m, economy(), null);
+            match.start();
+            Field cs = TypingDuelMatch.class.getDeclaredField("currentSentence");
+            cs.setAccessible(true);
+            String firstSentence = (String) cs.get(match);
+            match.reportProgress(a, firstSentence);       // A wins round 1; next round is due in 2s
+            disconnect(match, b);
+            Thread.sleep(2600);
+            check.check("typing-duel: no round starts while a player is away", a.countOfType(MessageType.TYPINGDUEL_ROUND_START) == 1);
+            FakeClientHandler bAgain = new FakeClientHandler("td-b", 701);
+            ReconnectRegistry.ReconnectResult r = ReconnectRegistry.shared().tryReconnect(701, bAgain);
+            check.check("typing-duel: returning player is told the score (1:0) and the new sentence",
+                r != null && r.turnSymbol.startsWith("1:0|") && r.boardState != null && r.boardState.length() > 0);
+            check.check("typing-duel: the waiting player is sent the new round on return", a.countOfType(MessageType.TYPINGDUEL_ROUND_START) == 2);
+            check.check("typing-duel: the new sentence matches what the returning player was given",
+                r != null && r.boardState.equals(a.lastOfType(MessageType.TYPINGDUEL_ROUND_START).getTriviaQuestion()));
+        }
 
         // --- Memory Match only: a mismatch clears on a timer, which must not fake "play resumed" mid-pause ---
         {

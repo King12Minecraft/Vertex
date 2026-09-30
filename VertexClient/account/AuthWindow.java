@@ -242,6 +242,26 @@ public class AuthWindow extends JFrame
         update.setMatchId(loginResponse.getMatchId());
         update.setSymbol(loginResponse.getReconnectTurnSymbol());
         update.setBoardState(loginResponse.getBoardState());
+        if ("typing-duel".equals(gameId))
+        {
+            // Typing Duel resumes into a round, not a board: the sentence rides in boardState
+            // and "winsA:winsB|progA:progB" in the turn slot (TypingDuelMatch.resume()), so the
+            // update is a ROUND_START carrying the sentence and round wins, followed by an
+            // UPDATE with everyone's progress.
+            String[] parts = String.valueOf(loginResponse.getReconnectTurnSymbol()).split("\\|");
+            update.setTriviaQuestion(loginResponse.getBoardState());
+            update.setTriviaScores(java.util.Arrays.asList(parts[0]));
+            listener.onPush(update);
+            if (parts.length > 1)
+            {
+                Message progress = new Message();
+                progress.setType(MessageType.TYPINGDUEL_UPDATE);
+                progress.setMatchId(loginResponse.getMatchId());
+                progress.setTriviaScores(java.util.Arrays.asList(parts[1]));
+                listener.onPush(progress);
+            }
+            return;
+        }
         if ("memory-match".equals(gameId))
         {
             // Memory Match's update also carries the running "a:b" pair score, which a login
@@ -291,6 +311,10 @@ public class AuthWindow extends JFrame
         if ("fusion-grid".equals(gameId))
         {
             return new MessageType[] { MessageType.FUSIONGRID_MATCH_FOUND, MessageType.FUSIONGRID_UPDATE };
+        }
+        if ("typing-duel".equals(gameId))
+        {
+            return new MessageType[] { MessageType.TYPINGDUEL_MATCH_FOUND, MessageType.TYPINGDUEL_ROUND_START };
         }
         if ("memory-match".equals(gameId))
         {
