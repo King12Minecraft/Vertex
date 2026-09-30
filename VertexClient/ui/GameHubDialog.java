@@ -102,7 +102,7 @@ public class GameHubDialog
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(titleLabel);
 
-        JLabel messageLabel = new JLabel("<html><body style='width:280px'>" + message + "</body></html>");
+        JLabel messageLabel = new JLabel("<html><table width='280' cellpadding='0' cellspacing='0'><tr><td>" + message + "</td></tr></table></html>");
         messageLabel.setFont(UITheme.FONT_BODY);
         messageLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);

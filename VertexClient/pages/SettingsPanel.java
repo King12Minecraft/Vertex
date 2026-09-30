@@ -161,8 +161,8 @@ public class SettingsPanel extends RoundedPanel
         soundRow.add(soundToggleWrap, BorderLayout.EAST);
         col.add(soundRow);
 
-        JLabel soundDescription = new ThemedLabel("<html><body style='width:420px'>Plays a short system beep when a "
-            + "new chat message or group invite comes in.</body></html>", ThemeColor.TEXT_MUTED);
+        JLabel soundDescription = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Plays a short system beep when a "
+            + "new chat message or group invite comes in.</td></tr></table></html>", ThemeColor.TEXT_MUTED);
         soundDescription.setFont(UITheme.FONT_SMALL);
         soundDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
         soundDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
@@ -196,9 +196,9 @@ public class SettingsPanel extends RoundedPanel
         row.add(toggleWrap, BorderLayout.EAST);
         col.add(row);
 
-        JLabel description = new ThemedLabel("<html><body style='width:420px'>Turns off antialiased/high-quality "
+        JLabel description = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Turns off antialiased/high-quality "
             + "rendering app-wide, drops in-game frame rate from 60 to 30fps, and skips a couple of decorative "
-            + "background effects. Takes effect the next time you open a game or restart Vertex.</body></html>",
+            + "background effects. Takes effect the next time you open a game or restart Vertex.</td></tr></table></html>",
             ThemeColor.TEXT_MUTED);
         description.setFont(UITheme.FONT_SMALL);
         description.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -226,9 +226,9 @@ public class SettingsPanel extends RoundedPanel
         fpsRow.add(fpsToggleWrap, BorderLayout.EAST);
         col.add(fpsRow);
 
-        JLabel fpsDescription = new ThemedLabel("<html><body style='width:420px'>Shows a live frame-rate readout in "
+        JLabel fpsDescription = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Shows a live frame-rate readout in "
             + "the corner of every game - useful for checking whether Performance Mode (or your hardware) is "
-            + "actually giving you a smooth 60/30fps.</body></html>", ThemeColor.TEXT_MUTED);
+            + "actually giving you a smooth 60/30fps.</td></tr></table></html>", ThemeColor.TEXT_MUTED);
         fpsDescription.setFont(UITheme.FONT_SMALL);
         fpsDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
         fpsDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
@@ -262,9 +262,9 @@ public class SettingsPanel extends RoundedPanel
         row.add(toggleWrap, BorderLayout.EAST);
         col.add(row);
 
-        JLabel description = new ThemedLabel("<html><body style='width:420px'>A silly rainbow cursor trail "
+        JLabel description = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>A silly rainbow cursor trail "
             + "everywhere in the app, plus confetti when you win a game. Purely cosmetic - doesn't touch scores, "
-            + "matchmaking, or anything else. Takes effect immediately, no restart needed.</body></html>",
+            + "matchmaking, or anything else. Takes effect immediately, no restart needed.</td></tr></table></html>",
             ThemeColor.TEXT_MUTED);
         description.setFont(UITheme.FONT_SMALL);
         description.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -358,9 +358,9 @@ public class SettingsPanel extends RoundedPanel
         });
         col.add(copyDiagnostics);
 
-        JLabel diagNote = new ThemedLabel("<html><body style='width:420px'>Useful to paste into a bug report - "
+        JLabel diagNote = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Useful to paste into a bug report - "
             + "includes your Java version, OS, and which server you're connected to. No account info or "
-            + "message content.</body></html>", ThemeColor.TEXT_MUTED);
+            + "message content.</td></tr></table></html>", ThemeColor.TEXT_MUTED);
         diagNote.setFont(UITheme.FONT_SMALL);
         diagNote.setAlignmentX(Component.LEFT_ALIGNMENT);
         diagNote.setBorder(new EmptyBorder(6, 0, 0, 0));

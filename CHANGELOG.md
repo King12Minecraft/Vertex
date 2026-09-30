@@ -20,6 +20,7 @@
 - The sidebar is now grouped - Play, Progress, Social, Shop & Community, Account - and scrolls when your window is short. Click a group's name to fold it away (the app remembers), and a folded group shows a dot if something inside it needs you, like a friend coming online. Home, Forums, Suggest a Game and Dominion have their own icons.
 - New Changelog page in the app (you're looking at it).
 - Fixed: Trivia Blitz never paid its winners any coins. It does now.
+- Fixed: text in several dialogs and settings descriptions could run past its box and get cut off; it now wraps properly.
 - Fixed: Card Rush was sending your hand to your opponent's computer (only the number of cards was shown, but a modified game could have read them). It now sends each player only their own cards.
 - Coins from the offline games (Snake, Tetris, 2048, Minesweeper and the rest) now have a daily limit of 300 and pay at most once every 15 seconds per game, so they can't be farmed.
 - Fixed: opening the app made the first load of Friends, Chat, Shop and other pages wait about 10 seconds behind the Dominion page. They now load straight away. Equipping an avatar frame in the Shop also works properly now.

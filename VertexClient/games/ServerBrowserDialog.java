@@ -79,7 +79,7 @@ public class ServerBrowserDialog
         current.setBorder(new EmptyBorder(6, 0, 4, 0));
         root.add(current);
 
-        JLabel warning = new JLabel("<html><body style='width:280px'>Switching servers logs you out - coins, ELO, and friends don't carry over between different servers.</body></html>");
+        JLabel warning = new JLabel("<html><table width='280' cellpadding='0' cellspacing='0'><tr><td>Switching servers logs you out - coins, ELO, and friends don't carry over between different servers.</td></tr></table></html>");
         warning.setFont(UITheme.FONT_SMALL);
         warning.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         warning.setAlignmentX(Component.LEFT_ALIGNMENT);

@@ -214,7 +214,7 @@ public class GameSuggestionsPanel extends RoundedPanel
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
         row.setMaximumSize(new Dimension(2000, 56));
 
-        JLabel label = new ThemedLabel("<html><body style='width:600px'>" + escapeHtml(formattedEntry) + "</body></html>", ThemeColor.TEXT_PRIMARY);
+        JLabel label = new ThemedLabel("<html><table width='600' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(formattedEntry) + "</td></tr></table></html>", ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_BODY);
         row.add(label, BorderLayout.CENTER);
 

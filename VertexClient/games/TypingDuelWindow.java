@@ -193,7 +193,7 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
         roundScoreLabel.setBorder(new EmptyBorder(2, 0, 16, 0));
         panel.add(roundScoreLabel);
 
-        sentenceLabel = new JLabel("<html><body style='width:440px'>Get ready...</body></html>");
+        sentenceLabel = new JLabel("<html><table width='440' cellpadding='0' cellspacing='0'><tr><td>Get ready...</td></tr></table></html>");
         sentenceLabel.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 16));
         sentenceLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         sentenceLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -332,7 +332,7 @@ public class TypingDuelWindow extends JPanel implements NetworkManager.PushListe
         {
             clearReconnectWait();
             currentSentence = message.getTriviaQuestion();
-            sentenceLabel.setText("<html><body style='width:440px'>" + escapeHtml(currentSentence) + "</body></html>");
+            sentenceLabel.setText("<html><table width='440' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(currentSentence) + "</td></tr></table></html>");
             roundLocked = false;
             typingField.clear();
             typingField.requestFocusInWindow();

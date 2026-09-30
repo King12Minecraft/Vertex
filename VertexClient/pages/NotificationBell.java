@@ -150,7 +150,7 @@ public class NotificationBell extends JButton
         titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel msgLabel = new JLabel("<html><body style='width:220px'>" + message + "</body></html>");
+        JLabel msgLabel = new JLabel("<html><table width='220' cellpadding='0' cellspacing='0'><tr><td>" + message + "</td></tr></table></html>");
         msgLabel.setFont(UITheme.FONT_SMALL);
         msgLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         msgLabel.setAlignmentX(Component.LEFT_ALIGNMENT);

@@ -203,7 +203,7 @@ public class ModChatDialog extends JDialog implements NetworkManager.PushListene
         content.add(nameLabel);
 
         JLabel textLabel = new ThemedLabel(
-            "<html><body style='width:280px'>" + escapeHtml(message.getChatText()) + "</body></html>",
+            "<html><table width='280' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(message.getChatText()) + "</td></tr></table></html>",
             ThemeColor.TEXT_PRIMARY);
         textLabel.setFont(UITheme.FONT_BODY);
         textLabel.setAlignmentX(Component.LEFT_ALIGNMENT);

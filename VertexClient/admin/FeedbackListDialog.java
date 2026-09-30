@@ -172,7 +172,7 @@ public class FeedbackListDialog
         row.setMaximumSize(new Dimension(2000, 2000));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel textLabel = new JLabel("<html><body style='width:370px'>" + escape(description) + "</body></html>");
+        JLabel textLabel = new JLabel("<html><table width='370' cellpadding='0' cellspacing='0'><tr><td>" + escape(description) + "</td></tr></table></html>");
         textLabel.setFont(UITheme.FONT_SMALL);
         textLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         row.add(textLabel, BorderLayout.CENTER);

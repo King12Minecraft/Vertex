@@ -77,7 +77,7 @@ public class ScoreShareDialog
         preview.setBorder(new EmptyBorder(10, 12, 10, 12));
         preview.setAlignmentX(Component.LEFT_ALIGNMENT);
         preview.setMaximumSize(new Dimension(2000, 60));
-        JLabel previewLabel = new JLabel("<html><body style='width:290px'>" + escapeHtml(shareText) + "</body></html>");
+        JLabel previewLabel = new JLabel("<html><table width='290' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(shareText) + "</td></tr></table></html>");
         previewLabel.setFont(UITheme.FONT_SMALL);
         previewLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         preview.add(previewLabel, BorderLayout.CENTER);

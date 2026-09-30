@@ -46,6 +46,13 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Wrapped-text clipping fixed at every remaining site.** (2026-09-30) The earlier finding (a `JLabel` HTML `<body style='width:..'>`
+  is ignored on the JDKs in use, so wrapped text comes out one line wide and gets cut off - fixed on the game detail page and Forums)
+  was audited across the client: 23 more labels used the ignored form (Settings' five descriptions, `GameHubDialog` - the
+  themed dialog used everywhere, the chat page, notifications, moderator/admin/feedback panels, game rules and mode cards, the
+  server browser, score sharing, Typing Duel's sentence, Trivia's question, the offline hub). All now use the table-width form.
+  Verified by rendering the Settings page: the descriptions wrap at their intended width. The convention is in `.cursor/rules`.
+
 - **Source-protection audits: a hidden-information leak and unlimited offline coins, both fixed.** (2026-09-30)
   Two of the concrete items from planned item 2, done as safe non-architectural mitigations.
   **(d) Hidden information:** audited every message the server sends for something a client shouldn't have.

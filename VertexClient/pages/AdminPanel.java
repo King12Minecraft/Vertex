@@ -686,7 +686,7 @@ public class AdminPanel extends RoundedPanel
         titleLabel.setFont(UITheme.FONT_NAV_BOLD);
         titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel descLabel = new ThemedLabel("<html><body style='width:170px'>" + description + "</body></html>", ThemeColor.TEXT_MUTED);
+        JLabel descLabel = new ThemedLabel("<html><table width='170' cellpadding='0' cellspacing='0'><tr><td>" + description + "</td></tr></table></html>", ThemeColor.TEXT_MUTED);
         descLabel.setFont(UITheme.FONT_SMALL);
         descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         descLabel.setBorder(new EmptyBorder(6, 0, 14, 0));

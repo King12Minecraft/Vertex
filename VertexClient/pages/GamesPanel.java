@@ -646,7 +646,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
             // length. The earlier plain-JLabel version had no width
             // constraint of its own and could spill past the card.
             JLabel queueLabel = new ThemedLabel(
-                "<html><body style='width:180px'>" + queueText(game.getQueueCount()) + "</body></html>", ThemeColor.ACCENT);
+                "<html><table width='180' cellpadding='0' cellspacing='0'><tr><td>" + queueText(game.getQueueCount()) + "</td></tr></table></html>", ThemeColor.ACCENT);
             queueLabel.setFont(UITheme.FONT_SMALL.deriveFont(java.awt.Font.BOLD));
             queueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             queueLabel.setMaximumSize(new Dimension(200, 20));

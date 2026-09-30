@@ -749,7 +749,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         if (entry.text != null && !entry.text.isEmpty())
         {
-            JLabel textLabel = new ThemedLabel("<html><body style='width:340px'>" + escapeHtml(entry.text) + "</body></html>", ThemeColor.TEXT_PRIMARY);
+            JLabel textLabel = new ThemedLabel("<html><table width='340' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(entry.text) + "</td></tr></table></html>", ThemeColor.TEXT_PRIMARY);
             textLabel.setFont(UITheme.FONT_BODY);
             textLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             content.add(textLabel);

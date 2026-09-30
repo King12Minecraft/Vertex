@@ -475,7 +475,7 @@ public class ModeratorPanel extends RoundedPanel
         row.setMaximumSize(new Dimension(2000, 60));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel textLabel = new ThemedLabel("<html><body style='width:500px'>" + displayText + "</body></html>", ThemeColor.TEXT_PRIMARY);
+        JLabel textLabel = new ThemedLabel("<html><table width='500' cellpadding='0' cellspacing='0'><tr><td>" + displayText + "</td></tr></table></html>", ThemeColor.TEXT_PRIMARY);
         textLabel.setFont(UITheme.FONT_SMALL);
         row.add(textLabel, BorderLayout.WEST);
 
