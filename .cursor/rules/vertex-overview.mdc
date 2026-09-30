@@ -1,0 +1,39 @@
+---
+description: What Vertex is, how the repo is laid out, and the rules that apply to every change
+alwaysApply: true
+---
+
+# Vertex - read this first
+
+Vertex is a self-hosted multiplayer game platform (Java/Swing, built with plain `javac` or BlueJ), owned
+by Bipin. The full briefing is **`CLAUDE.md`** at the repo root - read it; this file only adds what an
+editor session needs. What exists: `FEATURES.md`. What's planned: `ROADMAP.md`. Code layout by package:
+`PROGRAM_STRUCTURE.md`. Open questions that need Bipin's decision: `BLOCKED_QUESTIONS.md`.
+
+## Two projects, one shared core
+
+- `VertexClient/` is the source of truth. `VertexServer/` receives copies.
+- **The sync rule:** every file under `net`, `account`, `social`, `admin`, `economy`, `games`,
+  `dominion`, `chat`, `forum`, `mechanics` must be **byte-identical** in both trees, *except* client-only
+  classes (each game's `*Window`/`*Dialog`, plus anything that touches Swing). `pages/`, `ui/`, `theme/`,
+  `engine/`, `net/NetworkManager` and the root `Vertex.java` exist **only** in `VertexClient/`.
+- After editing a shared file: copy it to the same path in `VertexServer/` and `diff` to confirm.
+  Do not copy a client-only file into the server tree - the server has no Swing.
+- The server is the sole authority: never trust a client-reported score, balance or role.
+
+## Verifying a change
+
+1. Compile both trees: `./build.sh` (or `javac -d /tmp/out -encoding UTF-8 $(find VertexClient -name '*.java')`).
+2. Run the regression suite: `./test.sh` (plain Java, no framework; tests live in `VertexServerTests/`, which is
+   deliberately *outside* both source trees so they never ship in the jars).
+3. For anything visual, render it and look: an Xvfb + Swing harness that puts the panel in an undecorated
+   `JFrame`, calls `printAll` into a `BufferedImage`, saves a PNG, and ends with `System.exit(0)`.
+   Throwaway harnesses are not committed.
+
+## Conventions
+
+- Update `ROADMAP.md` (Done section, newest first) and `PROGRAM_STRUCTURE.md` in the same change as the code.
+- Every game is original - no copied assets, art or code.
+- Do not add a way to host a server from the client app; hosting is `VertexServer.jar` only.
+- No voice chat. No secrets, keys or passwords in the repo, ever.
+- Commit messages explain *why*. Keep commits small and buildable.

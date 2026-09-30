@@ -1,0 +1,65 @@
+---
+description: How the Vertex Swing UI is built - shell, theming, reusable components, and the pitfalls already hit
+globs: VertexClient/pages/**/*.java,VertexClient/ui/**/*.java,VertexClient/theme/**/*.java,VertexClient/games/*Window.java,VertexClient/games/*Panel.java,VertexClient/chat/MatchChatDock.java
+alwaysApply: false
+---
+
+# Vertex UI guide (client only)
+
+Everything here lives in `VertexClient/` only - none of it is mirrored to `VertexServer/`.
+
+## The shell
+
+`pages/MainMenu` is the one main window: a `Sidebar` (left) + `TopBar` + a `CardLayout` of pages keyed by
+the constants in `pages/Pages` (`HOME`, `GAMES`, `FRIENDS`, `CHAT`, `FORUMS`, `SHOP`, `PROFILE`,
+`SETTINGS`, ...). Navigation goes through `MainMenu.onNavigate(pageKey)`, which first asks a hosted game
+whether leaving is OK (`games.EmbeddedGamePanel.requestLeave()`).
+
+- **Games never open their own window.** A game is an `EmbeddedGamePanel` placed into the single game-host
+  slot with `MainMenu.showGame(panel)` and removed with `returnToGames()`. Any new game follows this.
+- Pressing Play first shows `games.GameDetailPanel` (the "about this game" page, `Pages.GAME_DETAIL`); its
+  Back returns to whichever page opened it.
+- In-match chat is `chat.MatchChatDock`, docked at the EAST side of the game host; `MainMenu` creates it
+  when the server announces a room.
+- Match resume after a dropped connection: `pages/MatchResume` and `pages/SessionRestorer`.
+
+## Theming - never hardcode a colour
+
+- Colours are **roles**, not values: `theme.ThemeColor` (`BG_APP`, `BG_PANEL`, `ACCENT`, `TEXT_PRIMARY`,
+  `TEXT_MUTED`, `BORDER`, ...). Resolve with `ThemeManager.getColor(ThemeColor.X)` at paint time.
+- There are ~10 themes (`theme/*Theme.java`). A component must repaint when the theme changes:
+  `ThemeManager.addListener(Runnable)` (and remove it when the component goes away).
+- Fonts and sizes come from `theme.UITheme` (`FONT_HEADING`, `FONT_BODY`, `FONT_SMALL`, `RADIUS_PANEL`, ...).
+  Call `UITheme.applyAntialiasing(g2)` in custom painting.
+- **Games keep their own fixed palettes** (`theme.GameColors`, or colours inside the game) - board colours are
+  part of the game's identity and don't follow the app theme.
+
+## Use the existing components before writing new ones
+
+`ui/`: `RoundedPanel` (themed rounded background), `ThemedButton(text, primary)`, `ThemedLabel(text, role)`,
+`ThemedTextField`, `ThemedPasswordField`, `ThemedTextArea`, `ThemedScrollBarUI`, `PageHeader(title)`,
+`PlaceholderPanel.show(container, text)` (empty/loading/error state), `GameHubDialog.show(anchor, title, msg)`
+(the themed replacement for `JOptionPane` messages), `SidebarButton`, `StatusPill`, `StatusDot`,
+`ToggleSwitch`, `HeroBanner`, `GameModeCard`. Copy the look of a neighbouring page rather than inventing one.
+
+## Pitfalls that have already cost time
+
+- **HTML in a `JLabel`:** `<body style='width:...'>` is ignored on the JDKs in use, so wrapped text comes out
+  clipped or one line wide. Put the width on a `<table width='...'>` instead.
+- **`ThemedTextField.setEnabled(false)` does not disable the inner field.** Use `setInputEnabled(...)`.
+- **Buttons truncate** ("Offer ...") when a fixed `setPreferredSize` is too narrow for the label - size for the
+  longest label.
+- **BorderLayout keeps replaced children:** adding to `EAST` again leaves the old component in the container -
+  `remove(old)` first.
+- **Never do network calls on the Swing thread.** `NetworkManager.send(...)` blocks (up to 10 s); call it from a
+  background thread and hop back with `SwingUtilities.invokeLater`. `sendAsync(...)` is fire-and-forget.
+- A new server response type must be listed in `NetworkManager.RESPONSE_TYPES`, otherwise it is delivered as a
+  push and a blocking `send()` times out.
+- An `undecorated` `JFrame` harness must end with `System.exit(0)` or the JVM hangs on the AWT thread.
+- Do not put a field/param named `ui` in a class you also need `ui.X` for - it shadows the package (use an import).
+
+## Assets
+
+- The logo is `vertex_logo.png` (loaded by `games/GameLogo`) and `vertex_icon.ico` (the window icon, multi-size).
+  Copies live at the repo root, in `VertexClient/`, `VertexServer/` and `website/static/`. Replace files at the
+  same names; no Java changes are needed. A new logo must be an original design.
