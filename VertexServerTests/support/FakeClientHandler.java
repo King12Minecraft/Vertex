@@ -29,7 +29,7 @@ public class FakeClientHandler extends ClientHandler
             null, null, null, null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null);
+            null, null, null, null, null, null, null);
         this.username = username;
         this.accountId = accountId;
     }

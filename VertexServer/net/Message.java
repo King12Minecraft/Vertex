@@ -123,6 +123,28 @@ public class Message implements Serializable
     public String getChatText() { return chatText; }
     public void setChatText(String chatText) { this.chatText = chatText; }
 
+    // ---- Forums (see the forum package) - the post/reply body travels in chatText ----
+    private String forumBoardId;
+    private String forumThreadId;
+    private String forumPostId;
+    private String forumTitle;
+    private java.util.List<String> forumEntries;
+    private boolean forumLocked;
+
+    public String getForumBoardId() { return forumBoardId; }
+    public void setForumBoardId(String forumBoardId) { this.forumBoardId = forumBoardId; }
+    public String getForumThreadId() { return forumThreadId; }
+    public void setForumThreadId(String forumThreadId) { this.forumThreadId = forumThreadId; }
+    public String getForumPostId() { return forumPostId; }
+    public void setForumPostId(String forumPostId) { this.forumPostId = forumPostId; }
+    public String getForumTitle() { return forumTitle; }
+    public void setForumTitle(String forumTitle) { this.forumTitle = forumTitle; }
+    /** Encoded records - see ForumCodec.threadSummaryLine / postLine. */
+    public java.util.List<String> getForumEntries() { return forumEntries; }
+    public void setForumEntries(java.util.List<String> forumEntries) { this.forumEntries = forumEntries; }
+    public boolean isForumLocked() { return forumLocked; }
+    public void setForumLocked(boolean forumLocked) { this.forumLocked = forumLocked; }
+
     private String matchChatState;
 
     /** "OPEN", "LOCKED" or "CLOSED" - set on MATCH_CHAT_STATE (see the chat package's ChatRestriction/MatchChatRoom). */

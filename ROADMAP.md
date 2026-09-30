@@ -46,6 +46,23 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Forums, as a new sidebar tab.** Built as agreed with Bipin (2026-09-29): a board per
+  game plus General, threads with flat replies, moderators/admins can delete posts and lock
+  threads, first version without votes/editing/images/notifications. New shared `forum`
+  package (`ForumCodec`, `ForumStore`, `ForumService`) and a client-only `ForumsPanel`.
+  Server-authoritative: posting needs a login and respects mutes and a 3-posts-per-30s flood
+  limit; **delete/lock are decided from the account's stored role on the server** and logged
+  in `AdminLog`; too-long text is rejected with a message rather than cut. The flat file is
+  hardened against the newline-forgery bug already fixed in the suggestion store (every field
+  escaped, one record per line, atomic rewrite). Verified three ways: `ForumServiceTest`
+  (43 checks), `ForumHandlerTest` (21 checks, driving the real `ClientHandler`), and
+  end-to-end runs of a **real in-process server + real client** through the actual page
+  (post from the composer, reply, moderator Lock/Delete, error display) with Xvfb
+  screenshots - which caught a real bug the unit tests could not: `FORUM_RESPONSE` was
+  missing from `NetworkManager.RESPONSE_TYPES`, so every forum request would have timed out
+  after 10s as "could not reach the server". Also caught truncated button labels (fixed).
+  `./test.sh` is now 10 tests / 206 checks. Shared files mirrored byte-identical.
+  Live-server caveat: not yet tried against a deployed server on another machine.
 - **In-match chat beside the game, with a `chat` package that makes restricting it a
   one-line change.** Approved by Bipin (2026-09-29): "pop out chat is good" and "make a
   package to restrict easier". Server-authoritative room per live match
@@ -1770,10 +1787,9 @@ recorded below as they're confirmed.
   leader/succession system especially well, but meant to be usable by other games too.
 ## 📋 Planned — social & community
 
-- **Standalone Forums section** — Reddit-style boards (one per game, plus general
-  discussion), separate from group chats. **Approved 2026-09-29 as a new tab in the
-  left sidebar** (its own `Pages` key, like Chat/Shop). Still needs a scoped design
-  (boards, posting, replies, moderation, server storage) agreed before any code.
+- ~~**Standalone Forums section**~~ — **built 2026-09-29** as a new sidebar tab, see "Done"
+  above. Possible later additions (none started): votes, editing your own posts, images,
+  notifications when someone replies to your thread, nested replies.
 - **`GameSuggestionsPanel` structuring** — the other half of this item; `FeedbackDialog`
   (bug reports/suggestions about Vertex itself) is done, see "Done" below.
   `GameSuggestionsPanel` is a genuinely different, smaller feature though (pitching a

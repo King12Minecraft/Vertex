@@ -138,6 +138,7 @@ public class GameServer
     private final SpaceBattleMatchManager spaceBattleMatchManager = new SpaceBattleMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager, leaderboardManager);
     private final AdminLog adminLog = new AdminLog();
     private final dominion.DominionManager dominionManager = new dominion.DominionManager();
+    private final forum.ForumService forumService = new forum.ForumService(new forum.ForumStore(), gameIds(gameRegistry));
 
     {
         // Wires AchievementManager into the managers that trigger its checks -
@@ -150,6 +151,18 @@ public class GameServer
     }
 
     private ServerSocket serverSocket;
+
+    /** Every registered game's id - the forum gets one board per game (plus its General board). */
+    private static java.util.List<String> gameIds(GameRegistry registry)
+    {
+        java.util.List<String> ids = new java.util.ArrayList<String>();
+        java.util.List<games.GameInfo> all = registry.getAllGames();
+        for (int i = 0; i < all.size(); i++)
+        {
+            ids.add(all.get(i).getGameId());
+        }
+        return ids;
+    }
 
     public boolean start()
     {
@@ -194,7 +207,7 @@ public class GameServer
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
                     airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager,
                     tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager, signalGridMatchManager,
-                    cardRushMatchManager, telephoneMatchManager, dominionManager);
+                    cardRushMatchManager, telephoneMatchManager, dominionManager, forumService);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

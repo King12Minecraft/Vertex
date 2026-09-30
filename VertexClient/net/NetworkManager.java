@@ -350,6 +350,7 @@ public class NetworkManager
         MessageType.CLIENT_UPDATE_DOWNLOAD_RESPONSE,
         MessageType.GAME_SUGGESTION_SUBMIT_RESPONSE,
         MessageType.GAME_SUGGESTION_LIST_RESPONSE,
+        MessageType.FORUM_RESPONSE,
         MessageType.ADMIN_ACCOUNT_LIST_RESPONSE,
         MessageType.ADMIN_SET_ROLE_RESPONSE,
         MessageType.ADMIN_LOG_RESPONSE,

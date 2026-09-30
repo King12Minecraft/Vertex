@@ -453,5 +453,20 @@ public enum MessageType
     /** Server -> every member of the room: getUsername() said getChatText(), for getMatchId(). */
     MATCH_CHAT_MESSAGE,
     /** Server -> room members: getMatchChatState() ("OPEN", "LOCKED" or "CLOSED") for getMatchId()/getGameId(). Also the message that tells a client a chat room exists for its match at all. */
-    MATCH_CHAT_STATE
+    MATCH_CHAT_STATE,
+
+    // Forums (see the forum package). Every request is answered with FORUM_RESPONSE.
+    /** getForumBoardId() -> the board's threads as getForumEntries() (ForumCodec.threadSummaryLine each). */
+    FORUM_THREAD_LIST_REQUEST,
+    /** getForumThreadId() -> the thread's header fields plus its posts as getForumEntries() (ForumCodec.postLine each). */
+    FORUM_THREAD_VIEW_REQUEST,
+    /** getForumBoardId(), getForumTitle(), getChatText() as the opening post. */
+    FORUM_NEW_THREAD_REQUEST,
+    /** getForumThreadId(), getChatText() as the reply. */
+    FORUM_REPLY_REQUEST,
+    /** Moderator/admin only. getForumThreadId(), and getForumPostId() for a single reply (empty = the whole thread). */
+    FORUM_DELETE_REQUEST,
+    /** Moderator/admin only. getForumThreadId() and isForumLocked() (the state to set). */
+    FORUM_LOCK_REQUEST,
+    FORUM_RESPONSE
 }

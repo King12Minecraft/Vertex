@@ -1,5 +1,9 @@
 package net;
 import chat.MatchChatRoom;
+import forum.ForumCodec;
+import forum.ForumService;
+import forum.ForumThread;
+import forum.ForumPost;
 import economy.ShopItemDefinition;
 import economy.ShopItemInfo;
 import games.GameInfo;
@@ -167,6 +171,7 @@ public class ClientHandler implements Runnable
     private final GameSuggestionStore gameSuggestionStore;
     private final AvatarStore avatarStore;
     private final dominion.DominionManager dominionManager;
+    private final ForumService forumService;
 
     public ClientHandler(Socket socket, ServerAccountStore accountStore, GameRegistry gameRegistry,
                           MatchManager matchManager, ChatManager chatManager,
@@ -190,7 +195,7 @@ public class ClientHandler implements Runnable
                           TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
                           TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager,
                           CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager,
-                          dominion.DominionManager dominionManager)
+                          dominion.DominionManager dominionManager, ForumService forumService)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -221,6 +226,7 @@ public class ClientHandler implements Runnable
         this.adminLog = adminLog;
         this.connectFourMatchManager = connectFourMatchManager;
         this.avatarStore = avatarStore;
+        this.forumService = forumService;
         this.checkersMatchManager = checkersMatchManager;
         this.squareWarsMatchManager = squareWarsMatchManager;
         this.triviaMatchManager = triviaMatchManager;
@@ -540,6 +546,12 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.PARTY_KICK_REQUEST) return handlePartyKick(request);
         if (request.getType() == MessageType.CLIENT_VERSION_CHECK_REQUEST) return handleClientVersionCheck(request);
         if (request.getType() == MessageType.CLIENT_UPDATE_DOWNLOAD_REQUEST) return handleClientUpdateDownload();
+        if (request.getType() == MessageType.FORUM_THREAD_LIST_REQUEST) return handleForumThreadList(request);
+        if (request.getType() == MessageType.FORUM_THREAD_VIEW_REQUEST) return handleForumThreadView(request);
+        if (request.getType() == MessageType.FORUM_NEW_THREAD_REQUEST) return handleForumNewThread(request);
+        if (request.getType() == MessageType.FORUM_REPLY_REQUEST) return handleForumReply(request);
+        if (request.getType() == MessageType.FORUM_DELETE_REQUEST) return handleForumDelete(request);
+        if (request.getType() == MessageType.FORUM_LOCK_REQUEST) return handleForumLock(request);
         if (request.getType() == MessageType.GAME_SUGGESTION_SUBMIT_REQUEST) return handleGameSuggestionSubmit(request);
         if (request.getType() == MessageType.GAME_SUGGESTION_LIST_REQUEST) return handleGameSuggestionList();
         if (request.getType() == MessageType.AVATAR_UPLOAD_REQUEST) return handleAvatarUpload(request);
@@ -600,6 +612,136 @@ public class ClientHandler implements Runnable
         response.setFileData(bytes);
         response.setFileName("Vertex.jar");
         return response;
+    }
+
+    // ==================== Forums ====================
+
+    private Message forumResponse(boolean success, String errorText)
+    {
+        Message response = new Message();
+        response.setType(MessageType.FORUM_RESPONSE);
+        response.setSuccess(success);
+        response.setErrorText(errorText);
+        return response;
+    }
+
+    /** Reading is open to anyone connected (like the game-suggestion wishlist); only posting needs a login. */
+    private Message handleForumThreadList(Message request)
+    {
+        java.util.List<ForumThread> threads = forumService.listThreads(request.getForumBoardId());
+        if (threads == null)
+        {
+            return forumResponse(false, "That board doesn't exist.");
+        }
+        java.util.List<String> entries = new java.util.ArrayList<String>();
+        for (int i = 0; i < threads.size(); i++)
+        {
+            entries.add(ForumCodec.threadSummaryLine(threads.get(i)));
+        }
+        Message response = forumResponse(true, null);
+        response.setForumBoardId(request.getForumBoardId());
+        response.setForumEntries(entries);
+        return response;
+    }
+
+    private Message handleForumThreadView(Message request)
+    {
+        ForumThread thread = forumService.getThread(request.getForumThreadId());
+        if (thread == null)
+        {
+            return forumResponse(false, "That thread no longer exists.");
+        }
+        java.util.List<String> entries = new java.util.ArrayList<String>();
+        for (int i = 0; i < thread.getPosts().size(); i++)
+        {
+            ForumPost post = thread.getPosts().get(i);
+            entries.add(ForumCodec.postLine(post));
+        }
+        Message response = forumResponse(true, null);
+        response.setForumThreadId(thread.getId());
+        response.setForumBoardId(thread.getBoardId());
+        response.setForumTitle(thread.getTitle());
+        response.setForumLocked(thread.isLocked());
+        response.setForumEntries(entries);
+        return response;
+    }
+
+    /** Why this connection can't post right now, or null if it can - logged in, not muted, and under the forum flood limit (shared by new threads and replies). */
+    private String forumPostingBlock()
+    {
+        if (loggedInUsername == null)
+        {
+            return "Log in to post.";
+        }
+        if (moderationManager.isMuted(loggedInUsername))
+        {
+            return "You are muted, so you can't post right now.";
+        }
+        if (isFloodLimited("forum", 3, 30000))
+        {
+            return "You're posting too fast - wait a moment and try again.";
+        }
+        return null;
+    }
+
+    private Message handleForumNewThread(Message request)
+    {
+        String block = forumPostingBlock();
+        if (block != null)
+        {
+            return forumResponse(false, block);
+        }
+        ForumService.Result result = forumService.newThread(loggedInUsername, request.getForumBoardId(),
+            request.getForumTitle(), request.getChatText());
+        Message response = forumResponse(result.ok, result.message);
+        response.setForumThreadId(result.id);
+        return response;
+    }
+
+    private Message handleForumReply(Message request)
+    {
+        String block = forumPostingBlock();
+        if (block != null)
+        {
+            return forumResponse(false, block);
+        }
+        ForumService.Result result = forumService.reply(loggedInUsername, request.getForumThreadId(), request.getChatText());
+        Message response = forumResponse(result.ok, result.message);
+        response.setForumThreadId(request.getForumThreadId());
+        return response;
+    }
+
+    /** Moderators and admins only - checked here on the server, not trusted from the client's own role check. Logged in AdminLog like other moderation actions. */
+    private Message handleForumDelete(Message request)
+    {
+        if (!isModeratorOrAdmin())
+        {
+            return forumResponse(false, "Only moderators can delete posts.");
+        }
+        ForumThread before = forumService.getThread(request.getForumThreadId());
+        ForumService.Result result = forumService.delete(request.getForumThreadId(), request.getForumPostId());
+        if (result.ok && before != null)
+        {
+            boolean wholeThread = request.getForumPostId() == null || request.getForumPostId().isEmpty();
+            adminLog.log(loggedInUsername, wholeThread
+                ? "Deleted forum thread " + before.getId() + " \"" + before.getTitle() + "\" by " + before.getAuthor()
+                : "Deleted forum post " + request.getForumPostId() + " in thread " + before.getId() + " \"" + before.getTitle() + "\"");
+        }
+        return forumResponse(result.ok, result.message);
+    }
+
+    private Message handleForumLock(Message request)
+    {
+        if (!isModeratorOrAdmin())
+        {
+            return forumResponse(false, "Only moderators can lock threads.");
+        }
+        ForumService.Result result = forumService.setLocked(request.getForumThreadId(), request.isForumLocked());
+        if (result.ok)
+        {
+            adminLog.log(loggedInUsername, (request.isForumLocked() ? "Locked" : "Unlocked") + " forum thread " + request.getForumThreadId());
+        }
+        return forumResponse(result.ok, result.message);
     }
 
     // ==================== Game suggestions ====================

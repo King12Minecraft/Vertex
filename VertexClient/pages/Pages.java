@@ -23,6 +23,7 @@ public class Pages
     public static final String TOURNAMENTS = "TOURNAMENTS";
     public static final String FRIENDS    = "FRIENDS";
     public static final String CHAT       = "CHAT";
+    public static final String FORUMS     = "FORUMS";
     public static final String SHOP       = "SHOP";
     public static final String PROFILE    = "PROFILE";
     public static final String SETTINGS   = "SETTINGS";

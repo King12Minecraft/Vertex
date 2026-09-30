@@ -956,6 +956,40 @@ it pairs two players and keeps it open 60s after `endMatch` for a "gg"), and **T
 Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors, and every group/real-time game -
 each needs its `Match` to call `GameChatPolicies.openRoom(...)`/`room.close()` itself.
 
+## forum — Forums (boards, threads, replies)
+
+Added 2026-09-29, shown as the **Forums** tab in the sidebar (`Pages.FORUMS`). A board per
+game (every id in `GameRegistry`) plus **General**; a thread is a title + opening post, with
+flat (non-nested) replies. Reading works for anyone connected; posting needs a login.
+
+- **`ForumCodec.java`** *(shared)* — one-line, tab-separated records with every field escaped
+  (backslash/tab/newline/CR), used for both the on-disk file and the lists sent to clients.
+  Because no field can contain a raw tab or line break, a post can't split into a second
+  record or forge extra fields on reload - the same bug class already fixed once in
+  `GameSuggestionStore`. `threadSummaryLine`/`postLine` are the wire forms.
+- **`ForumThread.java`/`ForumPost.java`** *(shared)* — the data. Everything the store hands
+  out is a copy.
+- **`ForumStore.java`** *(shared)* — threads + posts in memory, persisted to
+  `gamehub_forums.txt` (git-ignored runtime data via the existing `gamehub_*.txt` rule),
+  rewritten via a temp file + move on every change. Strictly increasing timestamps so
+  "newest activity first" never ties. Load skips unparseable records, orphan posts and
+  threads with no opening post instead of failing.
+- **`ForumService.java`** *(shared)* — the rules: valid boards only (fixed at startup); title
+  1-100 chars forced onto one line; post 1-2000 chars keeping line breaks but dropping
+  control characters; too-long text is **rejected with a message, never silently cut**; a
+  locked thread takes no replies; 500 posts per thread; a board lists at most 100 threads.
+  Content only - who is asking is `ClientHandler`'s job.
+- **`ClientHandler`** — `handleForum*` (`FORUM_*_REQUEST` -> `FORUM_RESPONSE`): reads are open;
+  posting needs login, not muted, and the `forum` flood bucket (3 posts / 30s, shared by new
+  threads and replies); **delete and lock are moderator/admin only, decided from the
+  account's stored role on the server**, and each is written to `AdminLog`.
+- **`ForumsPanel.java`** *(client-only, `pages/`)* — board list, thread list with composer, thread
+  view with reply box; re-fetches whenever the page is shown. It only hides buttons that
+  would be refused; the server enforces everything. `NetworkManager.RESPONSE_TYPES` must list
+  `FORUM_RESPONSE` (without it every request times out as an unsolicited push).
+
+Not in the first version: votes, editing, images, notifications, nested replies.
+
 ## admin — moderation tooling, gated by Role
 
 - **`AdminLog.java`** — append-only audit trail. A record of what happened, not an
@@ -1187,6 +1221,14 @@ and both trees still open/run directly in BlueJ).
   and `MatchmakingKernelAdoptersTest` use (moved out of that test's nested class). Mute
   and flood limits live in `ClientHandler.handleMatchChat` and need real managers, so
   they are not covered here.
+- **`forum/ForumServiceTest.java`** and **`forum/ForumHandlerTest.java`** (2026-09-29). The
+  first covers the store and rules: boards, title/body cleaning and length caps, ordering,
+  lock/delete, the post and list caps, persistence and id continuity across a reload,
+  damaged files, and the forgery round trip (a body containing record text stays ONE post).
+  The second drives the **real `ClientHandler`** (real account store, moderation manager and
+  admin log) to pin the security rules: reading needs no login, posting does, a muted
+  player and a flooder are refused, and delete/lock are moderator/admin only - a refused
+  attempt leaves no admin-log entry, an accepted one does.
 - **`dominion/DominionStoreTest.java`** - a full save/load round trip for every
   entity type `DominionStore` persists, including a declared-but-not-yet-active
   war whose `effectiveFromTick` must survive exactly rather than being

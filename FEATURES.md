@@ -85,6 +85,7 @@ written down, not built yet - see the design doc's "Future depth" sections.
 ## Social & Chat
 
 - **Friends** — add/search/filter, pin favorites to the top of the list, live badge when a friend comes online.
+- **Forums** — a Forums tab in the sidebar with a board for every game plus General. Start a thread (a title and your first post), reply to others, and read everything even while logged out (posting needs a login). Text is limited to 100 characters for a title and 2000 for a post, and you get a clear message instead of a silent cut-off if you go over. Muted players can't post, and there's a limit of 3 posts per 30 seconds. Moderators and admins can lock a thread and delete replies or whole threads; those actions are recorded in the admin log. Not included yet: votes, editing posts, images, reply notifications.
 - **Direct messages & group chats** — General Chat was removed entirely (client and server); Private Messages and Group Chats are the only channels now.
 - **Chat UI (Discord-style)** — avatars next to messages (grouped: consecutive messages from the same sender within 5 minutes share one avatar/header instead of repeating it), timestamps, flush hover-highlighted rows instead of chat bubbles, a "#"-tile or avatar icon per sidebar entry, a rounded pill-style input bar.
 - **Typing indicators** — "X is typing..." in DMs and groups, throttled and auto-hiding.

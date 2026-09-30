@@ -82,6 +82,7 @@ public class Sidebar extends RoundedPanel
         addNavButton("Quests", Pages.QUESTS);
         addNavButton("Friends", Pages.FRIENDS);
         addNavButton("Chat", Pages.CHAT);
+        addNavButton("Forums", Pages.FORUMS);
         addNavButton("Shop", Pages.SHOP);
         addNavButton("Dominion", Pages.DOMINION);
 
