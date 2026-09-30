@@ -1110,6 +1110,12 @@ every such panel's javadoc repeats that this is UI convenience only.
 
 ## pages / ui / theme — the Swing client shell
 
+**Sidebar (restructured 2026-09-30):** `pages/Sidebar` keeps the logo row, quest mini-list and status row pinned and puts the
+navigation in a `JScrollPane`; entries are grouped (`beginGroup` -> an inner `Group` with a `GroupHeader` and a body panel):
+Home / Play / Progress / Social / Shop & Community / Account. Collapsed state is stored in `Preferences` (`collapsed.<key>`),
+selecting a page inside a collapsed group re-opens it, and a collapsed group's header echoes a button's badge
+(`SidebarButton.isShowingBadge`). `ui/NavIcons` gained Home, Forums, Suggest-a-Game, Dominion and Changelog glyphs.
+
 **Stats (added 2026-09-30):** `STATS_REQUEST`/`STATS_RESPONSE` handled by `ClientHandler.handleStats` (public by name; own stats
 need a login) from `GameHistoryManager.getPlayCountsByGame` and `LeaderboardManager.getStatsRowsForAccount`; new `Message` fields
 `statsTotalPlays/statsPlayCounts/statsGameRows/statsAchievementCount`. Client: `pages/StatsPanel` (`Pages.STATS`, opened by

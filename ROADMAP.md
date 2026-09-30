@@ -46,6 +46,20 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Sidebar: scrollable and regrouped.** (2026-09-30) The navigation is now a scroll pane (thin scrollbar) between
+  the pinned logo row above and the pinned quest list and connection status below, so a short window no longer
+  loses entries. Regrouped as proposed: Home (ungrouped) / **Play** (Games, All Games, Tournaments, Dominion) /
+  **Progress** (Quests, Achievements, Leaderboards) / **Social** (Friends, Chat, Forums) / **Shop & Community**
+  (Shop, Suggest a Game, Changelog) / **Account** (Profile, Settings, Moderation for moderators). Each group name
+  collapses it (state remembered per computer); on the narrow icon rail a header is a thin divider; a collapsed
+  group shows a dot when something inside has a badge (a friend coming online); selecting a page inside a
+  collapsed group re-opens it, so the page you're on is never hidden. Profile is back in the sidebar (reversing the
+  earlier move to the account menu, which stays as a shortcut - the `TopBar` javadoc is corrected). Forums, Suggest
+  a Game, Dominion and Home no longer share Games' gamepad icon. Verified under Xvfb: scrolling in a short window,
+  collapse + remembered + badge dot, re-open on select, the icon rail, and screenshots of each state. Room for
+  Dominion is its slot in Play. **Not done / to look at:** a sidebar hover-expand still animates the width as before;
+  group collapse doesn't animate.
+
 - **Stats page inside Profile, a Profile sidebar entry, and a fix for a 10-second startup stall.** (2026-09-30)
   **Audit first (as the item asked):** the server records plays per game (with timestamps), a rating and win/
   loss/draw record per *ranked* game, a best score per score game, achievements, coins and login streak; it does
@@ -1929,13 +1943,7 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
   assets - replace at the same names and no Java changes are needed. Must be an original design.
 - **8. Changelog (app + website) and a Roadmap (website only). - DONE 2026-09-30** (see "Done").
 - **9. Profile with Stats inside (not a separate top-level tab). - DONE 2026-09-30** (see "Done"). Not done: reusing the stats view for a player's profile from a leaderboard row (only the profile window's button so far).
-- **10. Sidebar: scrollable and regrouped.** Not scrollable today (no `JScrollPane`). Pin the logo
-  row, quest list and status row; scroll only the navigation. Proposed groups: **Home** / **Play**
-  (Games, All Games, Tournaments) / **Progress** (Quests, Achievements, Leaderboards) / **Social**
-  (Friends, Chat, Forums) / **Shop and community** (Shop, Suggest a Game, Changelog) / **Account**
-  (Profile, Settings; Moderation for moderators). Collapsible sections with remembered state, a
-  badge on a collapsed group's header, room reserved for Dominion later. Reverses the earlier
-  decision to move Profile/Settings out of the sidebar (the `TopBar` javadoc is now stale).
+- **10. Sidebar: scrollable and regrouped. - DONE 2026-09-30** (see "Done").
 - **11. Main page.** The existing Home page (`HomePanel`, the default landing) is redesigned as the
   main landing; navigation is organised around it. **Proposal to be approved by Bipin before any
   building:** continue-playing and pinned games, quick play, friends online, daily reward and quest

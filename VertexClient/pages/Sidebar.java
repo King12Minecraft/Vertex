@@ -12,6 +12,7 @@ import account.Account;
 import theme.ThemeColor;
 import net.ConnectionIndicator;
 import ui.SidebarButton;
+import ui.ThemedScrollBarUI;
 import net.NavigationListener;
 import ui.RoundedPanel;
 
@@ -19,6 +20,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 import java.awt.Component;
@@ -28,6 +30,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.prefs.Preferences;
 import java.util.List;
 
 /**
@@ -55,6 +58,13 @@ public class Sidebar extends RoundedPanel
     private final List<SidebarButton> buttons = new ArrayList<SidebarButton>();
     private final List<String> pageKeysInOrder = new ArrayList<String>();
 
+    private static final Preferences PREFS = Preferences.userNodeForPackage(Sidebar.class);
+
+    private final List<Group> groups = new ArrayList<Group>();
+    /** Where addNavButton puts the next button: the current group's body, or the plain list for ungrouped entries (Home). */
+    private JPanel currentBody;
+    private JPanel navList;
+
     private JLabel wordmark;
     private JPanel questSection;
     private ConnectionIndicator connectionIndicator;
@@ -72,30 +82,55 @@ public class Sidebar extends RoundedPanel
 
         add(createLogoRow());
 
+        // Only the navigation scrolls; the logo row above and the quests/status rows below stay put.
+        navList = new JPanel();
+        navList.setOpaque(false);
+        navList.setLayout(new BoxLayout(navList, BoxLayout.Y_AXIS));
+        currentBody = navList;
+
         addNavButton("Home", Pages.HOME);
+
+        beginGroup("play", "PLAY");
         addNavButton("Games", Pages.GAMES);
         addNavButton("All Games", Pages.ALL_GAMES);
-        addNavButton("Suggest a Game", Pages.GAME_SUGGESTIONS);
-        addNavButton("Leaderboards", Pages.LEADERBOARDS);
-        addNavButton("Achievements", Pages.ACHIEVEMENTS);
         addNavButton("Tournaments", Pages.TOURNAMENTS);
+        addNavButton("Dominion", Pages.DOMINION);
+
+        beginGroup("progress", "PROGRESS");
         addNavButton("Quests", Pages.QUESTS);
+        addNavButton("Achievements", Pages.ACHIEVEMENTS);
+        addNavButton("Leaderboards", Pages.LEADERBOARDS);
+
+        beginGroup("social", "SOCIAL");
         addNavButton("Friends", Pages.FRIENDS);
         addNavButton("Chat", Pages.CHAT);
         addNavButton("Forums", Pages.FORUMS);
-        addNavButton("Shop", Pages.SHOP);
-        addNavButton("Changelog", Pages.CHANGELOG);
-        addNavButton("Dominion", Pages.DOMINION);
 
+        beginGroup("community", "SHOP & COMMUNITY");
+        addNavButton("Shop", Pages.SHOP);
+        addNavButton("Suggest a Game", Pages.GAME_SUGGESTIONS);
+        addNavButton("Changelog", Pages.CHANGELOG);
+
+        beginGroup("account", "ACCOUNT");
+        addNavButton("Profile", Pages.PROFILE);
+        addNavButton("Settings", Pages.SETTINGS);
         Account current = Session.getCurrentAccount();
         if (PermissionManager.isAtLeastModerator(current))
         {
             addNavButton("Moderation", Pages.MODERATION);
         }
-        addNavButton("Profile", Pages.PROFILE);
-        addNavButton("Settings", Pages.SETTINGS);
 
-        add(Box.createVerticalGlue());
+        JScrollPane navScroll = new JScrollPane(navList,
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        navScroll.setBorder(null);
+        navScroll.setOpaque(false);
+        navScroll.getViewport().setOpaque(false);
+        navScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        navScroll.getVerticalScrollBar().setUnitIncrement(24);
+        ThemedScrollBarUI.apply(navScroll);
+        navScroll.getVerticalScrollBar().setPreferredSize(new Dimension(6, 0));
+        add(navScroll);
+
         add(createQuestMiniList());
         add(createStatusRow());
 
@@ -127,6 +162,11 @@ public class Sidebar extends RoundedPanel
         for (int i = 0; i < buttons.size(); i++)
         {
             buttons.get(i).setExpanded(expanded);
+        }
+
+        for (Group group : groups)
+        {
+            group.header.repaint();
         }
 
         animateWidthTo(expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH);
@@ -215,7 +255,143 @@ public class Sidebar extends RoundedPanel
 
         buttons.add(button);
         pageKeysInOrder.add(pageKey);
-        add(wrapper);
+        currentBody.add(wrapper);
+        if (!groups.isEmpty() && currentBody != navList)
+        {
+            groups.get(groups.size() - 1).pageKeys.add(pageKey);
+            groups.get(groups.size() - 1).buttons.add(button);
+        }
+    }
+
+    /** Starts a collapsible group: a header row, then a body that the following addNavButton calls fill. */
+    private void beginGroup(String key, String title)
+    {
+        Group group = new Group(key, title);
+        groups.add(group);
+        navList.add(group.header);
+        navList.add(group.body);
+        currentBody = group.body;
+    }
+
+    /** One section of the navigation: a clickable header (collapsed state remembered per computer) over its buttons. */
+    private final class Group
+    {
+        final String key;
+        final String title;
+        final List<String> pageKeys = new ArrayList<String>();
+        final List<SidebarButton> buttons = new ArrayList<SidebarButton>();
+        final JPanel body = new JPanel();
+        final GroupHeader header;
+        boolean collapsed;
+
+        Group(String key, String title)
+        {
+            this.key = key;
+            this.title = title;
+            this.collapsed = PREFS.getBoolean("collapsed." + key, false);
+            body.setOpaque(false);
+            body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+            body.setAlignmentX(Component.LEFT_ALIGNMENT);
+            body.setVisible(!collapsed);
+            header = new GroupHeader(this);
+        }
+
+        void setCollapsed(boolean value)
+        {
+            collapsed = value;
+            PREFS.putBoolean("collapsed." + key, value);
+            body.setVisible(!value);
+            header.repaint();
+            navList.revalidate();
+            navList.repaint();
+        }
+
+        boolean anyBadge()
+        {
+            for (SidebarButton b : buttons) if (b.isShowingBadge()) return true;
+            return false;
+        }
+
+        void refreshBadge() { header.repaint(); }
+    }
+
+    /**
+     * The clickable title above a group. While the sidebar is the narrow icon rail it is just a thin
+     * divider line (there is no room for text); expanded, it shows the group name and a chevron, and a
+     * dot when the group is collapsed but something inside it wants attention (a friend came online).
+     */
+    private final class GroupHeader extends JPanel
+    {
+        private final Group group;
+        private boolean hover = false;
+
+        GroupHeader(final Group group)
+        {
+            this.group = group;
+            setOpaque(false);
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+            setPreferredSize(new Dimension(EXPANDED_WIDTH, 30));
+            setMaximumSize(new Dimension(2000, 30));
+            setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+            addMouseListener(new MouseAdapter()
+            {
+                public void mouseClicked(MouseEvent e)
+                {
+                    if (expanded) group.setCollapsed(!group.collapsed);
+                }
+                public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
+                public void mouseExited(MouseEvent e) { hover = false; repaint(); }
+            });
+        }
+
+        @Override
+        protected void paintComponent(java.awt.Graphics g)
+        {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            UITheme.applyAntialiasing(g2);
+            int w = getWidth();
+            int h = getHeight();
+            java.awt.Color muted = ThemeManager.getColor(hover && expanded ? ThemeColor.TEXT_PRIMARY : ThemeColor.TEXT_MUTED);
+
+            if (!expanded)
+            {
+                g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+                g2.fillRect(18, h / 2, Math.max(0, COLLAPSED_WIDTH - 36), 1);
+                if (group.collapsed && group.anyBadge())
+                {
+                    g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
+                    g2.fillOval(COLLAPSED_WIDTH / 2 - 3, h / 2 - 3, 7, 7);
+                }
+            }
+            else
+            {
+                g2.setFont(UITheme.FONT_SMALL);
+                g2.setColor(muted);
+                g2.drawString(group.title, 20, h / 2 + 5);
+                int chevronX = EXPANDED_WIDTH - 34;
+                java.awt.geom.Path2D chevron = new java.awt.geom.Path2D.Double();
+                if (group.collapsed)
+                {
+                    chevron.moveTo(chevronX, h / 2 - 4);
+                    chevron.lineTo(chevronX + 5, h / 2);
+                    chevron.lineTo(chevronX, h / 2 + 4);
+                }
+                else
+                {
+                    chevron.moveTo(chevronX - 2, h / 2 - 2);
+                    chevron.lineTo(chevronX + 3, h / 2 + 3);
+                    chevron.lineTo(chevronX + 8, h / 2 - 2);
+                }
+                g2.setStroke(new java.awt.BasicStroke(1.6f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND));
+                g2.draw(chevron);
+                if (group.collapsed && group.anyBadge())
+                {
+                    g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
+                    g2.fillOval(20 + g2.getFontMetrics().stringWidth(group.title) + 8, h / 2 - 3, 7, 7);
+                }
+            }
+            g2.dispose();
+        }
     }
 
     private void selectPage(String pageKey)
@@ -229,6 +405,14 @@ public class Sidebar extends RoundedPanel
         {
             setFriendsBadge(false);
         }
+        // Never leave the page you're on hidden inside a collapsed group.
+        for (Group group : groups)
+        {
+            if (group.pageKeys.contains(pageKey) && group.collapsed)
+            {
+                group.setCollapsed(false);
+            }
+        }
     }
 
     /** Shown when a friend comes online while the person isn't already looking at the Friends page - cleared automatically the moment they do. */
@@ -239,6 +423,7 @@ public class Sidebar extends RoundedPanel
             if (Pages.FRIENDS.equals(pageKeysInOrder.get(i)))
             {
                 buttons.get(i).setShowBadge(show);
+                for (Group group : groups) group.refreshBadge();
                 return;
             }
         }

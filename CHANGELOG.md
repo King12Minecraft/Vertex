@@ -17,6 +17,7 @@
 - Type /calc 2+3*4 in any chat and only you see the answer.
 - Pick your mouse cursor in Settings: Crystal, Ember, Neon, Mono, or one that follows your colour theme.
 - New Stats page: open it from your Profile (or press Full stats on another player's profile) to see how many times you've played each game, your rating and win-loss-draw record in ranked games, and your best scores. Profile now shows your real Games Played and Achievements numbers instead of placeholders, and Profile has its own sidebar entry.
+- The sidebar is now grouped - Play, Progress, Social, Shop & Community, Account - and scrolls when your window is short. Click a group's name to fold it away (the app remembers), and a folded group shows a dot if something inside it needs you, like a friend coming online. Home, Forums, Suggest a Game and Dominion have their own icons.
 - New Changelog page in the app (you're looking at it).
 - Fixed: Trivia Blitz never paid its winners any coins. It does now.
 - Fixed: opening the app made the first load of Friends, Chat, Shop and other pages wait about 10 seconds behind the Dominion page. They now load straight away. Equipping an avatar frame in the Shop also works properly now.

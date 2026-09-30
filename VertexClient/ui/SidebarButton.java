@@ -89,6 +89,9 @@ public class SidebarButton extends RoundedPanel
     }
 
     /** A small colored dot in the corner of the icon - used for "something new here" indicators (e.g. a friend just came online) without needing a numeric count. */
+    /** Whether the small notification dot is currently showing - lets a collapsed group's header echo it. */
+    public boolean isShowingBadge() { return showBadge; }
+
     public void setShowBadge(boolean show)
     {
         this.showBadge = show;

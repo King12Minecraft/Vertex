@@ -34,8 +34,10 @@ import java.awt.event.MouseEvent;
  * left, and account info on the right - a live online-player count
  * (reuses the existing ONLINE_USERS_REQUEST, no new protocol needed),
  * the notification bell, and the username, which now doubles as an
- * account menu (Profile/Settings) - both were moved out of the Sidebar
- * to declutter it down to game-related navigation only.
+ * account menu (Profile/Settings). Profile and Settings are also in the
+ * Sidebar's Account group (2026-09-30 - the earlier move out of the Sidebar
+ * was reversed when the Sidebar became grouped and scrollable, so the menu
+ * here is now a shortcut to the same two pages).
  */
 public class TopBar extends RoundedPanel
 {
