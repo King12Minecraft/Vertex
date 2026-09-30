@@ -1110,6 +1110,12 @@ every such panel's javadoc repeats that this is UI convenience only.
 
 ## pages / ui / theme — the Swing client shell
 
+**Changelog (added 2026-09-30, client-only):** `pages/ChangelogPanel` renders the entries of the root `CHANGELOG.md`
+(one hand-written file shared with `website/app.py`); `pages/ChangelogParser` parses it (`## ` entry, `- ` bullet,
+two-space continuation, `<!-- -->` ignored). The file is bundled into `VertexClient.jar` by `build.sh`/`build.bat`
+and read from the classpath first, then the working directory / parent folder when run from source. `Pages.CHANGELOG`,
+a sidebar entry and a `NavIcons` glyph.
+
 **Cursors (added 2026-09-30, client-only):** `ui/CursorArtwork` draws the cursor sets in code (arrow, link, text per
 set; `CursorSet` enum incl. SYSTEM and APP = follows the theme); `ui/CursorManager` (installed from `Vertex.main`)
 applies the saved choice via a global AWT mouse listener that swaps Swing's default/hand/text cursors on whatever is

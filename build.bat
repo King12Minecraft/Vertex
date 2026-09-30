@@ -44,6 +44,8 @@ if errorlevel 1 goto :error
     echo Main-Class: Vertex
     echo Implementation-Version: !VERSION!
 ) > manifest_client.txt
+REM The client shows CHANGELOG.md on its Changelog page (same file the website reads), so it travels in the jar.
+if exist CHANGELOG.md copy /y CHANGELOG.md build_client\ >nul
 "!JARTOOL!" cfm VertexClient.jar manifest_client.txt -C build_client .
 
 echo.

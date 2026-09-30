@@ -1,8 +1,8 @@
 # Vertex Website
 
 The public website for Vertex - built with Flask, per `ROADMAP.md`'s "Planned —
-the website" entry. Pages: Home/Changelog, Download (the default landing page),
-Credits, a "How It's Built" overview, and Features.
+the website" entry. Pages: Home, Download (the default landing page), Changelog,
+Roadmap, Credits, a "How It's Built" overview, and Features.
 
 This is a first version - the pages, routing, and styling are done and tested
 locally, but it has **not been deployed anywhere**. Deploying it (to the Oracle
@@ -19,12 +19,15 @@ current too. The Download page reads the `VERSION` file the same way, so the
 version number shown here can never drift from what the jars are actually
 stamped with.
 
-The Home/Changelog page is the one exception - it uses a short, hand-curated
-highlights list (`CHANGELOG_HIGHLIGHTS` in `app.py`), deliberately **not** a
-dump of `ROADMAP.md`'s "Done" section. That section is a detailed developer
-changelog, written for someone about to read the source; this is a public one,
-meant to stay short. Update the list by hand when something is worth telling
-players about, not on every commit.
+The Changelog page (and the "What's new" strip on Home) reads `CHANGELOG.md` from the repo
+root - **the same hand-written file the app's own Changelog page shows** (build.sh/build.bat copy
+it into `VertexClient.jar`), so the site and the app can never disagree. The format is described in
+a comment at the top of that file. Add an entry there when something is worth telling players about,
+not on every commit.
+
+The Roadmap page renders `website/content/roadmap.md`, a separate hand-written page of
+*possible* additions - no dates, and none of the internal notes (security work, unresolved
+decisions) that live in the repo's own `ROADMAP.md`.
 
 ## Running it locally
 

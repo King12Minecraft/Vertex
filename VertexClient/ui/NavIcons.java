@@ -80,12 +80,38 @@ public class NavIcons
         {
             drawBracket(g, size);
         }
+        else if (Pages.CHANGELOG.equals(pageKey))
+        {
+            drawChangelog(g, size);
+        }
         else
         {
             drawGamepad(g, size);
         }
 
         g.dispose();
+    }
+
+    /** A page with a folded corner and three text lines - "what's new". */
+    private static void drawChangelog(Graphics2D g, int s)
+    {
+        double m = s * 0.18;
+        double fold = s * 0.24;
+        java.awt.geom.Path2D page = new java.awt.geom.Path2D.Double();
+        page.moveTo(m, m);
+        page.lineTo(s - m - fold, m);
+        page.lineTo(s - m, m + fold);
+        page.lineTo(s - m, s - m);
+        page.lineTo(m, s - m);
+        page.closePath();
+        g.draw(page);
+        g.draw(new java.awt.geom.Line2D.Double(s - m - fold, m, s - m - fold, m + fold));
+        g.draw(new java.awt.geom.Line2D.Double(s - m - fold, m + fold, s - m, m + fold));
+        for (int i = 0; i < 3; i++)
+        {
+            double y = s * (0.46 + i * 0.14);
+            g.draw(new java.awt.geom.Line2D.Double(s * 0.32, y, s * 0.68, y));
+        }
     }
 
     /** A simple 2x2 grid of squares - distinct from the single gamepad glyph used for the curated "Games" home entry. */

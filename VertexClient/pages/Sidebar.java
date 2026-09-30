@@ -84,6 +84,7 @@ public class Sidebar extends RoundedPanel
         addNavButton("Chat", Pages.CHAT);
         addNavButton("Forums", Pages.FORUMS);
         addNavButton("Shop", Pages.SHOP);
+        addNavButton("Changelog", Pages.CHANGELOG);
         addNavButton("Dominion", Pages.DOMINION);
 
         Account current = Session.getCurrentAccount();

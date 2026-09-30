@@ -8,16 +8,19 @@
 </section>
 
 <section class="changelog">
-    <h2>What's in Vertex</h2>
-    {% for release in highlights %}
+    <h2>What's new</h2>
+    {% if latest %}
     <div class="changelog-entry">
-        <h3>Version {{ release.version }}</h3>
+        <h3>{{ latest.heading }}</h3>
         <ul>
-            {% for item in release.points %}
+            {% for item in latest.points %}
             <li>{{ item }}</li>
             {% endfor %}
         </ul>
     </div>
-    {% endfor %}
+    <p><a href="{{ url_for('changelog') }}">Everything that has changed</a> &middot; <a href="{{ url_for('roadmap') }}">What might come next</a></p>
+    {% else %}
+    <p>See the <a href="{{ url_for('changelog') }}">changelog</a>.</p>
+    {% endif %}
 </section>
 {% endblock %}

@@ -40,6 +40,12 @@ build_one() {
         echo "Implementation-Build-Date: $BUILD_DATE"
     } > "$MANIFEST"
 
+    # The client shows CHANGELOG.md on its Changelog page (the same file the website reads),
+    # so it travels inside the client jar.
+    if [ "$SRC_DIR" = "VertexClient" ] && [ -f CHANGELOG.md ]; then
+        cp CHANGELOG.md "$OUT_DIR/"
+    fi
+
     jar cfm "$JAR_NAME" "$MANIFEST" -C "$OUT_DIR" .
 
     rm -rf "$OUT_DIR" "$MANIFEST"

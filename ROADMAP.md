@@ -46,6 +46,19 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Changelog in the app and on the website, from one file; a separate public Roadmap on the site.** (2026-09-30)
+  New root `CHANGELOG.md` - hand-written, player-facing, newest first - is the single source: the app's new
+  **Changelog** page (sidebar; `pages/ChangelogPanel` + `ChangelogParser`) and the website's Changelog page both
+  read it, and `build.sh`/`build.bat` copy it into `VertexClient.jar` (from source it's read from the working
+  directory or the folder above). The website's old combined Home/Changelog page is split: Home now shows the
+  latest entry, `/changelog` shows everything, and `/roadmap` is a new page rendered from
+  `website/content/roadmap.md` - *possible* additions, no dates, and none of the internal items (security gaps,
+  unresolved decisions). The website's hard-coded highlights list is gone. Verified: the real page rendered under
+  Xvfb from the real file, the parser (comment skipped, continuation lines joined), and every website route via
+  Flask's test client. **To review:** the wording of `website/content/roadmap.md` is mine - it names Vertex:
+  Dominion and "servers you can join from anywhere" as possibilities; delete anything Bipin would rather not
+  publicly hint at. New convention: player-visible changes get a line in `CHANGELOG.md` (added to `CLAUDE.md`).
+
 - **Themed custom cursors, chosen in Settings.** (2026-09-30) Settings > Appearance has a "Mouse cursor" picker of
   six cards - System default, **Crystal** (faceted cyan, echoing the logo), **Ember**, **Neon**, **Mono** and
   **Match my theme** (follows the app theme's accent colours live) - each previewing its arrow, link pointer and
@@ -1894,12 +1907,7 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
 - **7. Logo.** Bipin redesigns it separately in Cursor. It is files, not code: `GameLogo` loads
   `vertex_logo.png`, the window icon is `vertex_icon.ico` (multi-size), plus the website's static
   assets - replace at the same names and no Java changes are needed. Must be an original design.
-- **8. Changelog (app + website) and a Roadmap (website only).** **In the app:** a Changelog page -
-  it does **not exist today** (only the website has one), so it is built new. **On the website:**
-  split the current combined Home/Changelog page into a Changelog page and a separate Roadmap page
-  for planned/possible additions. Use **one hand-written changelog file** read by both the website
-  and the app so they never disagree. The Roadmap says "possible, no dates" and keeps internal
-  items (security gaps, unresolved decisions) out.
+- **8. Changelog (app + website) and a Roadmap (website only). - DONE 2026-09-30** (see "Done").
 - **9. Profile with Stats inside (not a separate top-level tab).** Profile stays a sidebar item;
   **Stats is a clickable section inside Profile** that opens a full-page view with a Back button
   (same pattern as the game-detail page), reusable for other players' profile view. Data: plays per
