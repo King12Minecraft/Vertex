@@ -294,8 +294,8 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   tuning, though it's now also available as `MatchmakingKernel` (below) for a new
   adopter to build on top of instead of hand-rolling it fresh - `MatchManager` itself
   stays hand-rolled since retrofitting the reconnection-registry-owning original isn't
-  worth the churn for no behavior change. Also owns the one shared `ReconnectRegistry`
-  instance (`getReconnectRegistry()`), passed into each `TicTacToeMatch` it constructs.
+  worth the churn for no behavior change. Its `getReconnectRegistry()` returns the server-wide
+  `mechanics.ReconnectRegistry.shared()` (since 2026-09-30), passed into each `TicTacToeMatch`.
 - **`MatchmakingKernel.java`** — the FIFO waiting-queue shape every `<Name>MatchManager`
   hand-rolled, extracted generic over the match type via a small `PairHandler`
   interface (`pair(matchId, a, b)` constructs+starts the match; `attach(handler, match)`
@@ -307,7 +307,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   Four, whose matches are `"connect4-N"` while its `GAME_ID` (used for `QUEUE_UPDATE`/
   history tracking) is `"connect-four"`; preserved exactly rather than silently
   changed, even though the client only ever compares `matchId` for equality and never
-  parses it. Also owns a `ReconnectRegistry` instance of its own (`getReconnectRegistry()`)
+  parses it. Its `getReconnectRegistry()` returns the shared `mechanics.ReconnectRegistry` (was an instance of its own before 2026-09-30)
   - every kernel-backed match type gets grace-period reconnect support for free the
   moment it adopts the kernel, added 2026-09-26 alongside the reconnect rollout below.
   Adopters: `CheckersMatchManager` and `ConnectFourMatchManager` (the original two,
@@ -349,7 +349,7 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   kernel exists today). ELO
   deliberately isn't part of this - `LeaderboardManager`'s rating math is a separate,
   already-shared concern untouched by matchmaking queue mechanics.
-- **`ReconnectRegistry.java`** — generic disconnect-grace-period mechanism, keyed by
+- **`ReconnectRegistry.java`** — **moved to `mechanics/` on 2026-09-30, and the adopter history below is now partly out of date: every game listed as "not adopting" further up (Dice Duel, Typing Duel, Air Hockey, Memory Match, Signal Grid, Fusion Grid, Card Rush, Snake Arena, Tetris Duel) and Chess have since adopted it - see the `mechanics` section for the current state and the 30-second window (the 45s mentioned below is historical).** Generic disconnect-grace-period mechanism, keyed by
   accountId (a brand-new `ClientHandler`/socket exists on reconnect, so accountId, not
   the handler reference, is the only stable identity). Any match class can adopt it by
   implementing the small `ReconnectableMatch` interface (`onReconnectTimeout()`,
@@ -364,15 +364,15 @@ Framework/shared classes worth knowing (read these instead of the ~30 game tripl
   grace-period/timeout shape in every one, differing only in how each match names its
   two player slots (`DotsAndBoxesMatch` uses a `List<ClientHandler>` and an index
   rather than two named fields; `WordDuelMatch` uses a nullable `Boolean` for the same
-  reason `TicTacToeMatch` uses a char - two named fields, not a list). Chess is
-  deliberately not yet adopted - its resign/draw-offer state interacts with a
+  reason `TicTacToeMatch` uses a char - two named fields, not a list). (Chess was
+  not adopted at the time - its resign/draw-offer state interacted with a
   mid-grace-period reconnect in ways not yet designed, tracked in `ROADMAP.md` rather
-  than guessed at. `ClientHandler.handleLogin()` tries every reconnect-aware match
+  than guessed at.) `ClientHandler.handleLogin()` tries every reconnect-aware match
   type's own registry in turn (`tryReconnectAllGames()`) and, if one had a match
   waiting, populates the `LOGIN_RESPONSE` with everything the client needs to resume
   (`reconnectGameId`/`reconnectTurnSymbol` plus the existing `matchId`/`symbol`/
   `opponentUsername`/`boardState` fields a match-found push already carries) - the
-  client (`AuthWindow.resumeMatchIfPending`, via the small per-game
+  client (`pages/MatchResume.resumeIfPending` - was `AuthWindow.resumeMatchIfPending` until 2026-09-30 - via the small per-game
   `reconnectMessageTypesFor()` lookup covering all 8 adopters' own message-type pairs)
   reconstructs the equivalent of a fresh match-found + update locally from those fields
   and feeds them straight to a newly-built game window, deliberately not via a second
@@ -920,6 +920,64 @@ channel reachable from `ModeratorPanel`, gated server-side by
 `ClientHandler.isModeratorOrAdmin()` for both sending and who a `MOD_CHAT_MESSAGE`
 gets broadcast to; no message history yet, only what's sent while it's open).
 
+## mechanics — shared cross-game systems
+
+Added 2026-09-30, shared (byte-identical) between both trees. The home for behavior that is
+the same for many games and shouldn't be re-implemented in each - the first residents are the
+reconnect pieces; the next candidates are listed in `ROADMAP.md`.
+
+- **`ReconnectPolicy.java`** - the rules, in one place: the grace window (`GRACE_SECONDS = 30`,
+  `GRACE_MS`), the exception table (`EXCEPTIONS`, game id -> reason; the eight group games -
+  Racing, Space Battle, Square Wars, Zombie Survival, Among Us, Telephone, Trivia Blitz,
+  Fight Arena - where "forfeit" doesn't apply), `isEnabled(gameId)`, and
+  `canReconnect(handler, gameId)`: true only for a logged-in player who actually *dropped*
+  (`!handler.isLeavingVoluntarily()`) in a game that isn't an exception. Moving a game in or out
+  is a one-line change here. `waitingNotice()` is the text the waiting player sees.
+- **`ReconnectRegistry.java`** (moved here from `games/`) - the grace-period timer, keyed by
+  accountId, plus `ReconnectableMatch` and `ReconnectResult`. There is **one server-wide
+  instance, `ReconnectRegistry.shared()`** (a player can only be waiting in one match), so
+  `ClientHandler.tryReconnectAllGames()` is a single call and a new game needs no plumbing at
+  login. The managers' `getReconnectRegistry()` still exist and return the shared one. Lock
+  order rule (unchanged): register with it only *after* releasing the match's own lock.
+- **`PairReconnect.java`** - the whole two-player disconnect / timeout / resume state machine,
+  written once. A match creates one (`new PairReconnect(this, GAME_ID, host[, resumeDelayMs])`),
+  its `handleDisconnect` becomes `reconnect.handleDisconnect(who)`, and each action starts with
+  `if (reconnect.isPaused()) return;` (real-time games use `isHeld()`, which also covers the
+  resume delay). The game supplies only a small `Host`: `matchId`, `isOver`, `player`/`setPlayer`
+  (the two slots are non-final so a returning player's new handler can take theirs),
+  `stateString` (for the waiting notice), `forfeit(remaining)` (what "the match ends because of a
+  drop" looks like - result message, coins), `resume(slot, opponent)` (update the waiting player,
+  describe the match for the returning one) and `attach`. `refreshNotice()` re-sends the notice
+  for a match whose state changes during the pause (Memory Match's mismatch timer).
+  `resumeDelayMs` is for the real-time games: 3s of extra freeze after a return, so the
+  returning player's rebuilt window is up before the puck/snakes/pieces move.
+- **Adopters of `PairReconnect`:** Dice Duel, Signal Grid, Fusion Grid, Memory Match, Typing Duel,
+  Card Rush (turn-based / simple), Air Hockey, Snake Arena, Tetris Duel (real-time). **Chess**
+  (`ChessMatch`) has the same state machine written out by hand (`disconnectedWhite`) - it
+  predates the helper and also clears `drawOfferPending` on a drop; it could move to the helper.
+  The eight earlier adopters (Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes,
+  Word Duel, Battleship, Rock Paper Scissors) also hand-written, now reading their window from
+  `ReconnectPolicy`. Game-specific packing into `ReconnectResult` (a login response has no field
+  for these): Memory Match `turn|a:b`; Typing Duel sentence in `boardState` and
+  `winsA:winsB|progA:progB` in `turnSymbol`; Tetris Duel own grid in `boardState` and
+  `score|opponentGrid` in `turnSymbol`; Word Duel / Battleship / RPS as described in the
+  `games` section. `pages/MatchResume` unpacks all of them.
+- **Getting a dropped player back in** (the part that makes any of this matter): the client
+  (`net/NetworkManager`) now notices a drop as soon as its listener thread ends on a still-live
+  connection - not only when a later send fails - re-opens the socket, and runs a hook;
+  `pages/SessionRestorer` (installed by `MainMenu`) uses it to log in again with the credentials
+  cached in memory for this run, and `pages/MatchResume` (extracted from `AuthWindow`, which now
+  calls it too) rebuilds the game window from the login response via `MainMenu.showResumedGame`,
+  which first unhooks any stale window *without* sending a leave. Server side, `ClientHandler.
+  handleLogin` takes over the same account's older session's reconnect-eligible matches
+  (`releaseMatchesForTakeover()`) before trying to resume - a dead connection the server hasn't
+  noticed (Wi-Fi drops send no close) still has its match bound to it. Group games are not
+  touched by a takeover.
+- **Not covered yet:** the server does not detect a dead connection on its own (no heartbeat /
+  read timeout), so the *opponent* of a player whose link died silently is only told to wait once
+  the server notices - immediately if that player logs back in (takeover), otherwise whenever TCP
+  gives up. See `ROADMAP.md`.
+
 ## chat — in-match chat rooms, with per-game restrictions
 
 Added 2026-09-29. A small chat room shared by everyone in one live match - separate
@@ -1252,6 +1310,22 @@ and both trees still open/run directly in BlueJ).
   `EconomyConfig.getWinReward(...)` gets a real, nonzero reward rather than
   silently falling through to the "unrecognized id" default - the exact
   category of bug this file's own zero-coins incident was.
+- **`mechanics/ReconnectRegistryTest.java`** (2026-09-30) - the grace-period mechanism
+  itself (timeout fires exactly once, a reconnect inside the window cancels it, nothing
+  pending, cancel, a second grace period replaces the first, a refused reconnect) plus
+  `ReconnectPolicy` (30s, the exception list, guests, Chess enabled), using the
+  package-visible short-grace constructor so nothing waits out 30 real seconds.
+- **`mechanics/PairReconnectGamesTest.java`** (2026-09-30) - the shared `PairReconnect` helper
+  as wired into Dice Duel, Signal Grid, Fusion Grid, Memory Match, Typing Duel, Card Rush, Air
+  Hockey, Snake Arena and Tetris Duel: one scenario per game through a small adapter (drop
+  pauses and notifies, the other player's move is held, reconnect swaps the new handler in and
+  reports game/slot/opponent/turn, timeout forfeits once, guest and deliberate Leave forfeit
+  immediately, both-gone ends quietly). Real-time games check that ticks stop during the pause
+  and stay stopped through the resume delay; Memory Match checks its mismatch timer refreshes
+  the notice instead of faking a resume; Typing Duel checks a round that comes due while
+  someone is away starts on their return.
+- **`games/ChessReconnectTest.java`** (2026-09-30) - the same for Chess's hand-written version,
+  plus a pending draw offer being cleared on a drop and a new login taking over a stale session.
 - All five tests that touch a flat-file store hardcoding a relative file name
   (`GameSuggestionStore`/`AdminLog`/`FeedbackManager`/`DominionStore` all do -
   same pattern as `ServerAccountStore`) run from their own fresh temp working

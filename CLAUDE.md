@@ -37,7 +37,7 @@ every change; trust it over your own assumptions about project state.
 - **Two projects, `VertexClient/` and `VertexServer/`, not one.** `VertexClient/`
   is the edit-source-of-truth for anything shared between them (networking, game
   rule engines, account/economy/social logic). **The sync rule:** every file
-  under `net`/`account`/`social`/`admin`/`economy`/`games`/`dominion` (except each
+  under `net`/`account`/`social`/`admin`/`economy`/`games`/`dominion`/`chat`/`forum`/`mechanics` (except each
   game's Window/Dialog classes, which are client-only) must stay byte-identical
   between the two trees. Edit in `VertexClient/`, copy the same file to the
   matching path in `VertexServer/`, diff to confirm. This has already caused two

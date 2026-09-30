@@ -46,6 +46,38 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Shared `mechanics` package + 30-second reconnect for 18 games, including Chess; and the
+  reconnect now actually happens.** Built as directed (2026-09-30). New shared `mechanics`
+  package: `ReconnectPolicy` (30s window and the per-game exception table), `ReconnectRegistry`
+  (moved from `games/`, now one server-wide instance so login needs no per-game code), and
+  `PairReconnect` (the two-player disconnect/timeout/resume state machine, written once - each
+  game supplies a small adapter). Adopted: Chess, Dice Duel, Signal Grid, Fusion Grid, Memory
+  Match, Typing Duel, Card Rush and the real-time Air Hockey, Snake Arena, Tetris Duel (which
+  freeze while a player is away and for 3s after they return), on top of the eight games that
+  already had it (now on the 30s window). Group games stay as exceptions. Chess specifics:
+  no clocks so nothing else to pause; a pending draw offer is cleared on a drop; abandonment
+  keeps today's outcome (no rating/coins/replay). **Found while verifying end to end, and
+  fixed:** the client re-opened its socket after a drop but never logged back in, so the held
+  match was only handed back if the player logged in by hand - the feature could not have worked
+  in practice. Now `NetworkManager` notices a drop as soon as its listener ends (not only on a
+  later send), `SessionRestorer` logs in again with the in-memory credentials, `MatchResume`
+  (extracted from `AuthWindow`) rebuilds the window, and the server's login takes over an older
+  session's reconnect-eligible matches (covers a dead connection the server hasn't noticed).
+  Also fixed a flaw the new window would have created: a deliberate Leave goes through the same
+  path as a drop, so it would have kept the opponent waiting - `leavingVoluntarily` now makes it
+  forfeit at once. Verified: 3 new test files (`ReconnectRegistryTest`, `PairReconnectGamesTest`
+  - 149 checks across 9 games, `ChessReconnectTest`), Xvfb screenshots of the resumed/paused
+  windows (Chess, Typing Duel, Memory Match, Tetris Duel, Air Hockey), and a real in-process
+  server + real client whose socket is closed mid-Chess-match - the opponent is told to wait, the
+  client re-logs in and shows the board by itself, its next move reaches the opponent.
+  **Known gaps, not built:** (1) the server has no heartbeat/read timeout, so the *opponent* of a
+  player whose link died silently only learns of it when the server notices (immediately if the
+  player logs back in) - a ping + timeout would close this; (2) no live countdown ("27s...") on the
+  waiting player's screen, only the static "up to 30s" text; (3) the group games remain
+  exceptions - holding a seat in a match that carries on without you is a different design;
+  (4) a resumed match doesn't reopen the match-chat dock; (5) Chess and the eight earlier games
+  keep their hand-written version of the state machine and could move to `PairReconnect`.
+
 - **Forums, as a new sidebar tab.** Built as agreed with Bipin (2026-09-29): a board per
   game plus General, threads with flat replies, moderators/admins can delete posts and lock
   threads, first version without votes/editing/images/notifications. New shared `forum`
@@ -1761,24 +1793,10 @@ Supersedes the first version of this list. **Dominion is deliberately deferred**
 later"). Each entry records what was asked, what is true in the code today (audited, not
 assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
 
-- **1. Shared-mechanics package + ~30-second reconnect for every applicable game.**
-  **Chess is included** - Bipin clarified that exceptions may exist for *some games*, and Chess
-  is not one of them. So: a new shared package (working name `mechanics`) that becomes the home
-  for cross-game systems (first resident: `ReconnectRegistry`/`ReconnectableMatch`, today in
-  `games/` with `DEFAULT_GRACE_MS = 45_000` and 8 adopters), one constant for the grace window
-  (30s), and a per-game **opt-out table** in the package (same idea as `chat/GameChatPolicies`)
-  for games where the mechanic genuinely doesn't apply. Show the opponent a visible countdown
-  ("30s to return") instead of a frozen game. Games in three tiers: **(A)** simple 1v1 that fits
-  the existing pattern - Chess, Dice Duel, Typing Duel, Memory Match, Signal Grid, Fusion Grid,
-  Card Rush; **(B)** real-time 1v1 - Air Hockey, Snake Arena, Tetris Duel - the simulation
-  pauses for up to 30s, then forfeits; **(C)** group games - Racing, Space Battle, Square Wars,
-  Zombie Survival, Among Us, Telephone, Trivia Blitz, Fight Arena - there is no forfeit-on-drop
-  today, so "reconnect" would mean holding the seat (a different design; the likely exceptions).
-  **Chess specifics (audited):** no clocks exist, so pausing costs nothing; the draw offer is a
-  single flag (`drawOfferPending`). Reversible default: a pending draw offer is cleared when
-  either player disconnects; resign is unaffected; the match resumes on reconnect. The client
-  must also auto-reconnect and re-login inside the window (verify it fits 30s). Offline games
-  need nothing. Suggested order: A, then B, decide C separately.
+- **1. Shared-mechanics package + ~30-second reconnect for every applicable game. - DONE 2026-09-30** (see the top
+  of "Done" for what was built, how it was verified and the known gaps left: server heartbeat, a live
+  countdown, the group games, the match-chat dock on resume). Remaining from the original
+  entry: decide the group games separately (tier C), if ever.
 - **2. Protect the source code (the approach: keep the server the authority).** Direction agreed:
   sensitive logic, validation, economy, authentication and statistics stay server-side; the client
   is UI + protocol; no secrets/keys/credentials shipped with it; the client is packaged so what
