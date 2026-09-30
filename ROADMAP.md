@@ -46,6 +46,17 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Home page: structure and placeholders built; the design goes to Cursor.** (2026-09-30) Bipin approved the proposed layout
+  ("whatever you recommend") and asked for placeholders he'll give to Cursor, plus a prompt. `HomePanel` now has the six agreed
+  sections above its older content, each its own `pages/HomeSectionPanel` subclass so they can be designed independently:
+  `HomeWelcomeSection` (greeting, daily reward, quests), `HomeContinueSection` (recent + pinned games), `HomeQuickPlaySection`,
+  `HomeFriendsSection`, `HomeTournamentsSection`, `HomeWhatsNewSection`. All but What's New (which already shows the newest
+  changelog entry, real data) are friendly "coming soon" placeholders; **each class's javadoc lists the data that already exists
+  for it** (message types, panels to reuse) and what is genuinely missing - pinned-games storage and a rule for what Quick play
+  picks (both flagged as decisions, not guessed). Also fixed the page's alignment (a centre-aligned header among left-aligned
+  rows shifted the whole column ~30px). The old ticker/Top Players/Recently Played/Explore sections stay until the design places
+  them. The prompt for Cursor is `.cursor/prompts/home-redesign.md`. Verified by rendering the page under Xvfb.
+
 - **Wrapped-text clipping fixed at every remaining site.** (2026-09-30) The earlier finding (a `JLabel` HTML `<body style='width:..'>`
   is ignored on the JDKs in use, so wrapped text comes out one line wide and gets cut off - fixed on the game detail page and Forums)
   was audited across the client: 23 more labels used the ignored form (Settings' five descriptions, `GameHubDialog` - the
@@ -1974,10 +1985,7 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
 - **8. Changelog (app + website) and a Roadmap (website only). - DONE 2026-09-30** (see "Done").
 - **9. Profile with Stats inside (not a separate top-level tab). - DONE 2026-09-30** (see "Done"). Not done: reusing the stats view for a player's profile from a leaderboard row (only the profile window's button so far).
 - **10. Sidebar: scrollable and regrouped. - DONE 2026-09-30** (see "Done").
-- **11. Main page.** The existing Home page (`HomePanel`, the default landing) is redesigned as the
-  main landing; navigation is organised around it. **Proposal to be approved by Bipin before any
-  building:** continue-playing and pinned games, quick play, friends online, daily reward and quest
-  progress, tournaments, and a "what's new" strip fed by the changelog.
+- **11. Main page. - structure and placeholders DONE 2026-09-30; design/implementation of the sections is with Bipin + Cursor** (prompt: `.cursor/prompts/home-redesign.md`; see "Done"). Open decisions recorded in the prompt: what Quick play picks, where the older Home sections go.
 - **Decisions taken on Bipin's delegation ("you decide"), 2026-09-30 - all reversible, none built.**
   Full text in `BLOCKED_QUESTIONS.md` (Resolved). In short: **repo goes private** (Bipin flips the
   GitHub setting) and the jars leave git; **official servers only** (server jar/source not

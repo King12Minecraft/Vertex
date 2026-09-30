@@ -53,6 +53,12 @@ import java.util.List;
  *     so re-launching something doesn't require a detour through the
  *     Games page at all.
  *
+ * (2026-09-30) Above those sit the six sections of the Home redesign -
+ * welcome/daily reward/quests, continue playing, quick play, friends online,
+ * tournaments and what's new - each its own HomeSectionPanel subclass. They are
+ * PLACEHOLDERS to be designed (What's New already shows the latest changelog
+ * entry); the older sections below stay until the redesign places them.
+ *
  * Refreshes on a timer (like TopBar's online-count) and immediately
  * whenever a new NotificationCenter item arrives, so the ticker stays
  * current without the user having to do anything.
@@ -65,6 +71,7 @@ public class HomePanel extends RoundedPanel
     private static final String[] SPOTLIGHT_GAME_IDS =
         { "chess", "tictactoe-online", "battleship", "rock-paper-scissors" };
 
+    private final List<HomeSectionPanel> homeSections = new ArrayList<HomeSectionPanel>();
     private final MarqueeBanner ticker;
     private final JPanel topPlayersRow;
     private final JPanel recentRow;
@@ -84,13 +91,35 @@ public class HomePanel extends RoundedPanel
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
-        content.add(new PageHeader("HOME"));
+        // Left-aligned like everything else in this column - a centre-aligned header among left-aligned rows shifts them all sideways.
+        PageHeader header = new PageHeader("HOME");
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.setMaximumSize(new Dimension(4000, header.getPreferredSize().height));
+        content.add(header);
 
         ticker = new MarqueeBanner();
         ticker.setAlignmentX(Component.LEFT_ALIGNMENT);
         ticker.setMaximumSize(new Dimension(4000, 44));
         content.add(ticker);
         content.add(Box.createVerticalStrut(24));
+
+        // The six sections of the Home redesign (2026-09-30) - PLACEHOLDERS for now, each its own class so it can be
+        // designed on its own (see HomeSectionPanel and each section's javadoc for the data already available). The
+        // three sections below them are the previous Home content, kept until the redesign decides where they go.
+        homeSections.add(new HomeWelcomeSection());
+        homeSections.add(new HomeContinueSection());
+        homeSections.add(new HomeQuickPlaySection());
+        homeSections.add(new HomeFriendsSection());
+        homeSections.add(new HomeTournamentsSection());
+        homeSections.add(new HomeWhatsNewSection());
+        content.add(fullWidth(homeSections.get(0)));
+        content.add(Box.createVerticalStrut(16));
+        content.add(pair(homeSections.get(1), homeSections.get(2)));
+        content.add(Box.createVerticalStrut(16));
+        content.add(pair(homeSections.get(3), homeSections.get(4)));
+        content.add(Box.createVerticalStrut(16));
+        content.add(fullWidth(homeSections.get(5)));
+        content.add(Box.createVerticalStrut(32));
 
         content.add(sectionLabel("TOP PLAYERS"));
         topPlayersRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
@@ -160,8 +189,36 @@ public class HomePanel extends RoundedPanel
         return label;
     }
 
+    /** One section spanning the full width. */
+    private JPanel fullWidth(HomeSectionPanel section)
+    {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.add(section, BorderLayout.CENTER);
+        row.setMaximumSize(new Dimension(4000, section.getPreferredSize().height + 4));
+        return row;
+    }
+
+    /** Two sections side by side, equal width. */
+    private JPanel pair(HomeSectionPanel left, HomeSectionPanel right)
+    {
+        JPanel row = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.add(left);
+        row.add(right);
+        int height = Math.max(left.getPreferredSize().height, right.getPreferredSize().height) + 4;
+        row.setMaximumSize(new Dimension(4000, height));
+        return row;
+    }
+
     private void refreshAll()
     {
+        for (int i = 0; i < homeSections.size(); i++)
+        {
+            homeSections.get(i).refresh();
+        }
         fetchHistoryInBackground();
         fetchTopPlayersInBackground();
         rebuildExplore();

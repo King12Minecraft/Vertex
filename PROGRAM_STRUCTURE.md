@@ -1116,6 +1116,12 @@ Home / Play / Progress / Social / Shop & Community / Account. Collapsed state is
 selecting a page inside a collapsed group re-opens it, and a collapsed group's header echoes a button's badge
 (`SidebarButton.isShowingBadge`). `ui/NavIcons` gained Home, Forums, Suggest-a-Game, Dominion and Changelog glyphs.
 
+**Home (restructured 2026-09-30):** `pages/HomePanel` = the scrolling ticker, then the six redesign sections, then the older Top Players /
+Recently Played / Explore rows. The six are subclasses of `pages/HomeSectionPanel` (card with title + body, `setBodyContent`, `refresh()` called
+on build and every 30s): `HomeWelcomeSection`, `HomeContinueSection`, `HomeQuickPlaySection`, `HomeFriendsSection`, `HomeTournamentsSection`
+(placeholders - their javadoc lists existing data sources) and `HomeWhatsNewSection` (real: newest `CHANGELOG.md` entry). The design brief for Cursor
+is `.cursor/prompts/home-redesign.md`.
+
 **Stats (added 2026-09-30):** `STATS_REQUEST`/`STATS_RESPONSE` handled by `ClientHandler.handleStats` (public by name; own stats
 need a login) from `GameHistoryManager.getPlayCountsByGame` and `LeaderboardManager.getStatsRowsForAccount`; new `Message` fields
 `statsTotalPlays/statsPlayCounts/statsGameRows/statsAchievementCount`. Client: `pages/StatsPanel` (`Pages.STATS`, opened by
