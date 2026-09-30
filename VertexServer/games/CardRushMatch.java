@@ -62,7 +62,8 @@ public class CardRushMatch
         public boolean isOver() { return over; }
         public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
         public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
-        public String stateString() { return CardRushMatch.this.stateString(); }
+        public String stateString() { return CardRushMatch.this.stateStringFor(playerA); }
+        public String stateStringFor(ClientHandler viewer) { return CardRushMatch.this.stateStringFor(viewer); }
         public void attach(ClientHandler handler) { handler.setCurrentCardRushMatch(CardRushMatch.this); }
 
         public void forfeit(ClientHandler remaining)
@@ -74,7 +75,7 @@ public class CardRushMatch
             msg.setType(MessageType.CARDRUSH_RESULT);
             msg.setMatchId(matchId);
             msg.setMatchResult("OPPONENT_LEFT");
-            msg.setBoardState(stateString());
+            msg.setBoardState(stateStringFor(remaining));
             remaining.sendMessage(msg);
             economyManager.awardWin(remaining, GAME_ID);
         }
@@ -84,7 +85,7 @@ public class CardRushMatch
             sendUpdateTo(opponent);
             // No turns in this game, so the turn slot carries nothing meaningful.
             return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, slot == 0 ? "A" : "B",
-                opponent.getLoggedInUsername(), stateString(), "-");
+                opponent.getLoggedInUsername(), stateStringFor(slot == 0 ? playerA : playerB), "-");
         }
     });
 
@@ -136,7 +137,7 @@ public class CardRushMatch
         msg.setMatchId(matchId);
         msg.setSymbol(symbol);
         msg.setOpponentUsername(opponentUsername);
-        msg.setBoardState(stateString());
+        msg.setBoardState(stateStringFor(to));
         to.sendMessage(msg);
     }
 
@@ -218,16 +219,32 @@ public class CardRushMatch
         Message msg = new Message();
         msg.setType(MessageType.CARDRUSH_UPDATE);
         msg.setMatchId(matchId);
-        msg.setBoardState(stateString());
+        msg.setBoardState(stateStringFor(player));
         player.sendMessage(msg);
     }
 
-    /** "centerPile1,centerPile2|handA-comma-list|handB-comma-list|stockA.size|stockB.size" - each player's own window shows their own hand from the matching half, and only the OTHER hand's card COUNT (not its cards) for a fair "how close are they" read without seeing their actual hand. */
-    private String stateString()
+    /**
+     * The state as one particular player may see it: "centerPile1,centerPile2|handA|handB|stockA.size,stockB.size". The OTHER
+     * player's hand is sent as placeholder zeros (right count, no cards) - a window only ever shows how many cards the
+     * opponent holds, and sending the real ones would let a modified client read them.
+     */
+    private String stateStringFor(ClientHandler viewer)
     {
+        boolean viewerIsA = viewer == playerA;
         return centerPile1 + "," + centerPile2 + "|"
-            + joinInts(handA) + "|" + joinInts(handB) + "|"
+            + (viewerIsA ? joinInts(handA) : hiddenHand(handA)) + "|" + (viewerIsA ? hiddenHand(handB) : joinInts(handB)) + "|"
             + stockA.size() + "," + stockB.size();
+    }
+
+    private String hiddenHand(List<Integer> hand)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < hand.size(); i++)
+        {
+            if (i > 0) sb.append(",");
+            sb.append("0");
+        }
+        return sb.toString();
     }
 
     private String joinInts(List<Integer> values)
@@ -284,7 +301,7 @@ public class CardRushMatch
         Message msg = new Message();
         msg.setType(MessageType.CARDRUSH_RESULT);
         msg.setMatchId(matchId);
-        msg.setBoardState(stateString());
+        msg.setBoardState(stateStringFor(to));
         boolean toIsWinner = (to == playerA && "A".equals(winnerResult)) || (to == playerB && "B".equals(winnerResult));
         msg.setMatchResult("DRAW".equals(winnerResult) ? "DRAW" : (toIsWinner ? "WIN" : "LOSE"));
         to.sendMessage(msg);

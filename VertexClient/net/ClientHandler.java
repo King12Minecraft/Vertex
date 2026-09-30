@@ -1753,11 +1753,17 @@ public class ClientHandler implements Runnable
 
     private Message handleGamePlayed(Message request)
     {
+        String gameId = request.getGameId();
+        // The id is written straight into the play-history file ("account|game|time" per line), so anything
+        // that isn't a plain game-id-shaped string is dropped rather than risking a forged or broken record.
+        if (gameId == null || !gameId.matches("[a-z0-9-]{1,40}"))
+        {
+            return null;
+        }
         if (loggedInAccountId != null)
         {
-            gameHistoryManager.recordPlay(loggedInAccountId, request.getGameId());
+            gameHistoryManager.recordPlay(loggedInAccountId, gameId);
 
-            String gameId = request.getGameId();
             if ("zombie-survival".equals(gameId) || "space-battle".equals(gameId))
             {
                 leaderboardManager.recordScore(gameId, loggedInAccountId, request.getScore());
@@ -1767,11 +1773,11 @@ public class ClientHandler implements Runnable
                 // Shape 2 (EconomyKernel.awardFlatCompletion): neither of these reports
                 // a real score (nothing meaningful to score - solved-or-not), so a flat
                 // reward is the honest fit, not folded into the score-scaled table below.
-                EconomyKernel.awardFlatCompletion(economyManager, this, EconomyConfig.PUZZLE_QUEST_REWARD, "Solved a Puzzle Quest puzzle");
+                economyManager.awardPracticeFlat(this, gameId, EconomyConfig.PUZZLE_QUEST_REWARD, "Solved a Puzzle Quest puzzle");
             }
             else if ("minesweeper".equals(gameId))
             {
-                EconomyKernel.awardFlatCompletion(economyManager, this, EconomyConfig.MINESWEEPER_REWARD, "Cleared a Minesweeper board");
+                economyManager.awardPracticeFlat(this, gameId, EconomyConfig.MINESWEEPER_REWARD, "Cleared a Minesweeper board");
             }
             else
             {

@@ -46,6 +46,29 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Source-protection audits: a hidden-information leak and unlimited offline coins, both fixed.** (2026-09-30)
+  Two of the concrete items from planned item 2, done as safe non-architectural mitigations.
+  **(d) Hidden information:** audited every message the server sends for something a client shouldn't have.
+  Trivia (the answer only comes with the round result), Memory Match (only matched/flipped faces), Among Us (each
+  player gets only their own role and tasks), Battleship (own fleet only) and RPS (moves only at the round result)
+  are clean. **Card Rush was not:** its state string carried *both* hands to *both* players, though the window only
+  shows the opponent's card count - a modified client could read the opponent's hand in real time. Now each player
+  gets their own cards and zeros (right count) for the other's, in every message that carries state (match found,
+  updates, the waiting notice, the resume result, the final result); `PairReconnect.Host` gained an optional
+  `stateStringFor(viewer)` for exactly this. `CardRushHiddenInfoTest` (8 checks). **(c) Offline-game coins:**
+  `GAME_PLAYED_REQUEST` let a logged-in client claim the maximum score for any offline game as often as it liked
+  (only each submission was capped). New `economy/PracticeRewardLimiter`: a game pays at most once per 15 s per
+  account and an account earns at most **300 coins a day** from offline games in total (in memory; the last payout
+  of the day is trimmed to fit, not refused). Covers the score-scaled games and the flat Minesweeper/Puzzle Quest
+  rewards (`EconomyManager.awardPracticeFlat`); online matches are untouched. `PracticeRewardLimiterTest` (12 checks) and `GamePlayedHandlerTest` (8 checks, the real handler: hostile ids dropped, repeated claims pay once).
+  Also: `handleGamePlayed` now drops any game id that isn't `[a-z0-9-]{1,40}` - the id is written into the
+  `account|game|time` history file, so a `|` or newline in it could have forged or broken a record (the same bug
+  class already fixed in the suggestion, admin-log and forum stores). **Reversible defaults - Bipin may retune:**
+  the 15 s interval and 300-coin daily cap live as constants in `PracticeRewardLimiter`; an honest player who quits
+  a very short round within 15 s of the last payout for that game earns nothing for it. Still open from item 2:
+  the offline scores themselves are still self-reported (only their payout is bounded), which only real server-side
+  simulation of those games could change.
+
 - **Sidebar: scrollable and regrouped.** (2026-09-30) The navigation is now a scroll pane (thin scrollbar) between
   the pinned logo row above and the pinned quest list and connection status below, so a short window no longer
   loses entries. Regrouped as proposed: Home (ungrouped) / **Play** (Games, All Games, Tournaments, Dominion) /

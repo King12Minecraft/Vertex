@@ -1364,6 +1364,9 @@ and both trees still open/run directly in BlueJ).
 - **`economy/StatsTest.java`** (2026-09-30) - play counts, rating/record/best-score rows and the real `handleStats` handler.
 - **`account/AdminBootstrapTest.java`** (2026-09-30) - first-run admin setup (console, environment, bad input, no console).
 - **`chat/CalcParserTest.java`** (2026-09-30) - the `/calc` parser.
+- **`economy/PracticeRewardLimiterTest.java`, `economy/GamePlayedHandlerTest.java`, `games/CardRushHiddenInfoTest.java`** (2026-09-30) - the
+  offline-reward rate limit (15s per game per account, 300 coins/day, resets next day), the real `GAME_PLAYED_REQUEST` handler (game ids
+  that aren't `[a-z0-9-]{1,40}` are dropped; repeated claims pay once), and that Card Rush never sends a player the other's hand.
 - All five tests that touch a flat-file store hardcoding a relative file name
   (`GameSuggestionStore`/`AdminLog`/`FeedbackManager`/`DominionStore` all do -
   same pattern as `ServerAccountStore`) run from their own fresh temp working
