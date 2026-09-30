@@ -58,6 +58,9 @@ import java.net.Socket;
 public class GameServer
 {
     private final ServerAccountStore accountStore = new ServerAccountStore();
+
+    /** For the entry point's first-run admin setup (account.AdminBootstrap), which must run before the server starts accepting players. */
+    public ServerAccountStore getAccountStore() { return accountStore; }
     private final GameRegistry gameRegistry = new GameRegistry();
     private final TransactionManager transactionManager = new TransactionManager();
     private final EconomyManager economyManager = new EconomyManager(accountStore, transactionManager);

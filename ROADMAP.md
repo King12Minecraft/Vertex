@@ -46,6 +46,20 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **First-run admin setup replaces "first signup becomes admin."** (2026-09-30, the item added when
+  Bipin delegated the decision.) New shared `account/AdminBootstrap`, called by `ServerMain` before the
+  server accepts anyone: if no admin exists it asks for a username and password at the server console
+  (password typed twice, not echoed, three tries), or reads `VERTEX_ADMIN_USER`/`VERTEX_ADMIN_PASSWORD`
+  for an unattended start; with neither it starts with no admin and a loud warning - never handing admin
+  to whoever connects first. `ClientHandler.handleCreateAccount` now always creates a `PLAYER`. Also
+  corrects `VertexServer/README.md`, which described a "loopback connection" rule the code never had.
+  Answers Bipin's question: yes, he chooses the admin's name and password - typed into the server
+  console, never into chat. `AdminBootstrapTest` (14 checks: console, bad input re-asked, closed input,
+  environment, no-console warning, an ordinary signup never yields an admin) plus a real `ServerMain`
+  run in a clean directory. **Behaviour change to note:** an existing server that already has an admin
+  is untouched; a fresh server started without a console and without the variables has no admin until
+  restarted with one.
+
 - **Reconnect gaps closed: heartbeat, live countdown, chat dock on resume, Chess on the shared helper.**
   Follow-up to the entry below, at Bipin's "fix gaps" (2026-09-30). (1) **Heartbeat:** the client
   pings every 8s (`PING_REQUEST`/`PONG`); the server drops a connection silent for 25s

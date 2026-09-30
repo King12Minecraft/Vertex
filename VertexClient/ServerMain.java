@@ -1,3 +1,4 @@
+import account.AdminBootstrap;
 import net.GameServer;
 
 /**
@@ -29,6 +30,21 @@ public class ServerMain
         });
 
         GameServer server = new GameServer();
+
+        // First-run administrator setup, before anyone can connect (see account.AdminBootstrap).
+        final java.io.Console console = System.console();
+        AdminBootstrap.Prompter prompter = console == null ? null : new AdminBootstrap.Prompter()
+        {
+            public String readLine(String prompt) { return console.readLine("%s", prompt); }
+            public String readPassword(String prompt)
+            {
+                char[] chars = console.readPassword("%s", prompt);
+                return chars == null ? null : new String(chars);
+            }
+        };
+        AdminBootstrap.ensureAdmin(server.getAccountStore(), prompter,
+            System.getenv("VERTEX_ADMIN_USER"), System.getenv("VERTEX_ADMIN_PASSWORD"), System.out);
+
         boolean started = server.start();
 
         if (!started)

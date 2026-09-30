@@ -1251,10 +1251,9 @@ public class ClientHandler implements Runnable
             return response;
         }
 
-        boolean grantAdmin = !accountStore.hasAdminAccount();
-        Role role = grantAdmin ? Role.ADMIN : Role.PLAYER;
-
-        Account account = accountStore.createAccount(username, password, role);
+        // Nobody becomes ADMIN by signing up: the first administrator is created at the server's
+        // own console (account.AdminBootstrap), so reaching a fresh server first gives no power.
+        Account account = accountStore.createAccount(username, password, Role.PLAYER);
         loggedInUsername = account.getUsername();
         loggedInAccountId = account.getAccountId();
         chatManager.register(this, loggedInUsername);
@@ -1265,7 +1264,7 @@ public class ClientHandler implements Runnable
 
         response.setSuccess(true);
         response.setAccount(account);
-        response.setBootstrapAdmin(grantAdmin);
+        response.setBootstrapAdmin(false);
         return response;
     }
 

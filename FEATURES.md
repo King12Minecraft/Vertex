@@ -102,7 +102,7 @@ written down, not built yet - see the design doc's "Future depth" sections.
 
 ## Admin & Moderation
 
-- **Real Admin Panel** — Players (every account, promote to Moderator / revert to Player — never grants Admin, which stays bootstrap-only) and Admin Log (a genuinely human-readable audit trail of approvals, removals, role changes).
+- **Real Admin Panel** — Players (every account, promote to Moderator / revert to Player — never grants Admin, which is only created at the server console) and Admin Log (a genuinely human-readable audit trail of approvals, removals, role changes).
 - **Moderators** — a real, usable role now, not just an enum value with no UI to grant it.
 - **Staff chat colors** — Admin and Moderator usernames render in a fixed color in chat, overriding any purchased cosmetic color.
 - **Feedback system** — bug reports and suggestions, submitted in-app, viewable in-app (own feedback for regular players, all feedback for admins), each entry timestamped.
@@ -158,4 +158,4 @@ written down, not built yet - see the design doc's "Future depth" sections.
 
 - **Login and Create Account screens** — redesigned as centered cards with an ambient dual-tone glow background, matching current dark-mode gaming-platform design conventions.
 - **Daily login rewards**, streak-tracked.
-- **Bootstrap admin** — the very first account ever created on a fresh server becomes Admin automatically; no other path grants that role.
+- **First-run admin setup** — on a fresh server the operator chooses the Admin username and password at the server's own console (or via `VERTEX_ADMIN_USER`/`VERTEX_ADMIN_PASSWORD` for an unattended start). Signing up never grants Admin, so reaching a new server first gives no power; no other path grants that role.

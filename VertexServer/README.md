@@ -43,10 +43,12 @@ to a Server" option) to actually log in and play.
 **With BlueJ:** open this folder as a project, compile all classes, right-click
 `ServerMain` → `void main(String[] args)` → leave the argument blank.
 
-If no admin exists yet on this server, the first account created **from a
-loopback (localhost) connection** automatically becomes admin — a remote player
-joining before the server operator creates their own account can never
-accidentally end up with it instead.
+**First run: create the administrator.** If no admin exists yet, the server asks for an
+admin username and password at its console before it accepts anyone (type them there —
+never share them in a chat). For an unattended start, set `VERTEX_ADMIN_USER` and
+`VERTEX_ADMIN_PASSWORD` instead. With neither, the server still starts but has no admin and
+says so loudly; restart it from a terminal to set one up. Signing up in the game never makes
+anyone an admin.
 
 ## Security
 

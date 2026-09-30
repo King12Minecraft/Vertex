@@ -90,7 +90,7 @@ the socket → dispatches by `MessageType` (e.g. `FIND_MATCH_REQUEST`) → the m
   `handleXxx` chain (100+ request types). Holds per-connection state: logged-in
   account, and one `current<Game>Match` field per online game. On disconnect, cancels
   waiting/active matches on every manager so nothing hangs server-side. Also handles
-  login/account creation (first account ever created is auto-granted `Role.ADMIN`),
+  login/account creation (signing up only ever creates a `Role.PLAYER` - the first admin comes from `account/AdminBootstrap` at the server console),
   moderation and admin actions (role re-checked here, server-side, for every privileged
   request), avatars, feedback, and client auto-update.
 - **`Message.java`** / **`MessageType.java`** *(shared)* — the wire protocol: one
