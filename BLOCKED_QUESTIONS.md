@@ -18,26 +18,33 @@ raised.
 
 ## Open
 
-- **Source protection - follow-ups.** Raised 2026-09-30. Bipin's direction is agreed (server stays the
-  authority, no secrets in the client, packaged/obfuscated client, servers he hosts himself). Still
-  open: **(1)** make the GitHub repo private and remove `VertexClient.jar`/`VertexServer.jar` from
-  git (both are committed in the currently **public** repo, which has no `LICENSE`)? **(2)** may
-  other people still run their own server? Vertex was designed so anyone can (README,
-  `HOW_VERTEX_WORKS.md`, `CLAUDE.md`'s hosting facts) - if yes, the server jar must be distributed
-  and can't be protected; if no, those docs and `CLAUDE.md` change. **Reversible default applied:**
-  nothing changed; recorded in `ROADMAP.md`.
-- **Going global: the security trigger has been reached.** Raised 2026-09-30. The earlier decision
-  below ("accept the risk as LAN-only, revisit when internet play is being built") named this
-  moment. Internet exposure needs: TLS on the socket (passwords cross it unencrypted), signed
-  auto-updates, and controlled admin creation (the first account on a fresh server becomes ADMIN).
-  Needs Bipin to choose the TLS approach (certificates) and the update-signing key management, and
-  later the host. **Reversible default applied:** none - nothing is deployed.
-- **Reconnect details.** Raised 2026-09-30. Chess is **included** (resolved below). Still open: **(1)**
-  real-time 1v1 (Air Hockey, Snake Arena, Tetris Duel) - pause up to 30s, then forfeit? **(2)** group
-  games have no forfeit today, so what does "reconnect" mean there (hold the seat)? These are the
-  likely per-game exceptions. **(3)** Chess: is "a pending draw offer is cleared when either player
-  disconnects" acceptable (no clocks exist, so pausing costs nothing)? **Reversible defaults:**
-  pause real-time 1v1; group games left as they are; Chess draw offer cleared on disconnect.
+_Nothing open right now - the last four were delegated to Claude on 2026-09-30 and are recorded under Resolved (all reversible)._
+
+## Resolved
+
+- **Source protection follow-ups, going-global security, and reconnect details** - four questions Bipin
+  delegated to Claude on 2026-09-30 ("you decide"). **Decisions (all reversible; nothing is built yet):**
+  (1) **Repo and jars:** the GitHub repo should be made **private** - Bipin must do that in GitHub
+  Settings, it can't be done from here - and `VertexClient.jar`/`VertexServer.jar` stop being tracked in
+  git (builds ship as release files or the website download). The old commits stay exposed while the
+  repo is public; rewriting history is destructive, so it is not done without an explicit go-ahead.
+  (2) **Hosting model:** **official servers only** (Bipin's); the server jar and source are not
+  distributed. The client keeps a custom-host field for development/testing only; public builds
+  default to the official server and auto-update trusts only the official signing key. When built,
+  update `CLAUDE.md`, `README.md` and `HOW_VERTEX_WORKS.md`, which still say anyone can host.
+  (3) **TLS:** terminate TLS in front of the Java server (nginx `stream`, HAProxy or stunnel, with a
+  Let's Encrypt certificate for a domain) and have the client connect with a standard `SSLSocket` -
+  minimal code change, renewals handled outside the app; certificate pinning optional later.
+  (4) **Update signing:** sign each client jar with an ECDSA P-256 key **Bipin keeps offline** (never on
+  the server), embed the public key in the client, verify a detached signature before staging an
+  update - so a compromised server cannot push code. (ECDSA rather than Ed25519 because it works on
+  every JDK.) This closes the "accept LAN-only risk until internet play" decision below.
+  (5) **Admin account:** first-run admin setup **replaces first-signup-becomes-admin** - on first start
+  the server asks in its console for the admin name and password (or reads a one-time variable),
+  so Bipin chooses them and nobody can race him. The password is typed into the server, never
+  shared in chat. (6) **Reconnect:** real-time 1v1 (Air Hockey, Snake Arena, Tetris Duel) **pause up to
+  30s, then forfeit**; group games are **exceptions for now** (no reconnect mechanic); Chess clears a
+  pending draw offer when either player disconnects (no clocks, so pausing is free).
 
 - **Does Trivia Blitz actually need `ReconnectRegistry`-style reconnection at all,
   and if so, what should it look like?** Raised 2026-09-29 while working through the
@@ -73,8 +80,9 @@ raised.
   remains" as if it needs the same treatment as RPS did.
 
 ---
-
-## Resolved
+  **Resolved 2026-09-30, delegated to Claude by Bipin ("you decide"): option (b)** - Trivia Blitz keeps
+  its current behaviour (the match continues, a disconnected player's score stays locked in). It
+  needs no reconnection mechanic. Reversible.
 
 - **Reconnect exception - is Chess excluded?** Raised 2026-09-30 (my first reading was that "the
   specified exception" meant Chess). **Resolved 2026-09-30:** no - exceptions can exist for *some

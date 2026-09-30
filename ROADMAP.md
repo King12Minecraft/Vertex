@@ -1855,6 +1855,17 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
   main landing; navigation is organised around it. **Proposal to be approved by Bipin before any
   building:** continue-playing and pinned games, quick play, friends online, daily reward and quest
   progress, tournaments, and a "what's new" strip fed by the changelog.
+- **Decisions taken on Bipin's delegation ("you decide"), 2026-09-30 - all reversible, none built.**
+  Full text in `BLOCKED_QUESTIONS.md` (Resolved). In short: **repo goes private** (Bipin flips the
+  GitHub setting) and the jars leave git; **official servers only** (server jar/source not
+  distributed; client keeps a dev-only custom-host field); **TLS terminated in front of the server**
+  with a Let's Encrypt cert and a standard `SSLSocket` on the client; **updates signed with an ECDSA
+  P-256 key Bipin keeps offline**, public key embedded in the client; **first-run admin setup** in
+  the server console replaces "first signup becomes admin" (new work item - small, and the answer to
+  "can I choose the first account's name and password": yes, typed into the server, never shared in
+  chat); **real-time 1v1 pause up to 30s then forfeit, group games are exceptions for now, Trivia
+  keeps its behaviour**, Chess clears a pending draw offer on disconnect. When the official-server
+  model is built, update `CLAUDE.md`, `README.md` and `HOW_VERTEX_WORKS.md`.
 - **Coordination.** Items 9-11 (sidebar, Home, Profile/Stats) are one structural job; do it before
   Cursor visual polish so two people aren't editing the same files, and do the polish on a separate
   branch. PR #1 (60+ files, unmerged) should be merged first.
