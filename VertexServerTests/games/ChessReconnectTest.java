@@ -141,6 +141,22 @@ public class ChessReconnectTest
             ReconnectRegistry.shared().cancel(9);
         }
 
+        // --- takeover: a new login of the same account while the old session is still registered (a dead connection the server hasn't noticed) ---
+        {
+            FakeClientHandler white = new FakeClientHandler("jo", 30);
+            FakeClientHandler black = new FakeClientHandler("kay", 31);
+            ChessMatch match = newMatch(white, black);
+            white.releaseMatchesForTakeover();
+            check.check("takeover starts the grace period (opponent is told)", black.countOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE) == 1);
+            FakeClientHandler whiteNew = new FakeClientHandler("jo", 30);
+            ReconnectRegistry.ReconnectResult r = ReconnectRegistry.shared().tryReconnect(30, whiteNew);
+            check.check("the new login resumes the match straight away", r != null && "chess".equals(r.gameId) && "WHITE".equals(r.mySymbol));
+            white.releaseMatchesForTakeover();
+            check.check("the old session's later cleanup no longer touches the match", black.countOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE) == 1 && black.countOfType(MessageType.CHESS_MATCH_OVER) == 0);
+            match.makeMove(whiteNew, 12, 28);
+            check.check("the new session can play on", black.countOfType(MessageType.CHESS_UPDATE) >= 2);
+        }
+
         check.finish();
         System.exit(0);
     }

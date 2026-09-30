@@ -309,6 +309,60 @@ public class ClientHandler implements Runnable
         try { socket.close(); } catch (IOException ignored) { }
     }
 
+    /**
+     * A newer login of the same account is taking over. If this (older) session is still
+     * registered in a reconnect-eligible match - which happens when its connection died
+     * without the server noticing yet (a dropped Wi-Fi link sends no close) - release those
+     * matches now, exactly as a disconnect would: that starts the grace period, which the new
+     * login's reconnect attempt then resolves straight away. The match fields are cleared so
+     * this session's eventual real disconnect can't touch a match that has moved on. Group
+     * games are left alone: a second login must not pull someone out of one of those.
+     */
+    public void releaseMatchesForTakeover()
+    {
+        disconnectFromReconnectableMatches();
+        currentMatch = null;
+        currentChessMatch = null;
+        currentBattleshipMatch = null;
+        currentRpsMatch = null;
+        currentConnectFourMatch = null;
+        currentCheckersMatch = null;
+        currentDotsAndBoxesMatch = null;
+        currentReversiMatch = null;
+        currentMemoryMatchMatch = null;
+        currentAirHockeyMatch = null;
+        currentWordDuelMatch = null;
+        currentDiceDuelMatch = null;
+        currentSnakeArenaMatch = null;
+        currentTetrisDuelMatch = null;
+        currentFusionGridMatch = null;
+        currentTypingDuelMatch = null;
+        currentSignalGridMatch = null;
+        currentCardRushMatch = null;
+    }
+
+    private void disconnectFromReconnectableMatches()
+    {
+        if (currentMatch != null) currentMatch.handleDisconnect(this);
+        if (currentChessMatch != null) currentChessMatch.handleDisconnect(this);
+        if (currentBattleshipMatch != null) currentBattleshipMatch.handleDisconnect(this);
+        if (currentRpsMatch != null) currentRpsMatch.handleDisconnect(this);
+        if (currentConnectFourMatch != null) currentConnectFourMatch.handleDisconnect(this);
+        if (currentCheckersMatch != null) currentCheckersMatch.handleDisconnect(this);
+        if (currentDotsAndBoxesMatch != null) currentDotsAndBoxesMatch.handleDisconnect(this);
+        if (currentReversiMatch != null) currentReversiMatch.handleDisconnect(this);
+        if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
+        if (currentAirHockeyMatch != null) currentAirHockeyMatch.handleDisconnect(this);
+        if (currentWordDuelMatch != null) currentWordDuelMatch.handleDisconnect(this);
+        if (currentDiceDuelMatch != null) currentDiceDuelMatch.handleDisconnect(this);
+        if (currentSnakeArenaMatch != null) currentSnakeArenaMatch.handleDisconnect(this);
+        if (currentTetrisDuelMatch != null) currentTetrisDuelMatch.handleDisconnect(this);
+        if (currentFusionGridMatch != null) currentFusionGridMatch.handleDisconnect(this);
+        if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
+        if (currentSignalGridMatch != null) currentSignalGridMatch.handleDisconnect(this);
+        if (currentCardRushMatch != null) currentCardRushMatch.handleDisconnect(this);
+    }
+
     public void run()
     {
         try
@@ -364,29 +418,12 @@ public class ClientHandler implements Runnable
             tournamentManager.handleDisconnect(this);
             teamTournamentManager.handleDisconnect(this);
             chatManager.unregister(this, loggedInUsername);
-            if (currentMatch != null) currentMatch.handleDisconnect(this);
+            disconnectFromReconnectableMatches();
             if (currentRacingMatch != null) currentRacingMatch.handleDisconnect(this);
             if (currentAmongMatch != null) currentAmongMatch.handleDisconnect(this);
             if (currentFightMatch != null) currentFightMatch.handleDisconnect(this);
-            if (currentChessMatch != null) currentChessMatch.handleDisconnect(this);
-            if (currentBattleshipMatch != null) currentBattleshipMatch.handleDisconnect(this);
-            if (currentRpsMatch != null) currentRpsMatch.handleDisconnect(this);
-            if (currentConnectFourMatch != null) currentConnectFourMatch.handleDisconnect(this);
-            if (currentCheckersMatch != null) currentCheckersMatch.handleDisconnect(this);
             if (currentSquareWarsMatch != null) currentSquareWarsMatch.handleDisconnect(this);
             if (currentTriviaMatch != null) currentTriviaMatch.handleDisconnect(this);
-            if (currentDotsAndBoxesMatch != null) currentDotsAndBoxesMatch.handleDisconnect(this);
-            if (currentReversiMatch != null) currentReversiMatch.handleDisconnect(this);
-            if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
-            if (currentAirHockeyMatch != null) currentAirHockeyMatch.handleDisconnect(this);
-            if (currentWordDuelMatch != null) currentWordDuelMatch.handleDisconnect(this);
-            if (currentDiceDuelMatch != null) currentDiceDuelMatch.handleDisconnect(this);
-            if (currentSnakeArenaMatch != null) currentSnakeArenaMatch.handleDisconnect(this);
-            if (currentTetrisDuelMatch != null) currentTetrisDuelMatch.handleDisconnect(this);
-            if (currentFusionGridMatch != null) currentFusionGridMatch.handleDisconnect(this);
-            if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
-            if (currentSignalGridMatch != null) currentSignalGridMatch.handleDisconnect(this);
-            if (currentCardRushMatch != null) currentCardRushMatch.handleDisconnect(this);
             if (currentTelephoneMatch != null) currentTelephoneMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
@@ -1085,7 +1122,12 @@ public class ClientHandler implements Runnable
             response.setAccount(account);
             loggedInUsername = account.getUsername();
             loggedInAccountId = account.getAccountId();
+            ClientHandler previousSession = chatManager.findByUsername(loggedInUsername);
             chatManager.register(this, loggedInUsername);
+            if (previousSession != null && previousSession != this)
+            {
+                previousSession.releaseMatchesForTakeover();
+            }
             friendManager.broadcastPresenceChange(account, true);
 
             // Reconnection: if this account disconnected mid-match recently enough to

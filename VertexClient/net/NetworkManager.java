@@ -63,6 +63,18 @@ public class NetworkManager
     private static Thread reconnectThread;
     private static final int RECONNECT_INTERVAL_MS = 4000;
 
+    /** Bumped every time a connection is closed, so a listener thread can tell whether the socket it was reading is still THE current one (a stale one ending is just cleanup, not a drop). */
+    private static int connectionGeneration = 0;
+    /** True from a detected drop until the next successful connect - so that connect is known to be a recovery, not the first connection or a deliberate server switch. */
+    private static boolean connectionLost = false;
+    private static Runnable reconnectedHook = null;
+
+    /** Runs (on its own thread) each time the connection is re-established after a drop - the client uses it to log back in, since the server only knows who a connection is from a login. */
+    public static void setReconnectedHook(Runnable hook)
+    {
+        reconnectedHook = hook;
+    }
+
     private NetworkManager()
     {
         // Static utility class - never instantiated.
@@ -174,6 +186,11 @@ public class NetworkManager
             setState(ConnectionState.ONLINE);
             startListenerThread();
             flushOfflineQueue();
+            if (connectionLost)
+            {
+                connectionLost = false;
+                fireReconnectedHook();
+            }
             return true;
         }
         catch (IOException e)
@@ -188,6 +205,7 @@ public class NetworkManager
     public static synchronized boolean switchServer(String host, int port)
     {
         closeQuietly();
+        connectionLost = false;
         NetworkConfig.setServerHost(host);
         NetworkConfig.setServerPort(port);
         return connect();
@@ -232,8 +250,21 @@ public class NetworkManager
         reconnectThread.start();
     }
 
+    private static void fireReconnectedHook()
+    {
+        final Runnable hook = reconnectedHook;
+        if (hook == null)
+        {
+            return;
+        }
+        Thread t = new Thread(hook);
+        t.setDaemon(true);
+        t.start();
+    }
+
     private static void startListenerThread()
     {
+        final int myGeneration = connectionGeneration;
         listenerThread = new Thread(new Runnable()
         {
             public void run()
@@ -248,7 +279,14 @@ public class NetworkManager
                 }
                 catch (IOException e)
                 {
-                    // Socket closed/dropped - normal on disconnect, nothing to log loudly.
+                    // Socket closed/dropped. If this is still the live connection (not one we closed
+                    // ourselves), it's a real drop: recover now instead of waiting for the next send
+                    // to fail - an idle player (say, thinking over a chess move) would otherwise not
+                    // notice for as long as they sat there, and the reconnect window is only 30s.
+                    if (myGeneration == connectionGeneration)
+                    {
+                        handleDisconnect();
+                    }
                 }
                 catch (ClassNotFoundException e)
                 {
@@ -484,6 +522,7 @@ public class NetworkManager
 
     private static void handleDisconnect()
     {
+        connectionLost = true;
         setState(ConnectionState.RECONNECTING);
         closeQuietly();
 
@@ -495,6 +534,7 @@ public class NetworkManager
 
     private static void closeQuietly()
     {
+        connectionGeneration++;
         try
         {
             if (socket != null)

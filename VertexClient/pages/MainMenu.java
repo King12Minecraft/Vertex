@@ -108,6 +108,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     {
         super("Vertex");
         instance = this;
+        SessionRestorer.install();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1000, 650));
 
@@ -466,6 +467,23 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     }
 
     /** Embeds the given game panel in the single game-host slot and navigates to it - the replacement for a game opening its own separate JFrame. Called by GameLauncher.openGame(...) for games that have been converted to EmbeddedGamePanel (Chess is the first; most games still open their own window until they're converted too). */
+    /**
+     * Like showGame, for putting a player back into a match the server just restored
+     * (MatchResume). If a window for the old, dropped session is still on screen it is
+     * unhooked from the network first - without sending any "leave" (that would forfeit the
+     * very match being resumed) - so its stale copy of the game can't also react to the
+     * restored match's messages.
+     */
+    public void showResumedGame(javax.swing.JComponent gamePanel)
+    {
+        Component hosted = gameHostContainer.getComponentCount() > 0 ? gameHostContainer.getComponent(0) : null;
+        if (hosted instanceof net.NetworkManager.PushListener)
+        {
+            net.NetworkManager.removePushListener((net.NetworkManager.PushListener) hosted);
+        }
+        showGame(gamePanel);
+    }
+
     public void showGame(javax.swing.JComponent gamePanel)
     {
         chatDock = null;
