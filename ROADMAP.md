@@ -46,6 +46,15 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **`/calc` slash command.** (2026-09-30) The one slash command, as agreed (the earlier chatbot/slash-command
+  removal stands). `/calc 2+3*4` in a DM, a group chat or the match-chat dock is answered on the sender's own
+  screen and **never sent** - no server change, nothing anyone else sees. New `chat/CalcParser`: a small
+  hand-written recursive-descent parser (`+ - * / % ^`, brackets, decimals, `pi`/`e`, `sqrt abs round floor
+  ceil ln log sin cos tan min max`; `^` right-associative, `-2^2 = -4`), no script engine. Bad input gives a
+  one-line message (divide by zero, negative root, overflow, unknown name, over 200 characters, 60 levels of
+  brackets - a 5000-deep nest is refused instead of overflowing the stack). `CalcParserTest` (38 checks) and a
+  live check that the dock answers it locally.
+
 - **First-run admin setup replaces "first signup becomes admin."** (2026-09-30, the item added when
   Bipin delegated the decision.) New shared `account/AdminBootstrap`, called by `ServerMain` before the
   server accepts anyone: if no admin exists it asks for a username and password at the server console

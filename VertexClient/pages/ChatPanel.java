@@ -1,4 +1,5 @@
 package pages;
+import chat.CalcParser;
 import economy.NotificationSoundSetting;
 import net.NetworkConfig;
 import ui.GameHubDialog;
@@ -1020,6 +1021,21 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         String text = field.getValue();
         if (text.isEmpty())
         {
+            return;
+        }
+
+        if (CalcParser.isCalcCommand(text))
+        {
+            // "/calc ..." is answered here and never sent - only the sender sees it.
+            if (currentChannel != null)
+            {
+                Message local = new Message();
+                local.setType(MessageType.PRIVATE_MESSAGE);
+                local.setUsername("Calculator");
+                local.setChatText(CalcParser.reply(text) + "   (only you can see this)");
+                recordAndMaybeRender(currentChannel, local);
+            }
+            field.clear();
             return;
         }
 

@@ -985,6 +985,8 @@ reconnect pieces; the next candidates are listed in `ROADMAP.md`.
 
 ## chat — in-match chat rooms, with per-game restrictions
 
+(Also home of `CalcParser`, the local evaluator behind `/calc` - used by `pages/ChatPanel` and `MatchChatDock`, never sent to the server; shared between the trees only so `CalcParserTest` can reach it.)
+
 Added 2026-09-29. A small chat room shared by everyone in one live match - separate
 from the DMs/group chats above - shown as a dock beside the game. **Server-authoritative**:
 a client asks to send (`MATCH_CHAT_SEND_REQUEST`), the room decides.

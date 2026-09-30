@@ -158,6 +158,13 @@ public class MatchChatDock extends RoundedPanel
         {
             return;
         }
+        if (CalcParser.isCalcCommand(text))
+        {
+            // "/calc ..." is answered here and never sent - only the sender sees it.
+            addMessage("Calculator", CalcParser.reply(text) + "   (only you can see this)");
+            input.clear();
+            return;
+        }
         Message request = new Message();
         request.setType(MessageType.MATCH_CHAT_SEND_REQUEST);
         request.setChatText(text);
