@@ -46,6 +46,26 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Stats page inside Profile, a Profile sidebar entry, and a fix for a 10-second startup stall.** (2026-09-30)
+  **Audit first (as the item asked):** the server records plays per game (with timestamps), a rating and win/
+  loss/draw record per *ranked* game, a best score per score game, achievements, coins and login streak; it does
+  **not** record time played, nor losses in games without a rating - the page says so instead of showing zeros.
+  Built: `STATS_REQUEST`/`STATS_RESPONSE` (public by player name like a profile; "yourself" needs a login; numbers
+  only from server records), `GameHistoryManager.getPlayCountsByGame`, `LeaderboardManager.getStatsRowsForAccount`,
+  and a full-page `pages/StatsPanel` with a Back button (same pattern as the game detail page: `Pages.STATS`,
+  `MainMenu.showStats/leaveStats`) - summary tiles, a per-game table with a play-share bar, rating, W-L-D, best
+  score. Reached from a new "Stats" card on the Profile page and a "Full stats" button on another player's profile
+  window. The Profile page's **Games Played and Achievements were permanent placeholders ("0")** - now real. Profile
+  also has its own sidebar entry (it was only in the account menu). `StatsTest` (17 checks) plus a real server +
+  real client + real page run with seeded data. **Found while verifying, and fixed:** the Dominion page's startup
+  request never got its answer because none of `DOMINION_*_RESPONSE` (nor `SELECT_FRAME_RESPONSE`) were in
+  `NetworkManager.RESPONSE_TYPES`, so it waited its full 10 seconds *holding the global send lock* - stalling
+  Friends, Chat, Shop and every other panel's first load on each start (and equipping a frame always timed out).
+  New permanent guard `net.ResponseTypesTest` (54 checks; `test.sh` now compiles `NetworkManager` for it) reads the
+  server's source for every response type it sends and requires each to be registered - this bug class has now
+  happened four times (Forums, Dominion, frames, and Stats before it shipped). Remaining structural weakness: `send()`
+  holding a global lock while it waits means any one slow/unanswered request still stalls the rest for up to 10s.
+
 - **Changelog in the app and on the website, from one file; a separate public Roadmap on the site.** (2026-09-30)
   New root `CHANGELOG.md` - hand-written, player-facing, newest first - is the single source: the app's new
   **Changelog** page (sidebar; `pages/ChangelogPanel` + `ChangelogParser`) and the website's Changelog page both
@@ -1908,11 +1928,7 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
   `vertex_logo.png`, the window icon is `vertex_icon.ico` (multi-size), plus the website's static
   assets - replace at the same names and no Java changes are needed. Must be an original design.
 - **8. Changelog (app + website) and a Roadmap (website only). - DONE 2026-09-30** (see "Done").
-- **9. Profile with Stats inside (not a separate top-level tab).** Profile stays a sidebar item;
-  **Stats is a clickable section inside Profile** that opens a full-page view with a Back button
-  (same pattern as the game-detail page), reusable for other players' profile view. Data: plays per
-  game, per-game ratings/wins, and coins exist; losses and playtime were not found - audit what is
-  tracked before designing the page.
+- **9. Profile with Stats inside (not a separate top-level tab). - DONE 2026-09-30** (see "Done"). Not done: reusing the stats view for a player's profile from a leaderboard row (only the profile window's button so far).
 - **10. Sidebar: scrollable and regrouped.** Not scrollable today (no `JScrollPane`). Pin the logo
   row, quest list and status row; scroll only the navigation. Proposed groups: **Home** / **Play**
   (Games, All Games, Tournaments) / **Progress** (Quests, Achievements, Leaderboards) / **Social**

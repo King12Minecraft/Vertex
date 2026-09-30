@@ -313,6 +313,9 @@ public enum MessageType
 
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
+    /** A player's stats page: plays per game, ratings and win/loss records, best scores. username empty = the requester's own. */
+    STATS_REQUEST,
+    STATS_RESPONSE,
     PLAYER_PROFILE_RESPONSE,
 
     // --- Chess (1v1 turn-based, standard rules minus castling/en passant) ---

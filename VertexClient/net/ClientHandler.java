@@ -625,6 +625,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.ADMIN_SET_ROLE_REQUEST) return handleAdminSetRole(request);
         if (request.getType() == MessageType.ADMIN_LOG_REQUEST) return handleAdminLog();
         if (request.getType() == MessageType.PLAYER_PROFILE_REQUEST) return handlePlayerProfile(request);
+        if (request.getType() == MessageType.STATS_REQUEST) return handleStats(request);
         if (request.getType() == MessageType.ADMIN_BAN_REQUEST) return handleAdminBan(request);
         if (request.getType() == MessageType.ADMIN_UNBAN_REQUEST) return handleAdminUnban(request);
         if (request.getType() == MessageType.ADMIN_BAN_LIST_REQUEST) return handleAdminBanList();
@@ -1019,6 +1020,37 @@ public class ClientHandler implements Runnable
         {
             response.setMutualFriendUsernames(friendManager.getMutualFriendUsernames(loggedInAccountId, target.getAccountId()));
         }
+        return response;
+    }
+
+    /**
+     * Stats page data. Public in the same way a profile is - anyone can look up any player's plays and ratings -
+     * so no login is needed to ask about someone by name; asking about "yourself" (no username) needs one. The
+     * numbers come only from what the server has recorded, never from anything the client reports.
+     */
+    private Message handleStats(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.STATS_RESPONSE);
+
+        String name = request.getUsername();
+        Account target = (name == null || name.trim().isEmpty())
+            ? (loggedInUsername == null ? null : accountStore.findByUsername(loggedInUsername))
+            : accountStore.findByUsername(name.trim());
+        if (target == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText(name == null || name.trim().isEmpty() ? "Log in to see your stats." : "No such player.");
+            return response;
+        }
+
+        int id = target.getAccountId();
+        response.setSuccess(true);
+        response.setUsername(target.getUsername());
+        response.setStatsTotalPlays(gameHistoryManager.getTotalPlayCount(id));
+        response.setStatsPlayCounts(gameHistoryManager.getPlayCountsByGame(id));
+        response.setStatsGameRows(leaderboardManager.getStatsRowsForAccount(id));
+        response.setStatsAchievementCount(achievementManager == null ? 0 : achievementManager.getUnlocked(id).size());
         return response;
     }
 

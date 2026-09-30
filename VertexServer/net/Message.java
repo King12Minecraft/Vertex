@@ -704,6 +704,26 @@ public class Message implements Serializable
     public java.util.List<String> getSyncRatings() { return syncRatings; }
     public void setSyncRatings(java.util.List<String> syncRatings) { this.syncRatings = syncRatings; }
 
+    // ---- Stats page (STATS_RESPONSE) ----
+    private int statsTotalPlays;
+    private java.util.List<String> statsPlayCounts;
+    private java.util.List<String> statsGameRows;
+    private int statsAchievementCount;
+
+    public int getStatsTotalPlays() { return statsTotalPlays; }
+    public void setStatsTotalPlays(int statsTotalPlays) { this.statsTotalPlays = statsTotalPlays; }
+
+    /** "gameId:plays", most-played first. */
+    public java.util.List<String> getStatsPlayCounts() { return statsPlayCounts; }
+    public void setStatsPlayCounts(java.util.List<String> statsPlayCounts) { this.statsPlayCounts = statsPlayCounts; }
+
+    /** "gameId|rating|wins|losses|draws|bestScore" - see LeaderboardManager.getStatsRowsForAccount. */
+    public java.util.List<String> getStatsGameRows() { return statsGameRows; }
+    public void setStatsGameRows(java.util.List<String> statsGameRows) { this.statsGameRows = statsGameRows; }
+
+    public int getStatsAchievementCount() { return statsAchievementCount; }
+    public void setStatsAchievementCount(int statsAchievementCount) { this.statsAchievementCount = statsAchievementCount; }
+
     // ---- Client auto-update (see ClientUpdateChecker/ClientUpdatePackage) ----
     private String clientJarHash;
     private boolean updateAvailable;

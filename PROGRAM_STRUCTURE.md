@@ -1110,6 +1110,12 @@ every such panel's javadoc repeats that this is UI convenience only.
 
 ## pages / ui / theme — the Swing client shell
 
+**Stats (added 2026-09-30):** `STATS_REQUEST`/`STATS_RESPONSE` handled by `ClientHandler.handleStats` (public by name; own stats
+need a login) from `GameHistoryManager.getPlayCountsByGame` and `LeaderboardManager.getStatsRowsForAccount`; new `Message` fields
+`statsTotalPlays/statsPlayCounts/statsGameRows/statsAchievementCount`. Client: `pages/StatsPanel` (`Pages.STATS`, opened by
+`MainMenu.showStats(username)`, Back returns to the opener), the Stats card and real numbers in `account/ProfilePanel`, a "Full stats"
+button in `account/PlayerProfileDialog`. **`NetworkManager.RESPONSE_TYPES` is now guarded by `net/ResponseTypesTest`** (see the tests section).
+
 **Changelog (added 2026-09-30, client-only):** `pages/ChangelogPanel` renders the entries of the root `CHANGELOG.md`
 (one hand-written file shared with `website/app.py`); `pages/ChangelogParser` parses it (`## ` entry, `- ` bullet,
 two-space continuation, `<!-- -->` ignored). The file is bundled into `VertexClient.jar` by `build.sh`/`build.bat`
@@ -1345,6 +1351,13 @@ and both trees still open/run directly in BlueJ).
   someone is away starts on their return.
 - **`games/ChessReconnectTest.java`** (2026-09-30) - the same for Chess's hand-written version,
   plus a pending draw offer being cleared on a drop and a new login taking over a stale session.
+- **`net/ResponseTypesTest.java`** (2026-09-30) - reads `VertexServer/net/ClientHandler.java` for every `..._RESPONSE` type
+  the server sets and requires each to be in `NetworkManager.RESPONSE_TYPES` (except the two deliberately-push tournament
+  lists); a missing one makes a blocking `send()` wait 10s while holding the global lock. `test.sh` compiles the client-only
+  `NetworkManager` (with `-sourcepath VertexClient`) for it and exports `VERTEX_REPO_ROOT`.
+- **`economy/StatsTest.java`** (2026-09-30) - play counts, rating/record/best-score rows and the real `handleStats` handler.
+- **`account/AdminBootstrapTest.java`** (2026-09-30) - first-run admin setup (console, environment, bad input, no console).
+- **`chat/CalcParserTest.java`** (2026-09-30) - the `/calc` parser.
 - All five tests that touch a flat-file store hardcoding a relative file name
   (`GameSuggestionStore`/`AdminLog`/`FeedbackManager`/`DominionStore` all do -
   same pattern as `ServerAccountStore`) run from their own fresh temp working

@@ -53,6 +53,8 @@ public class ProfilePanel extends RoundedPanel
     private StatusPill rolePill;
     private RoundedPanel accountIdStat;
     private RoundedPanel coinsStat;
+    private RoundedPanel gamesPlayedStat;
+    private RoundedPanel achievementsStat;
     private HeroCard heroCard;
 
     public ProfilePanel()
@@ -79,6 +81,8 @@ public class ProfilePanel extends RoundedPanel
         statsCard.add(createStatsGrid(), BorderLayout.CENTER);
         wrap.add(statsCard);
         wrap.add(Box.createVerticalStrut(16));
+        wrap.add(createStatsRow());
+        wrap.add(Box.createVerticalStrut(16));
         wrap.add(createTransactionHistoryRow());
 
         add(wrap, BorderLayout.NORTH);
@@ -87,6 +91,68 @@ public class ProfilePanel extends RoundedPanel
         {
             public void run() { refreshAccountInfo(); }
         });
+
+        // The real numbers come from the server each time the page is shown (a CardLayout shows a card by making it visible).
+        addComponentListener(new java.awt.event.ComponentAdapter()
+        {
+            public void componentShown(java.awt.event.ComponentEvent e) { loadStatNumbers(); }
+        });
+    }
+
+    /** A card that opens the full Stats page, in the same style as the transaction-history row. */
+    private JPanel createStatsRow()
+    {
+        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        card.setLayout(new BorderLayout());
+        card.setBorder(new EmptyBorder(18, 20, 18, 20));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setMaximumSize(new Dimension(4000, 66));
+
+        JLabel label = new JLabel("Stats - plays, ratings and records for every game");
+        label.setFont(UITheme.FONT_NAV_BOLD);
+        label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        card.add(label, BorderLayout.WEST);
+
+        ThemedButton open = new ThemedButton("Open", true);
+        open.setPreferredSize(new Dimension(90, 34));
+        open.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { pages.MainMenu.getInstance().showStats(null); }
+        });
+        card.add(open, BorderLayout.EAST);
+        return card;
+    }
+
+    /** Fills in Games Played and Achievements from the server (they used to be permanent placeholders). Off the Swing thread. */
+    private void loadStatNumbers()
+    {
+        if (!Session.isLoggedIn())
+        {
+            return;
+        }
+        Thread worker = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                Message request = new Message();
+                request.setType(MessageType.STATS_REQUEST);
+                final Message response = NetworkManager.send(request);
+                if (response == null || !response.isSuccess())
+                {
+                    return;
+                }
+                SwingUtilities.invokeLater(new Runnable()
+                {
+                    public void run()
+                    {
+                        updateStatValue(gamesPlayedStat, String.valueOf(response.getStatsTotalPlays()));
+                        updateStatValue(achievementsStat, String.valueOf(response.getStatsAchievementCount()));
+                    }
+                });
+            }
+        });
+        worker.setDaemon(true);
+        worker.start();
     }
 
     /** The gradient "player card" header - avatar, name, role, all on a launcher-style hero background - Aurora Glass: rounded, not chamfered, matching HeroBanner's treatment. */
@@ -266,8 +332,10 @@ public class ProfilePanel extends RoundedPanel
         grid.add(statCard("Role", currentRole()));
         coinsStat = statCard("Coins", currentCoins());
         grid.add(coinsStat);
-        grid.add(statCard("Games Played", "0"));
-        grid.add(statCard("Achievements", "0"));
+        gamesPlayedStat = statCard("Games Played", "-");
+        grid.add(gamesPlayedStat);
+        achievementsStat = statCard("Achievements", "-");
+        grid.add(achievementsStat);
 
         return grid;
     }

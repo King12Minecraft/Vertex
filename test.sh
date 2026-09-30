@@ -33,10 +33,18 @@ SERVER_OUT=$(mktemp -d)
 find VertexServer -name "*.java" > "$SERVER_OUT/sources.txt"
 javac -d "$SERVER_OUT" @"$SERVER_OUT/sources.txt"
 
+# NetworkManager is client-only, but one test (net.ResponseTypesTest) checks its RESPONSE_TYPES list
+# against what the server actually sends, so that one class is compiled here too (it only needs the
+# shared net classes) and put on the test classpath.
+CLIENT_NET_OUT=$(mktemp -d)
+javac -cp "$SERVER_OUT" -sourcepath VertexClient -d "$CLIENT_NET_OUT" VertexClient/net/NetworkManager.java
+
 echo "Compiling VertexServerTests..."
 TEST_OUT=$(mktemp -d)
 find VertexServerTests -name "*.java" > "$TEST_OUT/sources.txt"
-javac -cp "$SERVER_OUT" -d "$TEST_OUT" @"$TEST_OUT/sources.txt"
+javac -cp "$SERVER_OUT:$CLIENT_NET_OUT" -d "$TEST_OUT" @"$TEST_OUT/sources.txt"
+
+export VERTEX_REPO_ROOT="$PWD"
 
 OVERALL_STATUS=0
 for TEST_SOURCE in $(find VertexServerTests -name "*Test.java" | sort); do
@@ -44,14 +52,14 @@ for TEST_SOURCE in $(find VertexServerTests -name "*Test.java" | sort); do
     echo ""
     echo "--- Running $TEST_CLASS ---"
     RUN_DIR=$(mktemp -d)
-    if ! (cd "$RUN_DIR" && java -cp "$SERVER_OUT:$TEST_OUT" "$TEST_CLASS"); then
+    if ! (cd "$RUN_DIR" && java -cp "$SERVER_OUT:$CLIENT_NET_OUT:$TEST_OUT" "$TEST_CLASS"); then
         echo "FAILED: $TEST_CLASS"
         OVERALL_STATUS=1
     fi
     rm -rf "$RUN_DIR"
 done
 
-rm -rf "$SERVER_OUT" "$TEST_OUT"
+rm -rf "$SERVER_OUT" "$TEST_OUT" "$CLIENT_NET_OUT"
 
 echo ""
 if [ "$OVERALL_STATUS" -eq 0 ]; then

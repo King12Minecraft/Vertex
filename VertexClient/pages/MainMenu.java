@@ -103,6 +103,8 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     private String currentPageKey = Pages.HOME;
     /** Where the game-detail page's Back button goes - whichever page opened it (see showGameDetails). */
     private String detailReturnPage = Pages.GAMES;
+    private JPanel statsContainer;
+    private String statsReturnPage = Pages.PROFILE;
 
     public MainMenu()
     {
@@ -207,6 +209,9 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         gameDetailContainer = new JPanel(new BorderLayout());
         gameDetailContainer.setOpaque(false);
         contentPanel.add(gameDetailContainer, Pages.GAME_DETAIL);
+        statsContainer = new JPanel(new BorderLayout());
+        statsContainer.setOpaque(false);
+        contentPanel.add(statsContainer, Pages.STATS);
 
         Account current = Session.getCurrentAccount();
         if (PermissionManager.isAtLeastModerator(current))
@@ -428,6 +433,36 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         switchToPage(Pages.GAME_DETAIL);
     }
 
+    /**
+     * The stats page for a player (null = the logged-in player), as a full page with a Back button that
+     * returns to whichever page opened it - the same pattern as the game detail page.
+     */
+    public void showStats(final String username)
+    {
+        if (!confirmLeaveGameHost())
+        {
+            return;
+        }
+        if (!Pages.STATS.equals(currentPageKey))
+        {
+            statsReturnPage = Pages.GAME_HOST.equals(currentPageKey) ? Pages.GAMES : currentPageKey;
+        }
+        statsContainer.removeAll();
+        statsContainer.add(new StatsPanel(username, new Runnable()
+        {
+            public void run() { leaveStats(); }
+        }), BorderLayout.CENTER);
+        statsContainer.revalidate();
+        switchToPage(Pages.STATS);
+    }
+
+    private void leaveStats()
+    {
+        statsContainer.removeAll();
+        statsContainer.revalidate();
+        switchToPage(statsReturnPage);
+    }
+
     /** Back from the game-detail page - clears it and returns to the page that opened it. */
     private void leaveGameDetails()
     {
@@ -581,6 +616,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         if (pageKey.equals(Pages.SETTINGS))   return "Settings";
         if (pageKey.equals(Pages.MODERATION)) return "Moderation";
         if (pageKey.equals(Pages.GAME_DETAIL)) return "Game Details";
+        if (pageKey.equals(Pages.STATS))      return "Stats";
         return "Games";
     }
 

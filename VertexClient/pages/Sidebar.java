@@ -92,6 +92,7 @@ public class Sidebar extends RoundedPanel
         {
             addNavButton("Moderation", Pages.MODERATION);
         }
+        addNavButton("Profile", Pages.PROFILE);
         addNavButton("Settings", Pages.SETTINGS);
 
         add(Box.createVerticalGlue());

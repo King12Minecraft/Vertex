@@ -27,6 +27,8 @@ public class Pages
     public static final String CHANGELOG  = "CHANGELOG";
     public static final String SHOP       = "SHOP";
     public static final String PROFILE    = "PROFILE";
+    /** A player's stats - a full page with a Back button (StatsPanel), reached from the Profile page or another player's profile window; like GAME_DETAIL it is not a sidebar destination. */
+    public static final String STATS      = "STATS";
     public static final String SETTINGS   = "SETTINGS";
     /** Vertex: Dominion's own persistent nav destination - NOT the GAME_HOST slot above, per the Architecture Decision in ROADMAP.md (a standing, checked-in-on-repeatedly nation game, not a launched-and-left match). */
     public static final String DOMINION   = "DOMINION";
