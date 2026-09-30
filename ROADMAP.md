@@ -1755,6 +1755,89 @@ recorded below as they're confirmed.
   Rock Paper Scissors) since each game's `onPush` dispatch is still hand-written per
   window, not a shared base class.
 
+## 📋 Planned — requested 2026-09-30 (Bipin asked for opinions first, nothing built yet)
+
+All items below are **not started**. Dominion was explicitly set aside ("can be added later").
+Each entry records what was asked, what's true in the codebase today (audited, not assumed),
+and the recommendation given. Decisions that need Bipin are also in `BLOCKED_QUESTIONS.md`.
+
+- **New shared-mechanics package + 30-second reconnect for every game except Chess.**
+  Reading "the specified exception" as **Chess** (reversible - see `BLOCKED_QUESTIONS.md`).
+  Today: `games/ReconnectRegistry` with `DEFAULT_GRACE_MS = 45_000`, adopted by 8 games
+  (Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes, Word Duel, Battleship, Rock
+  Paper Scissors). Plan: a new package (working name `mechanics`) as the home for cross-game
+  systems - move `ReconnectRegistry`/`ReconnectableMatch` into it, one constant for the grace
+  window (30s), and keep adding shared features there later (`chat` could join it too).
+  Three tiers of remaining games, since "reconnect" means different things: **(A)** simple
+  1v1 that fits the existing pattern - Dice Duel, Typing Duel, Memory Match, Signal Grid,
+  Fusion Grid, Card Rush; **(B)** real-time 1v1 - Air Hockey, Snake Arena, Tetris Duel - need
+  the simulation to pause for up to 30s, then forfeit; **(C)** group games - Racing, Space
+  Battle, Square Wars, Zombie Survival, Among Us, Telephone, Trivia Blitz, Fight Arena - no
+  forfeit-on-drop today, so it means "hold the seat", a different design (Trivia's is already
+  an open question). Suggested order: A, then B, decide C separately. The client must also
+  auto-reconnect and re-login inside the window (verify that fits 30s). Offline games need
+  nothing. Chess stays on immediate forfeit until its draw-offer question is decided.
+- **Put the game online / globally accessible.** Server is a plain Java TCP socket, so a small
+  VPS is enough (1 vCPU, 1-2 GB RAM at friends scale). Candidates: Oracle Cloud Always Free
+  (ARM, generous, Mumbai/Hyderabad regions - the option originally mentioned in this file),
+  Hetzner Cloud (cheap, Singapore/EU/US), DigitalOcean (Bangalore), Vultr (Mumbai/Bangalore),
+  Linode/Akamai (Mumbai), AWS Lightsail (Mumbai); for a small trusted group only, a home
+  machine + Tailscale. Pick a region near the players (real-time games are latency-sensitive).
+  **Blockers before any public exposure** (both are the known gaps in `CLAUDE.md`): TLS on the
+  socket (login currently sends the password unencrypted) and signed auto-updates (an unsigned
+  update channel on the public internet is a remote-code-execution path). Also: per-IP
+  connection/rate limits, firewall, run as non-root under systemd, backups of the data files,
+  a domain name. Prices/free-tier terms change - verify before choosing.
+- **Protect the source code.** No client-side Java can be made undecompilable; the goal is to
+  raise the cost. Facts: the GitHub repo is **currently public** (no `LICENSE` file), so the
+  source is already visible - with 0 forks/stars it is not too late to change that. Layers:
+  make the repo private; add a proprietary `LICENSE`; keep `VertexServer` source and jar only
+  on your own server (the server is the authority, so a copied client can't grant itself coins
+  or wins - already an architecture rule); ship only an obfuscated client jar (ProGuard is
+  free; commercial obfuscators exist), optionally `jpackage` installers. **Conflict to decide:**
+  Vertex is designed so "anyone can run their own server", which requires distributing the
+  server jar - that cannot be protected. See `BLOCKED_QUESTIONS.md`.
+- **`/calc` slash command.** Narrower than the chatbot/slash-command system removed earlier
+  (that removal stands). No calculator exists anywhere today. Recommendation: `/calc 2+3*4`
+  typed in a chat box (DMs, group chats, match chat) is evaluated **locally** with a small
+  hand-written expression parser (never a script engine) and the answer shown only to the
+  person who typed it - no server change, no spam. Open: should the result be postable?
+- **Working on the UI in Cursor.** Yes - Cursor opens the plain folder. It is a BlueJ-style
+  project with no Maven/Gradle (`build.sh` compiles with `javac`), so it needs a JDK and the
+  Java extension pack. UI work lives in `pages/`, `ui/` and `theme/`, which are **client-only**
+  (no server mirror). Open `VertexClient/` for UI work; shared packages (`net`, `games`,
+  `economy`...) must still be mirrored to `VertexServer` (the sync rule). To do when asked:
+  a `.vscode/settings.json` (source paths), a `.cursor/rules` file mirroring `CLAUDE.md`'s
+  sync rule, and a short "Working in Cursor" section. Suggest a separate branch, or merge PR #1
+  first, to avoid conflicts.
+- **Custom mouse cursors (Settings picks one; active across the whole app).** Feasible with
+  `Toolkit.createCustomCursor` (typically capped near 32x32 - check `getBestCursorSize`,
+  set a hotspot). "Throughout the app" means a `CursorManager` that applies to every window
+  including dialogs, and also replaces the default/hand/text cursors components set on
+  themselves - and coexists with the existing `CursorTrailOverlay` and the screen-break glass
+  pane. Ship a few original built-in cursors first; user-supplied images later (size cap,
+  local file only). Persist the choice like other Settings.
+- **Logo redesign (Bipin, in Cursor).** The logo is not code: `GameLogo` loads `vertex_logo.png`
+  and the window icon is `vertex_icon.ico` (plus the website's static assets). Replace those
+  files at the same names/aspect ratio - including a multi-size `.ico` - and no Java changes
+  are needed. Must be an original design.
+- **A page for possible/new additions, next to the Change Log.** The existing Change Log is on
+  the **website** (Home/Changelog, a hand-edited `CHANGELOG_HIGHLIGHTS` list in
+  `website/app.py`), not in the app. Recommendation: name it **Roadmap** (or "Coming Soon" if
+  it should feel more casual), build it on the website as a second hand-curated list rather
+  than publishing the internal `ROADMAP.md`; an in-app view could come later. Confirm website
+  vs. in-app.
+- **Stats page (new sidebar tab).** Already tracked: plays per game (`GameHistoryManager`),
+  per-game ratings and wins (`LeaderboardManager`/achievements), coins and transaction history.
+  Losses and playtime may not be recorded - audit what exists before designing. Keep it
+  distinct from Profile (identity/cosmetics), Leaderboards (everyone) and Achievements.
+- **Profile and Settings in the sidebar.** Settings is **already** a sidebar entry; Profile is
+  only in the top-bar account menu. Both were moved out of the sidebar on purpose earlier "to
+  declutter it" (the `TopBar` javadoc still says both are out - now stale). The sidebar has 14
+  entries; Stats and Profile make 16. Recommendation: group into labelled sections (Play /
+  Social / Progress / Account) with an Account block pinned at the bottom; keep the top-bar
+  menu too.
+
 ## 📋 Planned — infrastructure & shared packages
 
 - **`save` package** — generic save/load slots for games with persistent state

@@ -18,6 +18,32 @@ raised.
 
 ## Open
 
+- **Source protection vs. "anyone can run their own server."** Raised 2026-09-30. Bipin wants
+  the source protected. The repo is currently **public** with no license, and Vertex's design
+  (README, `HOW_VERTEX_WORKS.md`, `CLAUDE.md`'s "Hosting is `VertexServer.jar`-only") lets anyone
+  host their own server - which means the server jar and source must be distributable, and
+  can't be protected. Options: (a) keep self-hosting, accept open source (add a real license);
+  (b) one official server - private repo, server source/jar only on Bipin's machine,
+  obfuscated client only (this changes a core stated design decision); (c) source-available
+  under a restrictive license. **Reversible default applied:** nothing changed; recorded in
+  `ROADMAP.md`. Recommendation: (b) if the goal is protection; make the repo private now
+  (0 forks/stars, so little has leaked).
+- **Going global requires closing the two known security gaps.** Raised 2026-09-30. Exposing the
+  server to the internet turns "LAN-only" and "no code signing on auto-update" (both already
+  listed in `CLAUDE.md` as decisions for Bipin) into blockers: passwords cross the socket
+  unencrypted, and an unsigned update channel is a remote-code-execution path. Needs Bipin to
+  choose the TLS approach (certificate handling) and the update-signing key management, and to
+  pick the host. **Reversible default applied:** none - nothing is deployed. Hosting options
+  are in `ROADMAP.md`.
+- **Reconnect scope.** Raised 2026-09-30. (1) Confirm "the specified exception" means **Chess**.
+  (2) For real-time 1v1 (Air Hockey, Snake Arena, Tetris Duel) should the match *pause* for up to
+  30s? (3) For group games there is no forfeit today, so what should "reconnect" do (hold the
+  seat)? **Reversible default:** Chess excluded; pause for real-time 1v1; group games left as
+  they are until decided.
+- **Profile/Settings back in the sidebar.** Raised 2026-09-30. This reverses an earlier
+  deliberate declutter. **Reversible default:** group the sidebar into sections with an Account
+  block at the bottom rather than simply appending two more rows.
+
 - **Does Trivia Blitz actually need `ReconnectRegistry`-style reconnection at all,
   and if so, what should it look like?** Raised 2026-09-29 while working through the
   reconnection backlog (ROADMAP.md previously listed "RPS and Trivia Blitz still
