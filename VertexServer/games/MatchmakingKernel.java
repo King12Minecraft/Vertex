@@ -1,4 +1,6 @@
 package games;
+import chat.GameChatPolicies;
+import chat.MatchChatRoom;
 import net.MessageType;
 import net.Message;
 import net.ClientHandler;
@@ -54,6 +56,10 @@ public class MatchmakingKernel<M>
 
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, M> activeMatches = new HashMap<String, M>();
+    /** In-match chat rooms for matches whose game has one (see GameChatPolicies) - opened when the pair is made, closed shortly after endMatch. */
+    private final Map<String, MatchChatRoom> chatRooms = new HashMap<String, MatchChatRoom>();
+    /** How long a match's chat room stays open after the match ends - long enough for a "gg", short enough not to linger. */
+    private static final long POST_MATCH_CHAT_MILLIS = 60000;
     private int nextMatchId = 1;
 
     private final String gameId;
@@ -105,6 +111,12 @@ public class MatchmakingKernel<M>
             pairHandler.attach(opponent, match);
             pairHandler.attach(player, match);
 
+            MatchChatRoom chatRoom = GameChatPolicies.openRoom(matchId, gameId, java.util.Arrays.asList(opponent, player));
+            if (chatRoom != null)
+            {
+                chatRooms.put(matchId, chatRoom);
+            }
+
             recordPlay(opponent);
             recordPlay(player);
 
@@ -137,6 +149,11 @@ public class MatchmakingKernel<M>
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        MatchChatRoom chatRoom = chatRooms.remove(matchId);
+        if (chatRoom != null)
+        {
+            chatRoom.closeAfter(POST_MATCH_CHAT_MILLIS);
+        }
     }
 
     public synchronized int getQueueCount()

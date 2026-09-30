@@ -5,6 +5,7 @@ import social.GameInviteDialog;
 import ui.GameHubDialog;
 import ui.CursorTrailOverlay;
 import ui.ScreenBreakOverlay;
+import chat.MatchChatDock;
 import games.EmbeddedGamePanel;
 import games.GameDetailPanel;
 import games.GameInfo;
@@ -97,6 +98,8 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     private final GamesPanel gamesPanel;
     private JPanel gameHostContainer;
     private JPanel gameDetailContainer;
+    /** The chat docked beside the game currently in the game-host slot, or null - created when the server announces an in-match chat room, dropped whenever the host slot is cleared. */
+    private MatchChatDock chatDock;
     private String currentPageKey = Pages.HOME;
     /** Where the game-detail page's Back button goes - whichever page opened it (see showGameDetails). */
     private String detailReturnPage = Pages.GAMES;
@@ -302,6 +305,13 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
                 }
             });
         }
+        else if (message.getType() == MessageType.MATCH_CHAT_STATE || message.getType() == MessageType.MATCH_CHAT_MESSAGE)
+        {
+            SwingUtilities.invokeLater(new Runnable()
+            {
+                public void run() { handleMatchChat(message); }
+            });
+        }
         else if (message.getType() == MessageType.FRIEND_STATUS_UPDATE)
         {
             if (message.isOnline())
@@ -311,6 +321,47 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
                     public void run() { sidebar.setFriendsBadge(true); }
                 });
             }
+        }
+    }
+
+    /**
+     * In-match chat (see the chat package). A state message for a room we aren't showing
+     * yet docks a new chat beside the game; messages and state for any other match id
+     * (a previous match's leftover room) are ignored, and so is a "closed" for a room we
+     * never showed.
+     */
+    private void handleMatchChat(Message message)
+    {
+        String matchId = message.getMatchId();
+        if (matchId == null)
+        {
+            return;
+        }
+
+        if (message.getType() == MessageType.MATCH_CHAT_STATE)
+        {
+            if (chatDock == null || !matchId.equals(chatDock.getMatchId()))
+            {
+                if ("CLOSED".equals(message.getMatchChatState()))
+                {
+                    return;
+                }
+                if (chatDock != null)
+                {
+                    // BorderLayout only replaces the EAST slot's layout entry - the old
+                    // dock would stay behind as an unlaid-out child unless removed.
+                    gameHostContainer.remove(chatDock);
+                }
+                chatDock = new MatchChatDock(matchId);
+                gameHostContainer.add(chatDock, BorderLayout.EAST);
+                gameHostContainer.revalidate();
+                gameHostContainer.repaint();
+            }
+            chatDock.setState(message.getMatchChatState());
+        }
+        else if (chatDock != null && matchId.equals(chatDock.getMatchId()))
+        {
+            chatDock.addMessage(message.getUsername(), message.getChatText());
         }
     }
 
@@ -416,6 +467,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     /** Embeds the given game panel in the single game-host slot and navigates to it - the replacement for a game opening its own separate JFrame. Called by GameLauncher.openGame(...) for games that have been converted to EmbeddedGamePanel (Chess is the first; most games still open their own window until they're converted too). */
     public void showGame(javax.swing.JComponent gamePanel)
     {
+        chatDock = null;
         gameHostContainer.removeAll();
         gameHostContainer.add(gamePanel, BorderLayout.CENTER);
         gameHostContainer.revalidate();
@@ -425,6 +477,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     /** Clears the game-host slot and returns to the Games page - an embedded game calls this itself once it's confirmed leaving (see EmbeddedGamePanel.requestLeave()), the same way the old per-window games called dispose(). Bypasses onNavigate's guard on purpose - see switchToPage's own note. */
     public void returnToGames()
     {
+        chatDock = null;
         gameHostContainer.removeAll();
         gameHostContainer.revalidate();
         switchToPage(Pages.GAMES);

@@ -108,6 +108,12 @@ public class ThemedTextField extends RoundedPanel
         });
     }
 
+    /** Turns typing on/off. setEnabled() on this component only affects the wrapper panel, not the JTextField inside it, so it can't be used for this. */
+    public void setInputEnabled(boolean enabled)
+    {
+        field.setEnabled(enabled);
+    }
+
     public void clear()
     {
         field.setText(placeholder);

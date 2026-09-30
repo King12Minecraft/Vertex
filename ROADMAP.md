@@ -46,6 +46,28 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **In-match chat beside the game, with a `chat` package that makes restricting it a
+  one-line change.** Approved by Bipin (2026-09-29): "pop out chat is good" and "make a
+  package to restrict easier". Server-authoritative room per live match
+  (`chat/MatchChatRoom`): a client asks to send (`MATCH_CHAT_SEND_REQUEST`), the room
+  relays only if it's open and the sender is a member; mute and flood limits apply
+  exactly as for DMs. **`chat/GameChatPolicies` is the restriction package** - one opt-in
+  table of which games have chat and whether it starts `OPEN` or `LOCKED`; restricting a
+  game is one line plus a `room.unlock()` call from the game when it stops mattering, and
+  a game not listed has no chat at all. Wired into every game on `MatchmakingKernel` (14
+  games; the room opens on pairing and stays 60s after the match for a "gg") and Telephone
+  (starts `LOCKED` so nobody can say the answer out loud, unlocks when the reveal starts,
+  stays open 10 minutes). Client: `MatchChatDock` docks beside the game inside `MainMenu`'s
+  game-host slot, mirrors locked/closed state, collapses to a strip with an unread count,
+  and is dropped when the game is left. Verified by a new committed test
+  (`chat/MatchChatRoomTest`, 32 checks; `./test.sh` now 8 tests / 142 checks) and a
+  live-`MainMenu` test with Xvfb screenshots (open, locked, collapsed) - which caught a
+  real bug (a new match's dock left the old one behind as a stray child) and truncated
+  button labels, both fixed. Shared files mirrored byte-identical; `MatchChatDock` is
+  client-only. **Not yet covered:** Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors and
+  the group/real-time games - each needs its `Match` to open/close a room itself (see
+  `PROGRAM_STRUCTURE.md`'s `chat` section). Also: `ThemedTextField.setInputEnabled(...)`
+  added, because `setEnabled` on it only affected the wrapper, not the text field inside.
 - **The game-detail page is now a real in-app step, not a popup.** `GameDetailDialog`
   (a full-window modal `JDialog`) is replaced by `games/GameDetailPanel`, a page in
   `MainMenu`'s `CardLayout` (`Pages.GAME_DETAIL`), reached through the new
@@ -1655,12 +1677,14 @@ recorded below as they're confirmed.
   future game/window**: grep for every external construction site of that game's
   window (not just `GameLauncher.java`) before considering it done - Chess's
   spectate-path bug is exactly the kind of thing that slips through otherwise.
-- Also still wanted: a game should be able to have chat "popped out" alongside it
-  while playing (with some games, like a Gartic-Phone-style drawing game, needing chat
-  *restricted* rather than open, since free chat would let players just say the answer
-  out loud) - approved 2026-09-29, to be built with a small shared package so a game
-  restricts chat with one line rather than bespoke code. (The other half of this note,
-  the true embedded "Details" step, is done - see "Done" above.)
+- In-match chat beside the game (restricted for games like Telephone, where free chat
+  would let players say the answer out loud) is **built** for the 14 `MatchmakingKernel`
+  games and Telephone - see "Done" above. What remains is giving it to the other games:
+  Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors and the group/real-time games each
+  need their `Match` to open and close a room via `GameChatPolicies` (and a line in that
+  table). Games where chat would leak hidden info (e.g. Among Us) should be decided
+  deliberately, not defaulted on. (The other half of this note, the true embedded
+  "Details" step, is also done.)
 
 - **Reconnection rollout: every 2-player game is now covered; Chess and Trivia
   Blitz are the two remaining open questions, for different reasons (see below).**

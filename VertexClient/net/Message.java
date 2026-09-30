@@ -123,6 +123,12 @@ public class Message implements Serializable
     public String getChatText() { return chatText; }
     public void setChatText(String chatText) { this.chatText = chatText; }
 
+    private String matchChatState;
+
+    /** "OPEN", "LOCKED" or "CLOSED" - set on MATCH_CHAT_STATE (see the chat package's ChatRestriction/MatchChatRoom). */
+    public String getMatchChatState() { return matchChatState; }
+    public void setMatchChatState(String matchChatState) { this.matchChatState = matchChatState; }
+
     /** A per-message identifier assigned when a DM/group chat message is broadcast (ChatManager/GroupChatManager) - lets a later MESSAGE_REACTION reference exactly which message it's reacting to, in an otherwise session-only, non-persisted chat history. */
     public String getChatMessageId() { return chatMessageId; }
     public void setChatMessageId(String chatMessageId) { this.chatMessageId = chatMessageId; }

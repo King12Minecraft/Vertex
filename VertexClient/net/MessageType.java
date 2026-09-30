@@ -444,5 +444,14 @@ public enum MessageType
     DOMINION_PROPOSE_RELATION_REQUEST,
     DOMINION_PROPOSE_RELATION_RESPONSE,
     DOMINION_RESPOND_PROPOSAL_REQUEST,
-    DOMINION_RESPOND_PROPOSAL_RESPONSE
+    DOMINION_RESPOND_PROPOSAL_RESPONSE,
+
+    // In-match chat (see the chat package) - a small room shared by everyone in one
+    // live match, separate from DMs/group chats.
+    /** Client -> server: send getChatText() to the sender's current match chat room. */
+    MATCH_CHAT_SEND_REQUEST,
+    /** Server -> every member of the room: getUsername() said getChatText(), for getMatchId(). */
+    MATCH_CHAT_MESSAGE,
+    /** Server -> room members: getMatchChatState() ("OPEN", "LOCKED" or "CLOSED") for getMatchId()/getGameId(). Also the message that tells a client a chat room exists for its match at all. */
+    MATCH_CHAT_STATE
 }

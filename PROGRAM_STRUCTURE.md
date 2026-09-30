@@ -920,6 +920,42 @@ channel reachable from `ModeratorPanel`, gated server-side by
 `ClientHandler.isModeratorOrAdmin()` for both sending and who a `MOD_CHAT_MESSAGE`
 gets broadcast to; no message history yet, only what's sent while it's open).
 
+## chat — in-match chat rooms, with per-game restrictions
+
+Added 2026-09-29. A small chat room shared by everyone in one live match - separate
+from the DMs/group chats above - shown as a dock beside the game. **Server-authoritative**:
+a client asks to send (`MATCH_CHAT_SEND_REQUEST`), the room decides.
+
+- **`ChatRestriction.java`** *(shared)* — `OPEN` or `LOCKED`.
+- **`MatchChatRoom.java`** *(shared)* — members + current restriction. `post(sender, text)`
+  relays to every member only if the room is open, the sender is a member and the text
+  isn't empty (trimmed to the same 500-char cap as DMs); `lock()`/`unlock()`/`leave()`/
+  `close()`/`closeAfter(ms)`. Every state change is pushed as `MATCH_CHAT_STATE`
+  ("OPEN"/"LOCKED"/"CLOSED"), which is also how a client learns a room exists. Attaches
+  itself to each member's `ClientHandler` (`getMatchChatRoom()`), which is how
+  `handleMatchChat` finds it; mute and flood limits are applied there first, exactly as
+  for DMs.
+- **`GameChatPolicies.java`** *(shared)* — **the "package to restrict easily"**: one table of
+  which games have chat and how it starts. Give a game chat = add one line; restrict it =
+  make the line `LOCKED` and call `room.unlock()` from the game; remove chat = delete the
+  line. **Opt-in on purpose** (a game not listed has none), so a game where free chat
+  would leak hidden information never gets it by accident. `openRoom(matchId, gameId,
+  members)` creates and announces a room, or returns null for an unlisted game.
+- **`MatchChatDock.java`** *(client-only)* — the Swing dock. `MainMenu` creates it on the
+  first `MATCH_CHAT_STATE` for a match, feeds it `MATCH_CHAT_MESSAGE`s, ignores other
+  match ids, and drops it whenever the game-host slot is cleared. It only mirrors the
+  server (a locked room disables its input) - enforcement is `MatchChatRoom.post`.
+  Collapsible to a thin strip with an unread count.
+
+**Who has it today:** the 14 games on `MatchmakingKernel` (Checkers, Connect Four, Reversi,
+Dots and Boxes, Word Duel, Dice Duel, Typing Duel, Air Hockey, Memory Match, Signal Grid,
+Fusion Grid, Card Rush, Snake Arena, Tetris Duel - `MatchmakingKernel` opens a room when
+it pairs two players and keeps it open 60s after `endMatch` for a "gg"), and **Telephone**
+(starts `LOCKED` because free chat would let players say the answer out loud;
+`TelephoneMatch` unlocks it when the reveal starts and keeps it 10 minutes). Not yet:
+Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors, and every group/real-time game -
+each needs its `Match` to call `GameChatPolicies.openRoom(...)`/`room.close()` itself.
+
 ## admin — moderation tooling, gated by Role
 
 - **`AdminLog.java`** — append-only audit trail. A record of what happened, not an
@@ -1142,6 +1178,15 @@ and both trees still open/run directly in BlueJ).
   the one correctly-merged entry the fix produces, since the fix strips the
   newline rather than the attacker's characters. Caught and fixed before this
   landed, not shipped flaky.)
+- **`chat/MatchChatRoomTest.java`** (2026-09-29) - the in-match chat rules the server
+  must enforce: a `LOCKED` room (Telephone) delivers nothing until unlocked, non-members
+  and empty/over-long text are handled, leaving/closing detaches everyone, a player
+  joining a new match's room is moved out of their old one, `closeAfter` really closes,
+  and the `MatchmakingKernel` really opens a room for its games (via Dice Duel).
+  **`support/FakeClientHandler.java`** is the shared socket-less `ClientHandler` these
+  and `MatchmakingKernelAdoptersTest` use (moved out of that test's nested class). Mute
+  and flood limits live in `ClientHandler.handleMatchChat` and need real managers, so
+  they are not covered here.
 - **`dominion/DominionStoreTest.java`** - a full save/load round trip for every
   entity type `DominionStore` persists, including a declared-but-not-yet-active
   war whose `effectiveFromTick` must survive exactly rather than being

@@ -4,6 +4,7 @@ import net.ClientHandler;
 import net.Message;
 import net.MessageType;
 import support.Check;
+import support.FakeClientHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,42 +30,6 @@ import java.util.List;
  */
 public class MatchmakingKernelAdoptersTest
 {
-    static class FakeHandler extends ClientHandler
-    {
-        final String username;
-        final Integer accountId;
-        final List<Message> sent = new ArrayList<Message>();
-
-        FakeHandler(String username, Integer accountId)
-        {
-            super(null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null);
-            this.username = username;
-            this.accountId = accountId;
-        }
-
-        @Override
-        public String getLoggedInUsername() { return username; }
-
-        @Override
-        public Integer getAccountId() { return accountId; }
-
-        @Override
-        public void sendMessage(Message message) { sent.add(message); }
-
-        Message lastOfType(MessageType type)
-        {
-            for (int i = sent.size() - 1; i >= 0; i--)
-            {
-                if (sent.get(i).getType() == type) return sent.get(i);
-            }
-            return null;
-        }
-    }
-
     public static void main(String[] args)
     {
         Check check = new Check();
@@ -88,8 +53,8 @@ public class MatchmakingKernelAdoptersTest
         DiceDuelMatchManager manager = new DiceDuelMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Alice", 1);
-        FakeHandler b = new FakeHandler("Bob", 2);
+        FakeClientHandler a = new FakeClientHandler("Alice", 1);
+        FakeClientHandler b = new FakeClientHandler("Bob", 2);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -109,8 +74,8 @@ public class MatchmakingKernelAdoptersTest
         TypingDuelMatchManager manager = new TypingDuelMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Carol", 3);
-        FakeHandler b = new FakeHandler("Dave", 4);
+        FakeClientHandler a = new FakeClientHandler("Carol", 3);
+        FakeClientHandler b = new FakeClientHandler("Dave", 4);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -130,8 +95,8 @@ public class MatchmakingKernelAdoptersTest
         AirHockeyMatchManager manager = new AirHockeyMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Frank", 6);
-        FakeHandler b = new FakeHandler("Grace", 7);
+        FakeClientHandler a = new FakeClientHandler("Frank", 6);
+        FakeClientHandler b = new FakeClientHandler("Grace", 7);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -151,8 +116,8 @@ public class MatchmakingKernelAdoptersTest
         MemoryMatchMatchManager manager = new MemoryMatchMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Heidi", 8);
-        FakeHandler b = new FakeHandler("Ivan", 9);
+        FakeClientHandler a = new FakeClientHandler("Heidi", 8);
+        FakeClientHandler b = new FakeClientHandler("Ivan", 9);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -172,8 +137,8 @@ public class MatchmakingKernelAdoptersTest
         SignalGridMatchManager manager = new SignalGridMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Judy", 10);
-        FakeHandler b = new FakeHandler("Kevin", 11);
+        FakeClientHandler a = new FakeClientHandler("Judy", 10);
+        FakeClientHandler b = new FakeClientHandler("Kevin", 11);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -193,8 +158,8 @@ public class MatchmakingKernelAdoptersTest
         FusionGridMatchManager manager = new FusionGridMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Laura", 12);
-        FakeHandler b = new FakeHandler("Mallory", 13);
+        FakeClientHandler a = new FakeClientHandler("Laura", 12);
+        FakeClientHandler b = new FakeClientHandler("Mallory", 13);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -214,8 +179,8 @@ public class MatchmakingKernelAdoptersTest
         CardRushMatchManager manager = new CardRushMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Niaj", 14);
-        FakeHandler b = new FakeHandler("Olivia", 15);
+        FakeClientHandler a = new FakeClientHandler("Niaj", 14);
+        FakeClientHandler b = new FakeClientHandler("Olivia", 15);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -235,8 +200,8 @@ public class MatchmakingKernelAdoptersTest
         SnakeArenaMatchManager manager = new SnakeArenaMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Peggy", 16);
-        FakeHandler b = new FakeHandler("Quentin", 17);
+        FakeClientHandler a = new FakeClientHandler("Peggy", 16);
+        FakeClientHandler b = new FakeClientHandler("Quentin", 17);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -256,8 +221,8 @@ public class MatchmakingKernelAdoptersTest
         TetrisDuelMatchManager manager = new TetrisDuelMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler a = new FakeHandler("Rupert", 18);
-        FakeHandler b = new FakeHandler("Sybil", 19);
+        FakeClientHandler a = new FakeClientHandler("Rupert", 18);
+        FakeClientHandler b = new FakeClientHandler("Sybil", 19);
         manager.findMatch(a);
         manager.findMatch(b);
 
@@ -277,7 +242,7 @@ public class MatchmakingKernelAdoptersTest
         DiceDuelMatchManager manager = new DiceDuelMatchManager(null,
             new economy.GameHistoryManager(), new social.ChatManager(), null);
 
-        FakeHandler solo = new FakeHandler("Erin", 5);
+        FakeClientHandler solo = new FakeClientHandler("Erin", 5);
         manager.findMatch(solo);
         check.check("A lone player waits in queue rather than matching against nobody",
             manager.getQueueCount() == 1);

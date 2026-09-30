@@ -1,4 +1,6 @@
 package games;
+import chat.GameChatPolicies;
+import chat.MatchChatRoom;
 import net.MessageType;
 import net.Message;
 import economy.EconomyManager;
@@ -67,6 +69,11 @@ public class TelephoneMatch
     private final byte[][] submittedImage;
     private final Set<ClientHandler> disconnected = new HashSet<ClientHandler>();
 
+    /** Locked while the chain is in progress (free chat would let players just say the answer out loud - see GameChatPolicies), unlocked once the reveal starts. Null if telephone has no chat configured. */
+    private MatchChatRoom chatRoom;
+    /** How long players can chat about the chains after the reveal starts. */
+    private static final long POST_REVEAL_CHAT_MILLIS = 600000;
+
     private int currentRound = 0;
     private boolean over = false;
     private Timer roundTimer;
@@ -90,6 +97,7 @@ public class TelephoneMatch
 
     public void start()
     {
+        chatRoom = GameChatPolicies.openRoom(matchId, GAME_ID, players);
         startRound();
     }
 
@@ -240,6 +248,12 @@ public class TelephoneMatch
         over = true;
         if (roundTimer != null) roundTimer.cancel();
 
+        if (chatRoom != null)
+        {
+            chatRoom.unlock();
+            chatRoom.closeAfter(POST_REVEAL_CHAT_MILLIS);
+        }
+
         for (int i = 0; i < playerCount; i++)
         {
             ClientHandler player = players.get(i);
@@ -291,6 +305,7 @@ public class TelephoneMatch
         {
             over = true;
             if (roundTimer != null) roundTimer.cancel();
+            if (chatRoom != null) chatRoom.close();
             matchManager.endMatch(matchId);
         }
     }

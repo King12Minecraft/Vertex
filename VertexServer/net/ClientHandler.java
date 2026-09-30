@@ -1,4 +1,5 @@
 package net;
+import chat.MatchChatRoom;
 import economy.ShopItemDefinition;
 import economy.ShopItemInfo;
 import games.GameInfo;
@@ -137,6 +138,8 @@ public class ClientHandler implements Runnable
     private CardRushMatchManager cardRushMatchManager;
     private TelephoneMatch currentTelephoneMatch;
     private TelephoneMatchManager telephoneMatchManager;
+    /** The in-match chat room this player is currently in, or null - set/cleared by MatchChatRoom itself (see the chat package). volatile: read by this handler's request thread, written by whichever thread opens/closes the room. */
+    private volatile MatchChatRoom matchChatRoom;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -257,6 +260,8 @@ public class ClientHandler implements Runnable
     public void setCurrentSignalGridMatch(SignalGridMatch match) { this.currentSignalGridMatch = match; }
     public void setCurrentCardRushMatch(CardRushMatch match) { this.currentCardRushMatch = match; }
     public void setCurrentTelephoneMatch(TelephoneMatch match) { this.currentTelephoneMatch = match; }
+    public MatchChatRoom getMatchChatRoom() { return matchChatRoom; }
+    public void setMatchChatRoom(MatchChatRoom room) { this.matchChatRoom = room; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -376,6 +381,8 @@ public class ClientHandler implements Runnable
             if (currentTelephoneMatch != null) currentTelephoneMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
+            MatchChatRoom leavingChatRoom = matchChatRoom;
+            if (leavingChatRoom != null) leavingChatRoom.leave(this);
 
             if (loggedInUsername != null)
             {
@@ -401,6 +408,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.MAKE_MOVE_REQUEST) return handleMakeMove(request);
         if (request.getType() == MessageType.LEAVE_MATCH_REQUEST) return handleLeaveMatch();
         if (request.getType() == MessageType.PRIVATE_MESSAGE) return handlePrivateMessage(request);
+        if (request.getType() == MessageType.MATCH_CHAT_SEND_REQUEST) return handleMatchChat(request);
         if (request.getType() == MessageType.GROUP_CREATE_REQUEST) return handleGroupCreate(request);
         if (request.getType() == MessageType.GROUP_MESSAGE) return handleGroupMessage(request);
         if (request.getType() == MessageType.MOD_CHAT_MESSAGE) return handleModChatMessage(request);
@@ -1217,6 +1225,25 @@ public class ClientHandler implements Runnable
         if (recipient != null && recipient != this) recipient.sendMessage(delivery);
 
         sendMessage(delivery);
+        return null;
+    }
+
+    /** In-match chat. Mute and flood limits apply exactly as for DMs; whether the room is open to the message (membership, a game's ChatRestriction) is MatchChatRoom.post()'s call, not the client's. */
+    private Message handleMatchChat(Message request)
+    {
+        MatchChatRoom room = matchChatRoom;
+        if (loggedInUsername == null || room == null) return null;
+        if (moderationManager.isMuted(loggedInUsername))
+        {
+            sendMuteNotice();
+            return null;
+        }
+        if (isFloodLimited("chat", 10, 5000))
+        {
+            sendFloodNotice();
+            return null;
+        }
+        room.post(this, request.getChatText());
         return null;
     }
 
