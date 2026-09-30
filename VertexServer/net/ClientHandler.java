@@ -151,6 +151,9 @@ public class ClientHandler implements Runnable
     private FightMatch currentFightMatch;
     private FightArenaMatchManager fightArenaMatchManager;
     private ChessMatch currentChessMatch;
+    /** True only while a deliberate Leave is being processed - tells the match's disconnect handler this is not a dropped connection, so no reconnect grace period applies (see mechanics.ReconnectPolicy.canReconnect). */
+    private volatile boolean leavingVoluntarily = false;
+    public boolean isLeavingVoluntarily() { return leavingVoluntarily; }
     private ChessMatchManager chessMatchManager;
     private BattleshipMatch currentBattleshipMatch;
     private BattleshipMatchManager battleshipMatchManager;
@@ -1301,7 +1304,9 @@ public class ClientHandler implements Runnable
         matchManager.cancelWaiting(this);
         if (currentMatch != null)
         {
+            leavingVoluntarily = true;
             currentMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentMatch = null;
         }
         return null;
@@ -2200,7 +2205,9 @@ public class ClientHandler implements Runnable
         racingMatchManager.cancelWaiting(this);
         if (currentRacingMatch != null)
         {
+            leavingVoluntarily = true;
             currentRacingMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentRacingMatch = null;
         }
         return null;
@@ -2228,7 +2235,9 @@ public class ClientHandler implements Runnable
         zombieSurvivalMatchManager.cancelWaiting(this);
         if (currentZombieMatch != null)
         {
+            leavingVoluntarily = true;
             currentZombieMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentZombieMatch = null;
         }
         return null;
@@ -2256,7 +2265,9 @@ public class ClientHandler implements Runnable
         spaceBattleMatchManager.cancelWaiting(this);
         if (currentSpaceBattleMatch != null)
         {
+            leavingVoluntarily = true;
             currentSpaceBattleMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSpaceBattleMatch = null;
         }
         return null;
@@ -2284,7 +2295,9 @@ public class ClientHandler implements Runnable
         amongUsMatchManager.cancelWaiting(this);
         if (currentAmongMatch != null)
         {
+            leavingVoluntarily = true;
             currentAmongMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentAmongMatch = null;
         }
         return null;
@@ -2341,7 +2354,9 @@ public class ClientHandler implements Runnable
         telephoneMatchManager.cancelWaiting(this);
         if (currentTelephoneMatch != null)
         {
+            leavingVoluntarily = true;
             currentTelephoneMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTelephoneMatch = null;
         }
         return null;
@@ -2684,7 +2699,9 @@ public class ClientHandler implements Runnable
         fightArenaMatchManager.cancelWaiting(this);
         if (currentFightMatch != null)
         {
+            leavingVoluntarily = true;
             currentFightMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentFightMatch = null;
         }
         return null;
@@ -2735,7 +2752,9 @@ public class ClientHandler implements Runnable
         chessMatchManager.cancelWaiting(this);
         if (currentChessMatch != null)
         {
+            leavingVoluntarily = true;
             currentChessMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentChessMatch = null;
         }
         return null;
@@ -2790,7 +2809,9 @@ public class ClientHandler implements Runnable
         battleshipMatchManager.cancelWaiting(this);
         if (currentBattleshipMatch != null)
         {
+            leavingVoluntarily = true;
             currentBattleshipMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentBattleshipMatch = null;
         }
         return null;
@@ -2818,7 +2839,9 @@ public class ClientHandler implements Runnable
         rpsMatchManager.cancelWaiting(this);
         if (currentRpsMatch != null)
         {
+            leavingVoluntarily = true;
             currentRpsMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentRpsMatch = null;
         }
         return null;
@@ -2846,7 +2869,9 @@ public class ClientHandler implements Runnable
         connectFourMatchManager.cancelWaiting(this);
         if (currentConnectFourMatch != null)
         {
+            leavingVoluntarily = true;
             currentConnectFourMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentConnectFourMatch = null;
         }
         return null;
@@ -2874,7 +2899,9 @@ public class ClientHandler implements Runnable
         checkersMatchManager.cancelWaiting(this);
         if (currentCheckersMatch != null)
         {
+            leavingVoluntarily = true;
             currentCheckersMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentCheckersMatch = null;
         }
         return null;
@@ -2902,7 +2929,9 @@ public class ClientHandler implements Runnable
         squareWarsMatchManager.cancelWaiting(this);
         if (currentSquareWarsMatch != null)
         {
+            leavingVoluntarily = true;
             currentSquareWarsMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSquareWarsMatch = null;
         }
         return null;
@@ -2930,7 +2959,9 @@ public class ClientHandler implements Runnable
         triviaMatchManager.cancelWaiting(this);
         if (currentTriviaMatch != null)
         {
+            leavingVoluntarily = true;
             currentTriviaMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTriviaMatch = null;
         }
         return null;
@@ -2958,7 +2989,9 @@ public class ClientHandler implements Runnable
         dotsAndBoxesMatchManager.cancelWaiting(this);
         if (currentDotsAndBoxesMatch != null)
         {
+            leavingVoluntarily = true;
             currentDotsAndBoxesMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentDotsAndBoxesMatch = null;
         }
         return null;
@@ -2986,7 +3019,9 @@ public class ClientHandler implements Runnable
         reversiMatchManager.cancelWaiting(this);
         if (currentReversiMatch != null)
         {
+            leavingVoluntarily = true;
             currentReversiMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentReversiMatch = null;
         }
         return null;
@@ -3014,7 +3049,9 @@ public class ClientHandler implements Runnable
         memoryMatchMatchManager.cancelWaiting(this);
         if (currentMemoryMatchMatch != null)
         {
+            leavingVoluntarily = true;
             currentMemoryMatchMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentMemoryMatchMatch = null;
         }
         return null;
@@ -3042,7 +3079,9 @@ public class ClientHandler implements Runnable
         airHockeyMatchManager.cancelWaiting(this);
         if (currentAirHockeyMatch != null)
         {
+            leavingVoluntarily = true;
             currentAirHockeyMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentAirHockeyMatch = null;
         }
         return null;
@@ -3081,7 +3120,9 @@ public class ClientHandler implements Runnable
         wordDuelMatchManager.cancelWaiting(this);
         if (currentWordDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentWordDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentWordDuelMatch = null;
         }
         return null;
@@ -3110,7 +3151,9 @@ public class ClientHandler implements Runnable
         diceDuelMatchManager.cancelWaiting(this);
         if (currentDiceDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentDiceDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentDiceDuelMatch = null;
         }
         return null;
@@ -3158,7 +3201,9 @@ public class ClientHandler implements Runnable
         snakeArenaMatchManager.cancelWaiting(this);
         if (currentSnakeArenaMatch != null)
         {
+            leavingVoluntarily = true;
             currentSnakeArenaMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSnakeArenaMatch = null;
         }
         return null;
@@ -3186,7 +3231,9 @@ public class ClientHandler implements Runnable
         tetrisDuelMatchManager.cancelWaiting(this);
         if (currentTetrisDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentTetrisDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTetrisDuelMatch = null;
         }
         return null;
@@ -3215,7 +3262,9 @@ public class ClientHandler implements Runnable
         fusionGridMatchManager.cancelWaiting(this);
         if (currentFusionGridMatch != null)
         {
+            leavingVoluntarily = true;
             currentFusionGridMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentFusionGridMatch = null;
         }
         return null;
@@ -3243,7 +3292,9 @@ public class ClientHandler implements Runnable
         typingDuelMatchManager.cancelWaiting(this);
         if (currentTypingDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentTypingDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTypingDuelMatch = null;
         }
         return null;
@@ -3272,7 +3323,9 @@ public class ClientHandler implements Runnable
         signalGridMatchManager.cancelWaiting(this);
         if (currentSignalGridMatch != null)
         {
+            leavingVoluntarily = true;
             currentSignalGridMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSignalGridMatch = null;
         }
         return null;
@@ -3305,7 +3358,9 @@ public class ClientHandler implements Runnable
         cardRushMatchManager.cancelWaiting(this);
         if (currentCardRushMatch != null)
         {
+            leavingVoluntarily = true;
             currentCardRushMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentCardRushMatch = null;
         }
         return null;

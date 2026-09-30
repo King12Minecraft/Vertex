@@ -64,10 +64,10 @@ public final class ReconnectPolicy
         return EXCEPTIONS.get(gameId);
     }
 
-    /** Whether this disconnecting player should be given the grace window: logged in (a guest can't log back in) and the game isn't an exception. */
+    /** Whether this disconnecting player should be given the grace window: logged in (a guest can't log back in), actually dropped rather than choosing to leave, and the game isn't an exception. */
     public static boolean canReconnect(ClientHandler who, String gameId)
     {
-        return who.getAccountId() != null && isEnabled(gameId);
+        return who.getAccountId() != null && !who.isLeavingVoluntarily() && isEnabled(gameId);
     }
 
     /** What the remaining player is told while waiting. */
