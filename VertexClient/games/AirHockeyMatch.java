@@ -1,5 +1,7 @@
 package games;
 
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 import net.ClientHandler;
 import net.Message;
 import net.MessageType;
@@ -42,10 +44,12 @@ public class AirHockeyMatch
     private static final double WALL_BOUNCE_DAMPING = 0.92;
     private static final double MAX_PUCK_SPEED = 14;
     private static final String GAME_ID = "air-hockey";
+    /** After a reconnect the table stays frozen this long so the returning player's window is up before the puck moves. */
+    private static final long RESUME_DELAY_MS = 3000;
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final AirHockeyMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -57,6 +61,38 @@ public class AirHockeyMatch
     private int scoreA = 0, scoreB = 0;
     private boolean over = false;
     private Timer physicsTimer;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. Real-time, so the tick and inputs hold while paused and for a short beat after a return. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return AirHockeyMatch.this.stateString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentAirHockeyMatch(AirHockeyMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            if (physicsTimer != null) physicsTimer.cancel();
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.AIRHOCKEY_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendStateTo(opponent);
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, slot == 0 ? "A" : "B",
+                opponent.getLoggedInUsername(), stateString(), "-");
+        }
+    }, RESUME_DELAY_MS);
 
     public AirHockeyMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                            AirHockeyMatchManager matchManager, EconomyManager economyManager,
@@ -95,7 +131,7 @@ public class AirHockeyMatch
     /** Reports where a player wants their paddle - clamped to their own half of the table plus a small buffer over the centerline, so paddles can contest the middle without crossing all the way into the opponent's territory. */
     public synchronized void movePaddle(ClientHandler requester, double x, double y)
     {
-        if (over) return;
+        if (over || reconnect.isHeld()) return;
         double clampedX = Math.max(PADDLE_RADIUS, Math.min(TABLE_WIDTH - PADDLE_RADIUS, x));
 
         if (requester == playerA)
@@ -114,7 +150,7 @@ public class AirHockeyMatch
 
     private synchronized void tick()
     {
-        if (over) return;
+        if (over || reconnect.isHeld()) return;
 
         puckX += puckVX;
         puckY += puckVY;
@@ -208,19 +244,25 @@ public class AirHockeyMatch
         puckVY = (Math.random() < 0.5 ? -1 : 1) * 3;
     }
 
+    private String stateString()
+    {
+        return String.format(java.util.Locale.US, "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%d,%d",
+            puckX, puckY, paddleAX, paddleAY, paddleBX, paddleBY, scoreA, scoreB);
+    }
+
     private void broadcastState()
     {
-        String state = String.format(java.util.Locale.US, "%.1f,%.1f,%.1f,%.1f,%.1f,%.1f,%d,%d",
-            puckX, puckY, paddleAX, paddleAY, paddleBX, paddleBY, scoreA, scoreB);
+        sendStateTo(playerA);
+        sendStateTo(playerB);
+    }
 
-        for (ClientHandler player : new ClientHandler[] { playerA, playerB })
-        {
-            Message msg = new Message();
-            msg.setType(MessageType.AIRHOCKEY_UPDATE);
-            msg.setMatchId(matchId);
-            msg.setBoardState(state);
-            player.sendMessage(msg);
-        }
+    private void sendStateTo(ClientHandler player)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.AIRHOCKEY_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(stateString());
+        player.sendMessage(msg);
     }
 
     private void finish()
@@ -256,20 +298,8 @@ public class AirHockeyMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        if (physicsTimer != null) physicsTimer.cancel();
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.AIRHOCKEY_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }

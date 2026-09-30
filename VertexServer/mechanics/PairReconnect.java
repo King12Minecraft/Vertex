@@ -53,19 +53,38 @@ public class PairReconnect
     private final Object lock;
     private final String gameId;
     private final Host host;
+    private final long resumeDelayMs;
     private int droppedSlot = -1;
+    private long heldUntil = 0;
 
     public PairReconnect(Object matchLock, String gameId, Host host)
+    {
+        this(matchLock, gameId, host, 0);
+    }
+
+    /**
+     * resumeDelayMs is for real-time games: after the returning player is back, the game stays
+     * frozen this much longer, so their window (rebuilt from the login response) is on screen
+     * before the puck / snake / pieces move again. Turn-based games pass 0 (the default).
+     */
+    public PairReconnect(Object matchLock, String gameId, Host host, long resumeDelayMs)
     {
         this.lock = matchLock;
         this.gameId = gameId;
         this.host = host;
+        this.resumeDelayMs = resumeDelayMs;
     }
 
     /** True while a player is inside the grace window. Call under the match lock. */
     public boolean isPaused()
     {
         return droppedSlot >= 0;
+    }
+
+    /** For real-time games' tick and input handlers: true while paused, and for the resume delay after a return. Call under the match lock. */
+    public boolean isHeld()
+    {
+        return droppedSlot >= 0 || System.currentTimeMillis() < heldUntil;
     }
 
     /**
@@ -161,6 +180,7 @@ public class PairReconnect
             }
             int slot = droppedSlot;
             droppedSlot = -1;
+            heldUntil = System.currentTimeMillis() + resumeDelayMs;
             host.setPlayer(slot, newHandler);
             return host.resume(slot, host.player(1 - slot));
         }

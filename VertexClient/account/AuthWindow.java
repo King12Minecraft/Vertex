@@ -242,6 +242,18 @@ public class AuthWindow extends JFrame
         update.setMatchId(loginResponse.getMatchId());
         update.setSymbol(loginResponse.getReconnectTurnSymbol());
         update.setBoardState(loginResponse.getBoardState());
+        if ("tetris-duel".equals(gameId))
+        {
+            // Tetris Duel's update is per-player: own grid (boardState, already set above), the
+            // opponent's grid (chatText) and own score. TetrisDuelMatch.resume() packs the last
+            // two into the turn slot as "score|opponentGrid".
+            String[] parts = String.valueOf(loginResponse.getReconnectTurnSymbol()).split("\\|", 2);
+            try { update.setScore(Integer.parseInt(parts[0])); } catch (NumberFormatException ignored) { }
+            if (parts.length > 1)
+            {
+                update.setChatText(parts[1]);
+            }
+        }
         if ("typing-duel".equals(gameId))
         {
             // Typing Duel resumes into a round, not a board: the sentence rides in boardState
@@ -311,6 +323,18 @@ public class AuthWindow extends JFrame
         if ("fusion-grid".equals(gameId))
         {
             return new MessageType[] { MessageType.FUSIONGRID_MATCH_FOUND, MessageType.FUSIONGRID_UPDATE };
+        }
+        if ("air-hockey".equals(gameId))
+        {
+            return new MessageType[] { MessageType.AIRHOCKEY_MATCH_FOUND, MessageType.AIRHOCKEY_UPDATE };
+        }
+        if ("snake-arena".equals(gameId))
+        {
+            return new MessageType[] { MessageType.SNAKEARENA_MATCH_FOUND, MessageType.SNAKEARENA_UPDATE };
+        }
+        if ("tetris-duel".equals(gameId))
+        {
+            return new MessageType[] { MessageType.TETRISDUEL_MATCH_FOUND, MessageType.TETRISDUEL_UPDATE };
         }
         if ("card-rush".equals(gameId))
         {

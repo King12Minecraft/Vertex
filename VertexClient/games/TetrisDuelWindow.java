@@ -70,6 +70,8 @@ public class TetrisDuelWindow extends JPanel implements NetworkManager.PushListe
     private int[] myGrid = new int[TetrisGame.ROWS * TetrisGame.COLS];
     private int[] opponentGrid = new int[TetrisGame.ROWS * TetrisGame.COLS];
     private boolean gameOver;
+    /** True while the opponent is inside their reconnect window (the server freezes play); the next update - sent after they return - clears it. */
+    private boolean awaitingReconnect;
 
     public TetrisDuelWindow()
     {
@@ -271,7 +273,7 @@ public class TetrisDuelWindow extends JPanel implements NetworkManager.PushListe
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.TETRISDUEL_MATCH_FOUND || type == MessageType.TETRISDUEL_UPDATE
-            || type == MessageType.TETRISDUEL_RESULT;
+            || type == MessageType.TETRISDUEL_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -299,8 +301,19 @@ public class TetrisDuelWindow extends JPanel implements NetworkManager.PushListe
             cardLayout.show(cards, BOARD);
             myBoardPanel.requestFocusInWindow();
         }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
+            awaitingReconnect = true;
+            statusLabel.setText(message.getErrorText());
+        }
         else if (type == MessageType.TETRISDUEL_UPDATE)
         {
+            if (awaitingReconnect)
+            {
+                awaitingReconnect = false;
+                statusLabel.setText("vs " + opponentUsername);
+            }
             applyGrid(myGrid = parseGrid(message.getBoardState()), myBoardPanel);
             applyGrid(opponentGrid = parseGrid(message.getChatText()), opponentBoardPanel);
             scoreLabel.setText("Score: " + message.getScore());

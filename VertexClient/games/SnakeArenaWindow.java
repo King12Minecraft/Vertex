@@ -56,6 +56,8 @@ public class SnakeArenaWindow extends JPanel implements NetworkManager.PushListe
     private String mySymbol;
     private String opponentUsername;
     private boolean gameOver;
+    /** True while the opponent is inside their reconnect window (the server freezes play); the next update - sent after they return - clears it. */
+    private boolean awaitingReconnect;
 
     private int[] food = { 0, 0 };
     private java.util.List<int[]> snakeA = new java.util.ArrayList<int[]>();
@@ -221,7 +223,7 @@ public class SnakeArenaWindow extends JPanel implements NetworkManager.PushListe
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.SNAKEARENA_MATCH_FOUND || type == MessageType.SNAKEARENA_UPDATE
-            || type == MessageType.SNAKEARENA_RESULT;
+            || type == MessageType.SNAKEARENA_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -251,8 +253,19 @@ public class SnakeArenaWindow extends JPanel implements NetworkManager.PushListe
             cardLayout.show(cards, BOARD);
             arenaPanel.requestFocusInWindow();
         }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
+            awaitingReconnect = true;
+            statusLabel.setText(message.getErrorText());
+        }
         else if (type == MessageType.SNAKEARENA_UPDATE)
         {
+            if (awaitingReconnect)
+            {
+                awaitingReconnect = false;
+                statusLabel.setText("You are the " + ("A".equals(mySymbol) ? "green" : "blue") + " snake - vs " + opponentUsername);
+            }
             applyState(message.getBoardState());
         }
         else if (type == MessageType.SNAKEARENA_RESULT)

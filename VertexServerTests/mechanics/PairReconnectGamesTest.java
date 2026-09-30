@@ -6,6 +6,12 @@ import account.ServerAccountStore;
 import games.DiceDuelMatch;
 import games.DiceDuelMatchManager;
 import games.FusionGridMatch;
+import games.AirHockeyMatch;
+import games.AirHockeyMatchManager;
+import games.SnakeArenaMatch;
+import games.SnakeArenaMatchManager;
+import games.TetrisDuelMatch;
+import games.TetrisDuelMatchManager;
 import games.CardRushMatch;
 import games.CardRushMatchManager;
 import games.MemoryMatchMatch;
@@ -47,6 +53,8 @@ public class PairReconnectGamesTest
         String startTurn();
         /** How the game names player B (slot 1) in a reconnect result. */
         String slotOneSymbol();
+        /** Real-time games tick on a timer: the pause freezes the ticks (checked directly) instead of holding a move. */
+        default boolean realTime() { return false; }
     }
 
     private static EconomyManager economy()
@@ -82,6 +90,33 @@ public class PairReconnectGamesTest
         MessageType update = g.updateType();
         MessageType result = g.resultType();
 
+        // --- real-time: the ticks stop, then resume only after the return delay ---
+        if (g.realTime())
+        {
+            FakeClientHandler a = new FakeClientHandler("a" + idBase, idBase);
+            FakeClientHandler b = new FakeClientHandler("b" + idBase, idBase + 1);
+            Object match = g.create(a, b);
+            Thread.sleep(250);
+            check.check(name + ": ticks flow before a drop", a.countOfType(update) > 0);
+            disconnect(match, b);
+            int frozen = a.countOfType(update);
+            check.check(name + ": remaining player gets the waiting notice", a.countOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE) == 1);
+            check.check(name + ": notice mentions 30s", a.lastOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE).getErrorText().contains("30"));
+            Thread.sleep(500);
+            check.check(name + ": the game is frozen while paused (no ticks broadcast)", a.countOfType(update) == frozen);
+            check.check(name + ": no result during the pause", a.countOfType(result) == 0);
+
+            FakeClientHandler bAgain = new FakeClientHandler("b" + idBase, idBase + 1);
+            ReconnectRegistry.ReconnectResult r = ReconnectRegistry.shared().tryReconnect(idBase + 1, bAgain);
+            check.check(name + ": reconnect returns a result naming game, slot and opponent",
+                r != null && name.equals(r.gameId) && g.slotOneSymbol().equals(r.mySymbol) && ("a" + idBase).equals(r.opponentUsername));
+            check.check(name + ": result carries the state", r != null && r.boardState != null && r.boardState.length() > 0);
+            check.check(name + ": waiting player gets one fresh state on return", a.countOfType(update) == frozen + 1);
+            Thread.sleep(700);
+            check.check(name + ": still frozen during the resume delay", a.countOfType(update) == frozen + 1);
+            check.check(name + ": the returning player has not been sent anything ahead of the login response", bAgain.countOfType(update) == 0);
+        }
+        else
         // --- drop (the player NOT on move), then return ---
         {
             FakeClientHandler a = new FakeClientHandler("a" + idBase, idBase);
@@ -278,6 +313,60 @@ public class PairReconnectGamesTest
             public String startTurn() { return "-"; }
             public String slotOneSymbol() { return "B"; }
         }, 800);
+
+        run(check, new Game()
+        {
+            public Object create(ClientHandler a, ClientHandler b)
+            {
+                AirHockeyMatchManager m = new AirHockeyMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+                AirHockeyMatch match = new AirHockeyMatch("rt-t", a, b, m, economy(), null);
+                match.start();
+                return match;
+            }
+            public void moveByA(Object match, ClientHandler a) { }
+            public MessageType updateType() { return MessageType.AIRHOCKEY_UPDATE; }
+            public MessageType resultType() { return MessageType.AIRHOCKEY_RESULT; }
+            public String gameId() { return "air-hockey"; }
+            public String startTurn() { return "-"; }
+            public String slotOneSymbol() { return "B"; }
+            public boolean realTime() { return true; }
+        }, 900);
+
+        run(check, new Game()
+        {
+            public Object create(ClientHandler a, ClientHandler b)
+            {
+                SnakeArenaMatchManager m = new SnakeArenaMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+                SnakeArenaMatch match = new SnakeArenaMatch("rt-t", a, b, m, economy(), null);
+                match.start();
+                return match;
+            }
+            public void moveByA(Object match, ClientHandler a) { }
+            public MessageType updateType() { return MessageType.SNAKEARENA_UPDATE; }
+            public MessageType resultType() { return MessageType.SNAKEARENA_RESULT; }
+            public String gameId() { return "snake-arena"; }
+            public String startTurn() { return "-"; }
+            public String slotOneSymbol() { return "B"; }
+            public boolean realTime() { return true; }
+        }, 1000);
+
+        run(check, new Game()
+        {
+            public Object create(ClientHandler a, ClientHandler b)
+            {
+                TetrisDuelMatchManager m = new TetrisDuelMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+                TetrisDuelMatch match = new TetrisDuelMatch("rt-t", a, b, m, economy(), null);
+                match.start();
+                return match;
+            }
+            public void moveByA(Object match, ClientHandler a) { }
+            public MessageType updateType() { return MessageType.TETRISDUEL_UPDATE; }
+            public MessageType resultType() { return MessageType.TETRISDUEL_RESULT; }
+            public String gameId() { return "tetris-duel"; }
+            public String startTurn() { return "-"; }
+            public String slotOneSymbol() { return "B"; }
+            public boolean realTime() { return true; }
+        }, 1100);
 
         // --- Typing Duel only: a round that comes due while a player is away starts when they return ---
         {
