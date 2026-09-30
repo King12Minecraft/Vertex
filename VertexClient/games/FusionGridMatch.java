@@ -1,4 +1,6 @@
 package games;
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 
 import net.ClientHandler;
 import net.Message;
@@ -39,8 +41,8 @@ public class FusionGridMatch
     private static final String GAME_ID = "fusion-grid";
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final FusionGridMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -52,6 +54,38 @@ public class FusionGridMatch
     private int currentTileValue;
     private int scoreA = 0, scoreB = 0;
     private boolean over = false;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return FusionGridMatch.this.stateString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentFusionGridMatch(FusionGridMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.FUSIONGRID_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            msg.setBoardState(stateString());
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdateTo(opponent);
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, String.valueOf(slot),
+                opponent.getLoggedInUsername(), stateString(), String.valueOf(turnPlayerIndex));
+        }
+    });
 
     public FusionGridMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                             FusionGridMatchManager matchManager, EconomyManager economyManager,
@@ -98,6 +132,7 @@ public class FusionGridMatch
 
     public synchronized void placeTile(ClientHandler requester, int index)
     {
+        if (reconnect.isPaused()) return;
         if (over || index < 0 || index >= values.length) return;
         int playerIndex = requester == playerA ? 0 : requester == playerB ? 1 : -1;
         if (playerIndex != turnPlayerIndex || owners[index] != -1) return;
@@ -165,6 +200,16 @@ public class FusionGridMatch
     {
         for (int owner : owners) if (owner == -1) return false;
         return true;
+    }
+
+    private void sendUpdateTo(ClientHandler player)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.FUSIONGRID_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(stateString());
+        msg.setSymbol(String.valueOf(turnPlayerIndex));
+        player.sendMessage(msg);
     }
 
     private void broadcastUpdate()
@@ -236,20 +281,8 @@ public class FusionGridMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.FUSIONGRID_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        msg.setBoardState(stateString());
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }

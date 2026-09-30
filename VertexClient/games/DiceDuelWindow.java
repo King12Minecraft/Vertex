@@ -533,7 +533,7 @@ public class DiceDuelWindow extends JPanel implements NetworkManager.PushListene
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.DICEDUEL_MATCH_FOUND || type == MessageType.DICEDUEL_UPDATE
-            || type == MessageType.DICEDUEL_RESULT;
+            || type == MessageType.DICEDUEL_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -568,6 +568,14 @@ public class DiceDuelWindow extends JPanel implements NetworkManager.PushListene
             applyState(message.getBoardState());
             myTurn = Integer.parseInt(message.getSymbol()) == mySymbol;
             updateStatus();
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
+            // The update the server sends when they return restores whose turn it is.
+            applyState(message.getBoardState());
+            myTurn = false;
+            statusLabel.setText(message.getErrorText());
         }
         else if (type == MessageType.DICEDUEL_RESULT)
         {

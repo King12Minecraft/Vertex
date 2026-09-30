@@ -268,6 +268,18 @@ public class AuthWindow extends JFrame
         {
             return new MessageType[] { MessageType.CHECKERS_MATCH_FOUND, MessageType.CHECKERS_UPDATE };
         }
+        if ("dice-duel".equals(gameId))
+        {
+            return new MessageType[] { MessageType.DICEDUEL_MATCH_FOUND, MessageType.DICEDUEL_UPDATE };
+        }
+        if ("signal-grid".equals(gameId))
+        {
+            return new MessageType[] { MessageType.SIGNALGRID_MATCH_FOUND, MessageType.SIGNALGRID_UPDATE };
+        }
+        if ("fusion-grid".equals(gameId))
+        {
+            return new MessageType[] { MessageType.FUSIONGRID_MATCH_FOUND, MessageType.FUSIONGRID_UPDATE };
+        }
         if ("chess".equals(gameId))
         {
             return new MessageType[] { MessageType.CHESS_MATCH_FOUND, MessageType.CHESS_UPDATE };

@@ -1,4 +1,6 @@
 package games;
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 
 import net.ClientHandler;
 import net.Message;
@@ -33,8 +35,8 @@ public class DiceDuelMatch
     private static final String GAME_ID = "dice-duel";
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final DiceDuelMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -47,6 +49,38 @@ public class DiceDuelMatch
     private final java.util.Map<String, Integer> scoresA = new java.util.LinkedHashMap<String, Integer>();
     private final java.util.Map<String, Integer> scoresB = new java.util.LinkedHashMap<String, Integer>();
     private boolean over = false;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return DiceDuelMatch.this.stateString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentDiceDuelMatch(DiceDuelMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.DICEDUEL_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            msg.setBoardState(stateString());
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdateTo(opponent);
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, String.valueOf(slot),
+                opponent.getLoggedInUsername(), stateString(), String.valueOf(turnPlayerIndex));
+        }
+    });
 
     public DiceDuelMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                           DiceDuelMatchManager matchManager, EconomyManager economyManager,
@@ -89,6 +123,7 @@ public class DiceDuelMatch
     /** Re-rolls only the dice at the given indices (leaving the rest as-is) - up to MAX_REROLLS_PER_TURN times per turn. */
     public synchronized void reroll(ClientHandler requester, java.util.List<Integer> indicesToReroll)
     {
+        if (reconnect.isPaused()) return;
         if (over || !isRequestersTurn(requester)) return;
         if (rerollsUsedThisTurn >= MAX_REROLLS_PER_TURN) return;
 
@@ -106,6 +141,7 @@ public class DiceDuelMatch
     /** Locks in the current dice into the given category for the requesting player - each category can only be used once per player. Ends their turn and rolls a fresh set of dice for the next player. */
     public synchronized void lockCategory(ClientHandler requester, String category)
     {
+        if (reconnect.isPaused()) return;
         if (over || !isRequestersTurn(requester)) return;
 
         java.util.Map<String, Integer> myScores = requester == playerA ? scoresA : scoresB;
@@ -168,6 +204,16 @@ public class DiceDuelMatch
     {
         String[] names = { "ONES", "TWOS", "THREES", "FOURS", "FIVES", "SIXES" };
         return names[face - 1];
+    }
+
+    private void sendUpdateTo(ClientHandler player)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.DICEDUEL_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(stateString());
+        msg.setSymbol(String.valueOf(turnPlayerIndex));
+        player.sendMessage(msg);
     }
 
     private void broadcastUpdate()
@@ -256,20 +302,8 @@ public class DiceDuelMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.DICEDUEL_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        msg.setBoardState(stateString());
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }
