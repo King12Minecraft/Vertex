@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 import economy.GuestPlayTracker;
 import pages.MainMenu;
 import ui.GameHubDialog;
@@ -653,7 +654,7 @@ public class ChessWindow extends JPanel implements NetworkManager.PushListener, 
             myTurn = false;
             selectedSquare = -1;
             renderBoard(message.getBoardState());
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (message.getType() == MessageType.CHESS_MOVE_REJECTED)
         {

@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -496,7 +497,7 @@ public class SignalGridWindow extends JPanel implements NetworkManager.PushListe
             // The update the server sends when they return restores whose turn it is.
             applyBoardState(message.getBoardState());
             myTurn = false;
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.SIGNALGRID_RESULT)
         {

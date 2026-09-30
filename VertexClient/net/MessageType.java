@@ -8,6 +8,9 @@ package net;
  */
 public enum MessageType
 {
+    /** Keep-alive from the client every few seconds; the server answers PONG. Silence on either side past its timeout means the connection is dead (see ClientHandler / NetworkManager). */
+    PING_REQUEST,
+    PONG,
     LOGIN_REQUEST,
     LOGIN_RESPONSE,
     CREATE_ACCOUNT_REQUEST,
@@ -450,6 +453,8 @@ public enum MessageType
     // live match, separate from DMs/group chats.
     /** Client -> server: send getChatText() to the sender's current match chat room. */
     MATCH_CHAT_SEND_REQUEST,
+    /** A client that just resumed a match asks the server to re-announce the match's chat room to it. */
+    MATCH_CHAT_SYNC_REQUEST,
     /** Server -> every member of the room: getUsername() said getChatText(), for getMatchId(). */
     MATCH_CHAT_MESSAGE,
     /** Server -> room members: getMatchChatState() ("OPEN", "LOCKED" or "CLOSED") for getMatchId()/getGameId(). Also the message that tells a client a chat room exists for its match at all. */

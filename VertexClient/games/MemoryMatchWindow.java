@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -484,7 +485,7 @@ public class MemoryMatchWindow extends JPanel implements NetworkManager.PushList
             // The update the server sends when they return restores whose turn it is.
             applyBoardState(message.getBoardState());
             myTurn = false;
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.MEMORY_RESULT)
         {

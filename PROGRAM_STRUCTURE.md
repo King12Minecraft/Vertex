@@ -953,9 +953,7 @@ reconnect pieces; the next candidates are listed in `ROADMAP.md`.
   returning player's rebuilt window is up before the puck/snakes/pieces move.
 - **Adopters of `PairReconnect`:** Dice Duel, Signal Grid, Fusion Grid, Memory Match, Typing Duel,
   Card Rush (turn-based / simple), Air Hockey, Snake Arena, Tetris Duel (real-time). **Chess**
-  (`ChessMatch`) has the same state machine written out by hand (`disconnectedWhite`) - it
-  predates the helper and also clears `drawOfferPending` on a drop; it could move to the helper.
-  The eight earlier adopters (Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes,
+  (`ChessMatch`, via the helper's `onPaused` hook for its draw offer). The eight earlier adopters (Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes,
   Word Duel, Battleship, Rock Paper Scissors) also hand-written, now reading their window from
   `ReconnectPolicy`. Game-specific packing into `ReconnectResult` (a login response has no field
   for these): Memory Match `turn|a:b`; Typing Duel sentence in `boardState` and
@@ -973,10 +971,17 @@ reconnect pieces; the next candidates are listed in `ROADMAP.md`.
   (`releaseMatchesForTakeover()`) before trying to resume - a dead connection the server hasn't
   noticed (Wi-Fi drops send no close) still has its match bound to it. Group games are not
   touched by a takeover.
-- **Not covered yet:** the server does not detect a dead connection on its own (no heartbeat /
-  read timeout), so the *opponent* of a player whose link died silently is only told to wait once
-  the server notices - immediately if that player logs back in (takeover), otherwise whenever TCP
-  gives up. See `ROADMAP.md`.
+- **Dead-connection detection (2026-09-30):** `PING_REQUEST`/`PONG` every 8s from
+  `NetworkManager`'s heartbeat thread; `ClientHandler` sets a 25s `SO_TIMEOUT` and treats a
+  timeout as a disconnect (so the grace period starts for the opponent's benefit), the client a
+  30s one on its own socket. A client that never pings is dropped after 25s idle.
+- **Countdown and chat:** `ui/ReconnectCountdown` (client-only) ticks the notice's "up to 30s"
+  down on every game window and stops by itself when the label is rewritten.
+  `chat/MatchChatRoom` keeps a static registry of open rooms; login calls `rejoin(handler)` for a
+  resumed match, and `MatchChatRoom.sendStateTo` answers the client's `MATCH_CHAT_SYNC_REQUEST`
+  (sent by `MatchResume` after the window is up) so the dock comes back.
+- **Chess** now uses `PairReconnect` too (its `onPaused` hook clears a pending draw offer). The
+  eight earliest adopters keep their hand-written state machine deliberately.
 
 ## chat — in-match chat rooms, with per-game restrictions
 

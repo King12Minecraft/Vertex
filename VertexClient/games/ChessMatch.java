@@ -1,5 +1,5 @@
 package games;
-import mechanics.ReconnectPolicy;
+import mechanics.PairReconnect;
 import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
@@ -29,8 +29,43 @@ public class ChessMatch
     /** Not final: a reconnecting player logs back in on a brand-new ClientHandler, which replaces their old slot (see onReconnect). */
     private ClientHandler whitePlayer;
     private ClientHandler blackPlayer;
-    /** null when nobody is in a reconnect grace period; TRUE if White's socket dropped, FALSE if Black's. */
-    private Boolean disconnectedWhite = null;
+    /** Shared drop-and-return handling (see mechanics.PairReconnect); slot 0 is White, 1 is Black. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? whitePlayer : blackPlayer; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) whitePlayer = handler; else blackPlayer = handler; }
+        public String stateString() { return boardString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentChessMatch(ChessMatch.this); }
+
+        /** A pending draw offer shouldn't survive the pause - the offerer may not be around to see the answer, and the accepter may be the one who left. */
+        public void onPaused(int droppedSlot) { drawOfferPending = false; }
+
+        /** Abandonment keeps the pre-reconnect outcome: the remaining player is told OPPONENT_LEFT; no rating, coins or replay. */
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            matchManager.endMatch(matchId);
+            if (remaining != null)
+            {
+                Message msg = new Message();
+                msg.setType(MessageType.CHESS_MATCH_OVER);
+                msg.setMatchId(matchId);
+                msg.setMatchResult("OPPONENT_LEFT");
+                msg.setBoardState(boardString());
+                remaining.sendMessage(msg);
+            }
+            notifySpectatorsEnded();
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdate(opponent);   // clears their waiting notice
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, slot == 0 ? "WHITE" : "BLACK",
+                opponent.getLoggedInUsername(), boardString(), whiteTurn ? "WHITE" : "BLACK");
+        }
+    });
     private final ChessMatchManager matchManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
@@ -106,7 +141,7 @@ public class ChessMatch
         {
             return;
         }
-        if (paused())
+        if (reconnect.isPaused())
         {
             sendRejected(requester, "Waiting for your opponent to reconnect...");
             return;
@@ -583,7 +618,7 @@ public class ChessMatch
     /** Relays the offer to the other player - doesn't end anything itself, that only happens if they accept. A fresh offer can't be sent while one is already pending, and offering doesn't cost you your move. */
     public synchronized void offerDraw(ClientHandler requester)
     {
-        if (over || drawOfferPending || paused())
+        if (over || drawOfferPending || reconnect.isPaused())
         {
             return;
         }
@@ -638,127 +673,7 @@ public class ChessMatch
 
     public void handleDisconnect(ClientHandler who)
     {
-        Integer accountIdToRegister = null;
-        boolean bothNowGone = false;
-
-        synchronized (this)
-        {
-            if (over)
-            {
-                return;
-            }
-            if (disconnectedWhite != null)
-            {
-                // The other player was already in a grace period and now this one dropped too - nobody left to wait for.
-                over = true;
-                bothNowGone = true;
-            }
-            else if (!ReconnectPolicy.canReconnect(who, GAME_ID))
-            {
-                finishAbandoned(who);
-                return;
-            }
-            else
-            {
-                disconnectedWhite = (who == whitePlayer);
-                // A pending draw offer shouldn't survive the pause - the offerer may not be around to see the answer, and the accepter may be the one who left.
-                drawOfferPending = false;
-                accountIdToRegister = who.getAccountId();
-
-                ClientHandler remaining = (who == whitePlayer) ? blackPlayer : whitePlayer;
-                Message notice = new Message();
-                notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
-                notice.setMatchId(matchId);
-                notice.setBoardState(boardString());
-                notice.setErrorText(ReconnectPolicy.waitingNotice());
-                remaining.sendMessage(notice);
-            }
-        }
-
-        if (bothNowGone)
-        {
-            matchManager.endMatch(matchId);
-            notifySpectatorsEnded();
-            return;
-        }
-
-        // Lock ordering (see ReconnectRegistry): never register while holding this match's own lock.
-        ReconnectRegistry.shared().beginGracePeriod(accountIdToRegister, new ReconnectRegistry.ReconnectableMatch()
-        {
-            public void onReconnectTimeout()
-            {
-                ChessMatch.this.onReconnectTimeout();
-            }
-
-            public ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
-            {
-                return ChessMatch.this.onReconnect(newHandler);
-            }
-
-            public void attachToHandler(ClientHandler handler)
-            {
-                handler.setCurrentChessMatch(ChessMatch.this);
-            }
-        });
-    }
-
-    /** The pre-reconnect behavior, kept for guests and for the timeout: the remaining player is told OPPONENT_LEFT; no rating, coins or replay for an abandoned game. Caller holds the lock. */
-    private void finishAbandoned(ClientHandler who)
-    {
-        over = true;
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == whitePlayer) ? blackPlayer : whitePlayer;
-        Message msg = new Message();
-        msg.setType(MessageType.CHESS_MATCH_OVER);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        msg.setBoardState(boardString());
-        remaining.sendMessage(msg);
-        notifySpectatorsEnded();
-    }
-
-    private synchronized void onReconnectTimeout()
-    {
-        if (over || disconnectedWhite == null)
-        {
-            return;
-        }
-        ClientHandler gone = disconnectedWhite ? whitePlayer : blackPlayer;
-        disconnectedWhite = null;
-        finishAbandoned(gone);
-    }
-
-    /** Called by ReconnectRegistry.tryReconnect() while it holds the registry's lock - must never call back into the registry from here. */
-    private synchronized ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
-    {
-        if (over || disconnectedWhite == null)
-        {
-            return null;
-        }
-        boolean wasWhite = disconnectedWhite;
-        if (wasWhite)
-        {
-            whitePlayer = newHandler;
-        }
-        else
-        {
-            blackPlayer = newHandler;
-        }
-        disconnectedWhite = null;
-
-        ClientHandler opponent = wasWhite ? blackPlayer : whitePlayer;
-        // The opponent's window is showing the "waiting" notice; a fresh update clears it.
-        sendUpdate(opponent);
-
-        return new ReconnectRegistry.ReconnectResult(
-            matchId, GAME_ID, wasWhite ? "WHITE" : "BLACK", opponent.getLoggedInUsername(), boardString(), whiteTurn ? "WHITE" : "BLACK");
-    }
-
-    /** True while a player is in the reconnect grace window - moves, resigns and draw offers are held until they're back or the window closes. */
-    private boolean paused()
-    {
-        return disconnectedWhite != null;
+        reconnect.handleDisconnect(who);
     }
 
     private String boardString()

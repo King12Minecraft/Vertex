@@ -46,6 +46,24 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Reconnect gaps closed: heartbeat, live countdown, chat dock on resume, Chess on the shared helper.**
+  Follow-up to the entry below, at Bipin's "fix gaps" (2026-09-30). (1) **Heartbeat:** the client
+  pings every 8s (`PING_REQUEST`/`PONG`); the server drops a connection silent for 25s
+  (`SO_TIMEOUT`) and the client treats a server silent for 30s as gone, so a link that died without
+  a close now starts the opponent's grace period after ~25s instead of never. Verified with a real
+  server: a raw client that goes silent is dropped at ~24s and its opponent told to wait, while an
+  idle real client stays connected past the window. Side effect worth knowing: any client that does
+  not ping is dropped after 25s idle (the shipped client pings). (2) **Live countdown:**
+  `ui/ReconnectCountdown` turns "up to 30s" into a ticking "27s left" on all 18 game windows; it
+  stops by itself when anything else writes to the label. (3) **Chat dock on resume:**
+  `MatchChatRoom` keeps a registry of open rooms, login puts the returning player back in theirs
+  (replacing a stale handler for the same player), and the client asks `MATCH_CHAT_SYNC_REQUEST`
+  once its window is up (a push during login would arrive before the client is ready). (4) **Chess
+  now runs on `PairReconnect`** (new `onPaused` hook clears its draw offer). The eight earliest
+  adopters keep their hand-written version on purpose: it works, has no behavior to gain, and
+  converting them would risk regressions for no player-visible benefit. Still open: the group games.
+  New checks: `MatchChatRoomTest` rejoin cases; the countdown and the heartbeat were verified live.
+
 - **Shared `mechanics` package + 30-second reconnect for 18 games, including Chess; and the
   reconnect now actually happens.** Built as directed (2026-09-30). New shared `mechanics`
   package: `ReconnectPolicy` (30s window and the per-game exception table), `ReconnectRegistry`
@@ -70,13 +88,9 @@ recorded below as they're confirmed.
   windows (Chess, Typing Duel, Memory Match, Tetris Duel, Air Hockey), and a real in-process
   server + real client whose socket is closed mid-Chess-match - the opponent is told to wait, the
   client re-logs in and shows the board by itself, its next move reaches the opponent.
-  **Known gaps, not built:** (1) the server has no heartbeat/read timeout, so the *opponent* of a
-  player whose link died silently only learns of it when the server notices (immediately if the
-  player logs back in) - a ping + timeout would close this; (2) no live countdown ("27s...") on the
-  waiting player's screen, only the static "up to 30s" text; (3) the group games remain
-  exceptions - holding a seat in a match that carries on without you is a different design;
-  (4) a resumed match doesn't reopen the match-chat dock; (5) Chess and the eight earlier games
-  keep their hand-written version of the state machine and could move to `PairReconnect`.
+  **Known gaps at the time (since closed - see the entry above):** heartbeat, live countdown, chat
+  dock on resume, Chess on the helper. Still true: the group games remain exceptions - holding a
+  seat in a match that carries on without you is a different design.
 
 - **Forums, as a new sidebar tab.** Built as agreed with Bipin (2026-09-29): a board per
   game plus General, threads with flat replies, moderators/admins can delete posts and lock

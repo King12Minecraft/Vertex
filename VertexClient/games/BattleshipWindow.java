@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 import ai.AiKernel;
 import economy.GuestPlayTracker;
 import account.Session;
@@ -673,7 +674,7 @@ public class BattleshipWindow extends JPanel implements NetworkManager.PushListe
             // ordinary shot once play resumes) or by BATTLESHIP_MATCH_OVER if the
             // window expires first.
             awaitingReconnect = true;
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (message.getType() == MessageType.BATTLESHIP_FIRE_RESULT)
         {

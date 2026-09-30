@@ -34,9 +34,11 @@ public class ChessReconnectTest
 
     private static void fireTimeout(ChessMatch match) throws Exception
     {
-        Method m = ChessMatch.class.getDeclaredMethod("onReconnectTimeout");
+        Field f = ChessMatch.class.getDeclaredField("reconnect");
+        f.setAccessible(true);
+        Method m = mechanics.PairReconnect.class.getDeclaredMethod("onTimeout");
         m.setAccessible(true);
-        m.invoke(match);
+        m.invoke(f.get(match));
     }
 
     private static void setLeaving(ClientHandler h, boolean value) throws Exception

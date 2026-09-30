@@ -26,6 +26,15 @@ import java.util.TimerTask;
  */
 public class MatchChatRoom
 {
+    /** Every open room by match id, so a player who reconnects mid-match can be put back in theirs (see rejoin). */
+    private static final java.util.Map<String, MatchChatRoom> ACTIVE =
+        new java.util.concurrent.ConcurrentHashMap<String, MatchChatRoom>();
+
+    public static MatchChatRoom find(String matchId)
+    {
+        return matchId == null ? null : ACTIVE.get(matchId);
+    }
+
     private final String matchId;
     private final String gameId;
     private final List<ClientHandler> members;
@@ -44,6 +53,7 @@ public class MatchChatRoom
     /** Attaches the room to every member (so ClientHandler can route their messages here) and tells each one it exists. A member still holding a previous room (e.g. Telephone's post-reveal chat) is moved out of it first. */
     synchronized void open()
     {
+        ACTIVE.put(matchId, this);
         for (int i = 0; i < members.size(); i++)
         {
             ClientHandler member = members.get(i);
@@ -105,6 +115,48 @@ public class MatchChatRoom
         }
     }
 
+    /**
+     * A player logged back in mid-match on a new connection: puts the new handler in the room in
+     * place of their old one (matched by username - the old handler is either already gone, or a
+     * dead connection the server hasn't noticed). Sends nothing: the client asks for the room's
+     * state once its window is up (MATCH_CHAT_SYNC_REQUEST -> sendStateTo), because a push sent
+     * during login would arrive before the client is ready for it.
+     */
+    public synchronized void rejoin(ClientHandler newMember)
+    {
+        if (closed || newMember == null)
+        {
+            return;
+        }
+        String username = newMember.getLoggedInUsername();
+        for (int i = members.size() - 1; i >= 0; i--)
+        {
+            ClientHandler old = members.get(i);
+            if (old != newMember && username != null && username.equals(old.getLoggedInUsername()))
+            {
+                members.remove(i);
+                if (old.getMatchChatRoom() == this)
+                {
+                    old.setMatchChatRoom(null);
+                }
+            }
+        }
+        if (!members.contains(newMember))
+        {
+            members.add(newMember);
+        }
+        newMember.setMatchChatRoom(this);
+    }
+
+    /** Tells one member the room's current state (OPEN/LOCKED) - how a reconnected client gets its chat dock back. */
+    public synchronized void sendStateTo(ClientHandler member)
+    {
+        if (!closed && members.contains(member))
+        {
+            member.sendMessage(stateMessage(restriction.name()));
+        }
+    }
+
     /** Drops one member (e.g. they disconnected) without touching anyone else. */
     public synchronized void leave(ClientHandler member)
     {
@@ -122,6 +174,7 @@ public class MatchChatRoom
             return;
         }
         closed = true;
+        ACTIVE.remove(matchId, this);
         if (closeTimer != null)
         {
             closeTimer.cancel();

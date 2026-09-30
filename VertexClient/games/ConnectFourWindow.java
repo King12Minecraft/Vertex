@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 import net.MessageType;
 import ui.ThemedButton;
 import ui.GameModeCard;
@@ -438,7 +439,7 @@ public class ConnectFourWindow extends JPanel implements NetworkManager.PushList
             // why (a short reconnect grace window, not an immediate forfeit).
             awaitingReconnect = true;
             applyBoardState(message.getBoardState());
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.CONNECT4_MOVE_REJECTED)
         {

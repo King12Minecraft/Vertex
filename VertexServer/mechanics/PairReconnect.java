@@ -48,6 +48,9 @@ public class PairReconnect
 
         /** Point the new handler's currentXxxMatch field at this match, so its later moves and disconnect reach it. */
         void attach(ClientHandler handler);
+
+        /** A player just dropped and the match is now paused (under the match lock). Default: nothing - for a game that needs to tidy state at that moment (Chess clears a pending draw offer). */
+        default void onPaused(int droppedSlot) { }
     }
 
     private final Object lock;
@@ -132,6 +135,7 @@ public class PairReconnect
 
             droppedSlot = slot;
             accountId = who.getAccountId();
+            host.onPaused(slot);
             refreshNotice();
         }
 

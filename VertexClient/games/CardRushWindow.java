@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -317,7 +318,7 @@ public class CardRushWindow extends JPanel implements NetworkManager.PushListene
             awaitingReconnect = true;
             selectedCard = null;
             applyState(message.getBoardState());
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.CARDRUSH_RESULT)
         {

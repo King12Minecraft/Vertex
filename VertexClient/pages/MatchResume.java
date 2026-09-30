@@ -59,6 +59,11 @@ public final class MatchResume
         JComponent window = factory.get();
         MainMenu.getInstance().showResumedGame(window);
 
+        // Ask the server to re-announce the match's chat room (if the game has one) so the chat dock comes back too.
+        Message chatSync = new Message();
+        chatSync.setType(MessageType.MATCH_CHAT_SYNC_REQUEST);
+        NetworkManager.sendAsync(chatSync);
+
         if (!(window instanceof NetworkManager.PushListener))
         {
             return;

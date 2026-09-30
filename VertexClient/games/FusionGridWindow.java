@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -432,7 +433,7 @@ public class FusionGridWindow extends JPanel implements NetworkManager.PushListe
             // The update the server sends when they return restores whose turn it is.
             applyState(message.getBoardState());
             myTurn = false;
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.FUSIONGRID_RESULT)
         {

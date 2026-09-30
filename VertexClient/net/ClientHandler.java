@@ -363,10 +363,19 @@ public class ClientHandler implements Runnable
         if (currentCardRushMatch != null) currentCardRushMatch.handleDisconnect(this);
     }
 
+    /**
+     * How long a connection may be completely silent before it's treated as dead. The client
+     * pings every ~8 seconds, so a healthy idle player never gets near this. Without it, a
+     * connection that died without a close (Wi-Fi off, laptop lid shut) can sit "connected"
+     * on the server for minutes to hours - and the opponent would never be told to wait.
+     */
+    private static final int SILENCE_TIMEOUT_MS = 25000;
+
     public void run()
     {
         try
         {
+            socket.setSoTimeout(SILENCE_TIMEOUT_MS);
             out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
             in.setObjectInputFilter(VertexSerializationFilter.FILTER);
@@ -377,6 +386,10 @@ public class ClientHandler implements Runnable
                 Message response = handle(request);
                 if (response != null) sendMessage(response);
             }
+        }
+        catch (java.net.SocketTimeoutException e)
+        {
+            System.out.println("Client timed out (no traffic for " + (SILENCE_TIMEOUT_MS / 1000) + "s): " + socket.getInetAddress());
         }
         catch (IOException e)
         {
@@ -445,6 +458,18 @@ public class ClientHandler implements Runnable
 
     private Message handle(Message request)
     {
+        if (request.getType() == MessageType.MATCH_CHAT_SYNC_REQUEST)
+        {
+            MatchChatRoom room = matchChatRoom;
+            if (room != null) room.sendStateTo(this);
+            return null;
+        }
+        if (request.getType() == MessageType.PING_REQUEST)
+        {
+            Message pong = new Message();
+            pong.setType(MessageType.PONG);
+            return pong;
+        }
         if (request.getType() == MessageType.LOGIN_REQUEST) return handleLogin(request);
         if (request.getType() == MessageType.CREATE_ACCOUNT_REQUEST) return handleCreateAccount(request);
         if (request.getType() == MessageType.GAME_LIST_REQUEST) return handleGameList();
@@ -1143,6 +1168,8 @@ public class ClientHandler implements Runnable
             mechanics.ReconnectRegistry.ReconnectResult reconnect = tryReconnectAllGames();
             if (reconnect != null)
             {
+                MatchChatRoom chatRoom = MatchChatRoom.find(reconnect.matchId);
+                if (chatRoom != null) chatRoom.rejoin(this);
                 response.setMatchId(reconnect.matchId);
                 response.setReconnectGameId(reconnect.gameId);
                 response.setSymbol(reconnect.mySymbol);

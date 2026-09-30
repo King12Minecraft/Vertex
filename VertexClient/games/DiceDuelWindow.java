@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -575,7 +576,7 @@ public class DiceDuelWindow extends JPanel implements NetworkManager.PushListene
             // The update the server sends when they return restores whose turn it is.
             applyState(message.getBoardState());
             myTurn = false;
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.DICEDUEL_RESULT)
         {

@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -305,7 +306,7 @@ public class TetrisDuelWindow extends JPanel implements NetworkManager.PushListe
         {
             // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
             awaitingReconnect = true;
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.TETRISDUEL_UPDATE)
         {

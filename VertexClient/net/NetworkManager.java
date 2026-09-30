@@ -62,6 +62,10 @@ public class NetworkManager
     private static final List<Message> offlineQueue = new ArrayList<Message>();
     private static Thread reconnectThread;
     private static final int RECONNECT_INTERVAL_MS = 4000;
+    /** Keep-alive cadence, and how long the client will wait in silence before deciding the server is gone (the server pings back, so silence past this really is a dead link). Server side: ClientHandler.SILENCE_TIMEOUT_MS. */
+    private static final int HEARTBEAT_INTERVAL_MS = 8000;
+    private static final int SILENCE_TIMEOUT_MS = 30000;
+    private static Thread heartbeatThread;
 
     /** Bumped every time a connection is closed, so a listener thread can tell whether the socket it was reading is still THE current one (a stale one ending is just cleanup, not a drop). */
     private static int connectionGeneration = 0;
@@ -183,7 +187,9 @@ public class NetworkManager
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
             in.setObjectInputFilter(VertexSerializationFilter.FILTER);
+            socket.setSoTimeout(SILENCE_TIMEOUT_MS);
             setState(ConnectionState.ONLINE);
+            ensureHeartbeatThreadRunning();
             startListenerThread();
             flushOfflineQueue();
             if (connectionLost)
@@ -248,6 +254,40 @@ public class NetworkManager
         });
         reconnectThread.setDaemon(true);
         reconnectThread.start();
+    }
+
+    /** One daemon thread for the life of the process: while ONLINE, pings the server every few seconds so both sides can tell a quiet-but-alive connection from a dead one. */
+    private static synchronized void ensureHeartbeatThreadRunning()
+    {
+        if (heartbeatThread != null && heartbeatThread.isAlive())
+        {
+            return;
+        }
+        heartbeatThread = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                while (true)
+                {
+                    try
+                    {
+                        Thread.sleep(HEARTBEAT_INTERVAL_MS);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        return;
+                    }
+                    if (state == ConnectionState.ONLINE)
+                    {
+                        Message ping = new Message();
+                        ping.setType(MessageType.PING_REQUEST);
+                        sendAsync(ping);
+                    }
+                }
+            }
+        });
+        heartbeatThread.setDaemon(true);
+        heartbeatThread.start();
     }
 
     private static void fireReconnectedHook()

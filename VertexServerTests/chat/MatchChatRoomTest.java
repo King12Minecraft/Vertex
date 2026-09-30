@@ -33,6 +33,7 @@ public class MatchChatRoomTest
         testLeaveAndClose(check);
         testNewRoomMovesMemberOutOfOldOne(check);
         testCloseAfterEventuallyCloses(check);
+        testRejoinAfterReconnect(check);
         testKernelOpensAndKeepsRoomAfterMatchEnds(check);
 
         check.finish();
@@ -41,6 +42,40 @@ public class MatchChatRoomTest
     private static List<net.ClientHandler> pair(FakeClientHandler a, FakeClientHandler b)
     {
         return new ArrayList<net.ClientHandler>(Arrays.<net.ClientHandler>asList(a, b));
+    }
+
+    private static void testRejoinAfterReconnect(Check check)
+    {
+        FakeClientHandler a = new FakeClientHandler("rj-a", 601);
+        FakeClientHandler b = new FakeClientHandler("rj-b", 602);
+        MatchChatRoom room = GameChatPolicies.openRoom("dice-duel-rj", "dice-duel", pair(a, b));
+        check.check("room is findable by match id while open", MatchChatRoom.find("dice-duel-rj") == room);
+
+        room.leave(b);   // b's connection dropped (what ClientHandler's cleanup does)
+        FakeClientHandler bAgain = new FakeClientHandler("rj-b", 602);
+        room.rejoin(bAgain);
+        check.check("the returning player is attached to the room", bAgain.getMatchChatRoom() == room);
+        check.check("rejoin sends nothing by itself (the client asks once its window is up)", bAgain.sent.isEmpty());
+        room.sendStateTo(bAgain);
+        check.check("sendStateTo re-announces the room as OPEN", bAgain.lastOfType(MessageType.MATCH_CHAT_STATE) != null
+            && "OPEN".equals(bAgain.lastOfType(MessageType.MATCH_CHAT_STATE).getMatchChatState()));
+        int before = bAgain.countOfType(MessageType.MATCH_CHAT_MESSAGE);
+        room.post(a, "welcome back");
+        check.check("the returning player receives chat again", bAgain.countOfType(MessageType.MATCH_CHAT_MESSAGE) == before + 1);
+
+        // dead connection the server never noticed: the stale handler is replaced, not left as a duplicate
+        FakeClientHandler bThird = new FakeClientHandler("rj-b", 602);
+        room.rejoin(bThird);
+        check.check("a stale handler for the same player is replaced", bAgain.getMatchChatRoom() == null && bThird.getMatchChatRoom() == room);
+        int staleBefore = bAgain.countOfType(MessageType.MATCH_CHAT_MESSAGE);
+        room.post(a, "again");
+        check.check("...and no longer receives chat", bAgain.countOfType(MessageType.MATCH_CHAT_MESSAGE) == staleBefore);
+
+        room.close();
+        check.check("a closed room is no longer findable, and can't be rejoined", MatchChatRoom.find("dice-duel-rj") == null);
+        FakeClientHandler late = new FakeClientHandler("rj-b", 602);
+        room.rejoin(late);
+        check.check("rejoining a closed room does nothing", late.getMatchChatRoom() == null);
     }
 
     private static void testPolicies(Check check)

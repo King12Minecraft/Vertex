@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -460,7 +461,7 @@ public class WordDuelWindow extends JPanel implements NetworkManager.PushListene
             // or replaced by a real WORDDUEL_RESULT if the grace window expires
             // first - no separate "resumed" message type needed.
             awaitingReconnect = true;
-            timeLabel.setText("Opponent disconnected - waiting to reconnect...");
+            ReconnectCountdown.show(timeLabel, message.getErrorText());
         }
         else if (type == MessageType.WORDDUEL_RESULT)
         {

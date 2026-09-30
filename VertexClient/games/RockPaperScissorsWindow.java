@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 import ai.AiKernel;
 import economy.GuestPlayTracker;
 import account.Session;
@@ -494,7 +495,7 @@ public class RockPaperScissorsWindow extends JPanel implements NetworkManager.Pu
             // be a silently-dropped request. Cleared by the RPS_MATCH_FOUND resume
             // push above (or by RPS_MATCH_OVER if the window expires first).
             moveButtonRow.setVisible(false);
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (message.getType() == MessageType.RPS_ROUND_RESULT)
         {
