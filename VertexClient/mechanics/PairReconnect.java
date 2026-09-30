@@ -68,6 +68,26 @@ public class PairReconnect
         return droppedSlot >= 0;
     }
 
+    /**
+     * Re-sends the waiting notice (with the current state) to the player who is waiting. For a
+     * match whose state can still change during the pause - a timer that clears a mismatch, say -
+     * this keeps their view current without an ordinary update, which would make their window
+     * think play had resumed. Call under the match lock; does nothing unless paused.
+     */
+    public void refreshNotice()
+    {
+        if (droppedSlot < 0)
+        {
+            return;
+        }
+        Message notice = new Message();
+        notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+        notice.setMatchId(host.matchId());
+        notice.setBoardState(host.stateString());
+        notice.setErrorText(ReconnectPolicy.waitingNotice());
+        host.player(1 - droppedSlot).sendMessage(notice);
+    }
+
     public void handleDisconnect(ClientHandler who)
     {
         Integer accountId;
@@ -93,12 +113,7 @@ public class PairReconnect
 
             droppedSlot = slot;
             accountId = who.getAccountId();
-            Message notice = new Message();
-            notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
-            notice.setMatchId(host.matchId());
-            notice.setBoardState(host.stateString());
-            notice.setErrorText(ReconnectPolicy.waitingNotice());
-            host.player(1 - slot).sendMessage(notice);
+            refreshNotice();
         }
 
         // Lock ordering (see ReconnectRegistry): register only after the match lock is released.

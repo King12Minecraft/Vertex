@@ -1,5 +1,7 @@
 package games;
 
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 import net.ClientHandler;
 import net.Message;
 import net.MessageType;
@@ -39,8 +41,8 @@ public class MemoryMatchMatch
     private static final char[] SYMBOLS = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' };
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final MemoryMatchMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -52,6 +54,39 @@ public class MemoryMatchMatch
     private Integer firstFlipIndex = null;
     private boolean awaitingMismatchClear = false;
     private boolean over = false;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return publicBoardString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentMemoryMatchMatch(MemoryMatchMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.MEMORY_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            msg.setBoardState(new String(cardValues));
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendStateTo(opponent, publicBoardString());
+            // The running score has no field of its own on a login response, so it rides in the turn slot as "turn|a:b" (AuthWindow unpacks it, same idea as Word Duel's).
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, String.valueOf(slot),
+                opponent.getLoggedInUsername(), publicBoardString(), turnPlayerIndex + "|" + scores[0] + ":" + scores[1]);
+        }
+    });
 
     public MemoryMatchMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                              MemoryMatchMatchManager matchManager, EconomyManager economyManager,
@@ -97,7 +132,7 @@ public class MemoryMatchMatch
 
     public synchronized void flipCard(ClientHandler requester, int index)
     {
-        if (over || awaitingMismatchClear) return;
+        if (over || awaitingMismatchClear || reconnect.isPaused()) return;
         int playerIndex = requester == playerA ? 0 : requester == playerB ? 1 : -1;
         if (playerIndex != turnPlayerIndex) return;
         if (index < 0 || index >= CARD_COUNT || matched[index]) return;
@@ -150,7 +185,15 @@ public class MemoryMatchMatch
         firstFlipIndex = null;
         awaitingMismatchClear = false;
         turnPlayerIndex = 1 - turnPlayerIndex;
-        broadcastUpdate();
+        if (reconnect.isPaused())
+        {
+            // Someone is mid-reconnect: keep the waiting player's board current without an ordinary update, which would tell their window play had resumed.
+            reconnect.refreshNotice();
+        }
+        else
+        {
+            broadcastUpdate();
+        }
     }
 
     private boolean allMatched()
@@ -184,16 +227,19 @@ public class MemoryMatchMatch
 
     private void broadcastState(String state)
     {
-        for (ClientHandler player : new ClientHandler[] { playerA, playerB })
-        {
-            Message msg = new Message();
-            msg.setType(MessageType.MEMORY_UPDATE);
-            msg.setMatchId(matchId);
-            msg.setBoardState(state);
-            msg.setSymbol(String.valueOf(turnPlayerIndex));
-            msg.setTriviaScores(java.util.Arrays.asList(scores[0] + ":" + scores[1]));
-            player.sendMessage(msg);
-        }
+        sendStateTo(playerA, state);
+        sendStateTo(playerB, state);
+    }
+
+    private void sendStateTo(ClientHandler player, String state)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.MEMORY_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(state);
+        msg.setSymbol(String.valueOf(turnPlayerIndex));
+        msg.setTriviaScores(java.util.Arrays.asList(scores[0] + ":" + scores[1]));
+        player.sendMessage(msg);
     }
 
     private char[] publicBoardChars()
@@ -251,20 +297,8 @@ public class MemoryMatchMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.MEMORY_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        msg.setBoardState(new String(cardValues));
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }

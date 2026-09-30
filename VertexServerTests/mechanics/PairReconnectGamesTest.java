@@ -6,6 +6,8 @@ import account.ServerAccountStore;
 import games.DiceDuelMatch;
 import games.DiceDuelMatchManager;
 import games.FusionGridMatch;
+import games.MemoryMatchMatch;
+import games.MemoryMatchMatchManager;
 import games.FusionGridMatchManager;
 import games.SignalGridMatch;
 import games.SignalGridMatchManager;
@@ -37,6 +39,8 @@ public class PairReconnectGamesTest
         MessageType updateType();
         MessageType resultType();
         String gameId();
+        /** What ReconnectResult.turnSymbol should read for a fresh match at the start (player 0 to move). */
+        String startTurn();
     }
 
     private static EconomyManager economy()
@@ -92,7 +96,7 @@ public class PairReconnectGamesTest
             ReconnectRegistry.ReconnectResult r = ReconnectRegistry.shared().tryReconnect(idBase + 1, bAgain);
             check.check(name + ": reconnect returns a result", r != null);
             check.check(name + ": result names the game, slot, opponent and turn",
-                r != null && name.equals(r.gameId) && "1".equals(r.mySymbol) && ("a" + idBase).equals(r.opponentUsername) && "0".equals(r.turnSymbol));
+                r != null && name.equals(r.gameId) && "1".equals(r.mySymbol) && ("a" + idBase).equals(r.opponentUsername) && g.startTurn().equals(r.turnSymbol));
             check.check(name + ": opponent gets a fresh update", a.countOfType(update) == 1);
 
             g.moveByA(match, a);
@@ -166,6 +170,7 @@ public class PairReconnectGamesTest
             public MessageType updateType() { return MessageType.DICEDUEL_UPDATE; }
             public MessageType resultType() { return MessageType.DICEDUEL_RESULT; }
             public String gameId() { return "dice-duel"; }
+            public String startTurn() { return "0"; }
         }, 100);
 
         run(check, new Game()
@@ -181,6 +186,7 @@ public class PairReconnectGamesTest
             public MessageType updateType() { return MessageType.SIGNALGRID_UPDATE; }
             public MessageType resultType() { return MessageType.SIGNALGRID_RESULT; }
             public String gameId() { return "signal-grid"; }
+            public String startTurn() { return "0"; }
         }, 200);
 
         run(check, new Game()
@@ -196,7 +202,51 @@ public class PairReconnectGamesTest
             public MessageType updateType() { return MessageType.FUSIONGRID_UPDATE; }
             public MessageType resultType() { return MessageType.FUSIONGRID_RESULT; }
             public String gameId() { return "fusion-grid"; }
+            public String startTurn() { return "0"; }
         }, 300);
+
+        run(check, new Game()
+        {
+            public Object create(ClientHandler a, ClientHandler b)
+            {
+                MemoryMatchMatchManager m = new MemoryMatchMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+                MemoryMatchMatch match = new MemoryMatchMatch("mm-t", a, b, m, economy(), null);
+                match.start();
+                return match;
+            }
+            public void moveByA(Object match, ClientHandler a) { ((MemoryMatchMatch) match).flipCard(a, 0); }
+            public MessageType updateType() { return MessageType.MEMORY_UPDATE; }
+            public MessageType resultType() { return MessageType.MEMORY_RESULT; }
+            public String gameId() { return "memory-match"; }
+            public String startTurn() { return "0|0:0"; }
+        }, 400);
+
+        // --- Memory Match only: a mismatch clears on a timer, which must not fake "play resumed" mid-pause ---
+        {
+            FakeClientHandler a = new FakeClientHandler("mm-a", 500);
+            FakeClientHandler b = new FakeClientHandler("mm-b", 501);
+            MemoryMatchMatchManager m = new MemoryMatchMatchManager(economy(), new economy.GameHistoryManager(), new social.ChatManager(), null);
+            MemoryMatchMatch match = new MemoryMatchMatch("mm-t2", a, b, m, economy(), null);
+            match.start();
+            Field cv = MemoryMatchMatch.class.getDeclaredField("cardValues");
+            cv.setAccessible(true);
+            char[] values = (char[]) cv.get(match);
+            int other = 1;
+            while (values[other] == values[0]) other++;
+            match.flipCard(a, 0);
+            match.flipCard(a, other);                 // mismatch: both revealed, clears in ~1.2s
+            disconnect(match, b);
+            int updatesAtDrop = a.countOfType(MessageType.MEMORY_UPDATE);
+            int noticesAtDrop = a.countOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+            Thread.sleep(1700);
+            check.check("memory-match: the timer's clear during a pause sends no ordinary update", a.countOfType(MessageType.MEMORY_UPDATE) == updatesAtDrop);
+            check.check("memory-match: ...it refreshes the waiting notice instead", a.countOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE) == noticesAtDrop + 1);
+            String board = a.lastOfType(MessageType.OPPONENT_DISCONNECTED_NOTICE).getBoardState();
+            check.check("memory-match: refreshed board has the mismatched cards hidden again", board.charAt(0) == '.' && board.charAt(other) == '.');
+            FakeClientHandler bAgain = new FakeClientHandler("mm-b", 501);
+            ReconnectRegistry.ReconnectResult r = ReconnectRegistry.shared().tryReconnect(501, bAgain);
+            check.check("memory-match: returning after the clear finds it player B's turn", r != null && r.turnSymbol.startsWith("1|"));
+        }
 
         check.finish();
         System.exit(0);

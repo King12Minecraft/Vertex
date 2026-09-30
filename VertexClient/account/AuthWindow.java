@@ -242,6 +242,18 @@ public class AuthWindow extends JFrame
         update.setMatchId(loginResponse.getMatchId());
         update.setSymbol(loginResponse.getReconnectTurnSymbol());
         update.setBoardState(loginResponse.getBoardState());
+        if ("memory-match".equals(gameId))
+        {
+            // Memory Match's update also carries the running "a:b" pair score, which a login
+            // response has no field for - MemoryMatchMatch.resume() packs it after the turn
+            // as "turn|a:b".
+            String[] parts = String.valueOf(loginResponse.getReconnectTurnSymbol()).split("\\|");
+            update.setSymbol(parts[0]);
+            if (parts.length > 1)
+            {
+                update.setTriviaScores(java.util.Arrays.asList(parts[1]));
+            }
+        }
         if ("word-duel".equals(gameId))
         {
             // Same idea as above: Word Duel's real UPDATE carries progress via
@@ -279,6 +291,10 @@ public class AuthWindow extends JFrame
         if ("fusion-grid".equals(gameId))
         {
             return new MessageType[] { MessageType.FUSIONGRID_MATCH_FOUND, MessageType.FUSIONGRID_UPDATE };
+        }
+        if ("memory-match".equals(gameId))
+        {
+            return new MessageType[] { MessageType.MEMORY_MATCH_FOUND, MessageType.MEMORY_UPDATE };
         }
         if ("chess".equals(gameId))
         {
