@@ -46,6 +46,19 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Themed custom cursors, chosen in Settings.** (2026-09-30) Settings > Appearance has a "Mouse cursor" picker of
+  six cards - System default, **Crystal** (faceted cyan, echoing the logo), **Ember**, **Neon**, **Mono** and
+  **Match my theme** (follows the app theme's accent colours live) - each previewing its arrow, link pointer and
+  text cursor. Drawn entirely in code (`ui/CursorArtwork`, original shapes, nothing copied or shipped), created at
+  the platform's best cursor size. `ui/CursorManager` applies the choice app-wide, dialogs and the screen-break
+  overlay included: Swing components pick their own cursors, so it listens at the AWT level and swaps only the
+  three Swing uses (default, hand, text) for whatever is under the pointer, remembering each original - so
+  "System default" restores everything exactly and a game's crosshair, resize arrows or hidden cursor are left
+  alone. Stored per computer like the other display settings. Verified under Xvfb: the swap, the restore, "other
+  cursors untouched", set-to-set switching, plus renders of the art on light and dark and of the picker. **Not
+  verified:** scaled/high-DPI displays and Windows/macOS (only Linux/Xvfb was available) - worth a look by Bipin
+  on a scaled display; if the platform can't make a custom cursor it silently keeps its own.
+
 - **`/calc` slash command.** (2026-09-30) The one slash command, as agreed (the earlier chatbot/slash-command
   removal stands). `/calc 2+3*4` in a DM, a group chat or the match-chat dock is answered on the sender's own
   screen and **never sent** - no server change, nothing anyone else sees. New `chat/CalcParser`: a small
@@ -1877,14 +1890,7 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
   `style='width'` is ignored on newer JDKs - use a table width; `ThemedTextField.setEnabled` does
   not disable the field - use `setInputEnabled`; button labels truncate if too narrow; network
   calls must stay off the Swing thread; never commit keys). Also lists where the logo is used.
-- **6. Themed custom cursors.** Settings gets a cursor picker; the chosen cursor is active across
-  the whole app. **Themed** sets, not generic ones - drawn in code as original artwork matching
-  the app's themes (e.g. a faceted "crystal" set echoing the logo) so nothing is copied and it
-  scales crisply. Each theme needs role variants (arrow, hand/link, text) at minimum; start with
-  4-5 themes plus "System default". Needs a `CursorManager` that applies to every window
-  including dialogs and overrides the hand/text cursors components set themselves; must coexist
-  with `CursorTrailOverlay` and the screen-break glass pane; sizes are capped near 32x32
-  (`getBestCursorSize`) - test on scaled displays. Persist like other Settings.
+- **6. Themed custom cursors. - DONE 2026-09-30** (see "Done"; remaining: try it on a scaled display and on Windows/macOS).
 - **7. Logo.** Bipin redesigns it separately in Cursor. It is files, not code: `GameLogo` loads
   `vertex_logo.png`, the window icon is `vertex_icon.ico` (multi-size), plus the website's static
   assets - replace at the same names and no Java changes are needed. Must be an original design.

@@ -290,6 +290,16 @@ public class SettingsPanel extends RoundedPanel
         dropdown.setAlignmentX(Component.LEFT_ALIGNMENT);
         col.add(dropdown);
 
+        JLabel cursorLabel = new ThemedLabel("Mouse cursor", ThemeColor.TEXT_SECONDARY);
+        cursorLabel.setFont(UITheme.FONT_BODY);
+        cursorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cursorLabel.setBorder(new EmptyBorder(18, 0, 4, 0));
+        col.add(cursorLabel);
+
+        ui.CursorPicker cursorPicker = new ui.CursorPicker();
+        cursorPicker.setAlignmentX(Component.LEFT_ALIGNMENT);
+        col.add(cursorPicker);
+
         return col;
     }
 

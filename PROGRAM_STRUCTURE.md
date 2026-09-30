@@ -1110,6 +1110,12 @@ every such panel's javadoc repeats that this is UI convenience only.
 
 ## pages / ui / theme — the Swing client shell
 
+**Cursors (added 2026-09-30, client-only):** `ui/CursorArtwork` draws the cursor sets in code (arrow, link, text per
+set; `CursorSet` enum incl. SYSTEM and APP = follows the theme); `ui/CursorManager` (installed from `Vertex.main`)
+applies the saved choice via a global AWT mouse listener that swaps Swing's default/hand/text cursors on whatever is
+under the pointer and remembers originals so SYSTEM restores exactly; `ui/CursorPicker` is the Settings control.
+Stored in `Preferences` under `CursorManager`'s package node (per computer).
+
 **pages** (`MainMenu.java` is the shell): a `JFrame` with `Sidebar` (west) + `TopBar`
 (north) + a `CardLayout` content area (center) holding one panel per
 `pages/Pages.java` key. `MainMenu` implements `net/NavigationListener` so `Sidebar`
