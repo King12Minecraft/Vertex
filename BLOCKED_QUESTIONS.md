@@ -18,31 +18,26 @@ raised.
 
 ## Open
 
-- **Source protection vs. "anyone can run their own server."** Raised 2026-09-30. Bipin wants
-  the source protected. The repo is currently **public** with no license, and Vertex's design
-  (README, `HOW_VERTEX_WORKS.md`, `CLAUDE.md`'s "Hosting is `VertexServer.jar`-only") lets anyone
-  host their own server - which means the server jar and source must be distributable, and
-  can't be protected. Options: (a) keep self-hosting, accept open source (add a real license);
-  (b) one official server - private repo, server source/jar only on Bipin's machine,
-  obfuscated client only (this changes a core stated design decision); (c) source-available
-  under a restrictive license. **Reversible default applied:** nothing changed; recorded in
-  `ROADMAP.md`. Recommendation: (b) if the goal is protection; make the repo private now
-  (0 forks/stars, so little has leaked).
-- **Going global requires closing the two known security gaps.** Raised 2026-09-30. Exposing the
-  server to the internet turns "LAN-only" and "no code signing on auto-update" (both already
-  listed in `CLAUDE.md` as decisions for Bipin) into blockers: passwords cross the socket
-  unencrypted, and an unsigned update channel is a remote-code-execution path. Needs Bipin to
-  choose the TLS approach (certificate handling) and the update-signing key management, and to
-  pick the host. **Reversible default applied:** none - nothing is deployed. Hosting options
-  are in `ROADMAP.md`.
-- **Reconnect scope.** Raised 2026-09-30. (1) Confirm "the specified exception" means **Chess**.
-  (2) For real-time 1v1 (Air Hockey, Snake Arena, Tetris Duel) should the match *pause* for up to
-  30s? (3) For group games there is no forfeit today, so what should "reconnect" do (hold the
-  seat)? **Reversible default:** Chess excluded; pause for real-time 1v1; group games left as
-  they are until decided.
-- **Profile/Settings back in the sidebar.** Raised 2026-09-30. This reverses an earlier
-  deliberate declutter. **Reversible default:** group the sidebar into sections with an Account
-  block at the bottom rather than simply appending two more rows.
+- **Source protection - follow-ups.** Raised 2026-09-30. Bipin's direction is agreed (server stays the
+  authority, no secrets in the client, packaged/obfuscated client, servers he hosts himself). Still
+  open: **(1)** make the GitHub repo private and remove `VertexClient.jar`/`VertexServer.jar` from
+  git (both are committed in the currently **public** repo, which has no `LICENSE`)? **(2)** may
+  other people still run their own server? Vertex was designed so anyone can (README,
+  `HOW_VERTEX_WORKS.md`, `CLAUDE.md`'s hosting facts) - if yes, the server jar must be distributed
+  and can't be protected; if no, those docs and `CLAUDE.md` change. **Reversible default applied:**
+  nothing changed; recorded in `ROADMAP.md`.
+- **Going global: the security trigger has been reached.** Raised 2026-09-30. The earlier decision
+  below ("accept the risk as LAN-only, revisit when internet play is being built") named this
+  moment. Internet exposure needs: TLS on the socket (passwords cross it unencrypted), signed
+  auto-updates, and controlled admin creation (the first account on a fresh server becomes ADMIN).
+  Needs Bipin to choose the TLS approach (certificates) and the update-signing key management, and
+  later the host. **Reversible default applied:** none - nothing is deployed.
+- **Reconnect details.** Raised 2026-09-30. Chess is **included** (resolved below). Still open: **(1)**
+  real-time 1v1 (Air Hockey, Snake Arena, Tetris Duel) - pause up to 30s, then forfeit? **(2)** group
+  games have no forfeit today, so what does "reconnect" mean there (hold the seat)? These are the
+  likely per-game exceptions. **(3)** Chess: is "a pending draw offer is cleared when either player
+  disconnects" acceptable (no clocks exist, so pausing costs nothing)? **Reversible defaults:**
+  pause real-time 1v1; group games left as they are; Chess draw offer cleared on disconnect.
 
 - **Does Trivia Blitz actually need `ReconnectRegistry`-style reconnection at all,
   and if so, what should it look like?** Raised 2026-09-29 while working through the
@@ -80,6 +75,15 @@ raised.
 ---
 
 ## Resolved
+
+- **Reconnect exception - is Chess excluded?** Raised 2026-09-30 (my first reading was that "the
+  specified exception" meant Chess). **Resolved 2026-09-30:** no - exceptions can exist for *some
+  games*, but Chess is not one of them; Chess gets the ~30s reconnect. Which other games are
+  exceptions is decided per game (see "Reconnect details" above and `ROADMAP.md`).
+- **Profile/Settings back in the sidebar.** Raised 2026-09-30 (it reverses an earlier declutter).
+  **Resolved 2026-09-30:** Profile stays a sidebar item (Stats lives inside it), Settings stays in the
+  sidebar, and the sidebar becomes scrollable and regrouped rather than simply longer - see
+  `ROADMAP.md`.
 
 - **The client auto-update mechanism (`ClientUpdateChecker`) has no code signing,
   and `NetworkManager` has no TLS** — together, whatever server a client connects to
