@@ -33,6 +33,7 @@ public class RacingMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, RacingMatch> activeMatches = new HashMap<String, RacingMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("racing");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final EconomyManager economyManager;
@@ -75,6 +76,7 @@ public class RacingMatchManager
                 recordPlay(racers.get(i));
             }
             match.start();
+            chatRooms.open(matchId, racers);
         }
 
         broadcastQueueCount();
@@ -100,6 +102,7 @@ public class RacingMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized int getQueueCount()

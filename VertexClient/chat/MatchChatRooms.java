@@ -4,6 +4,7 @@ import net.ClientHandler;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,7 +33,13 @@ public class MatchChatRooms
     /** Opens the room for a freshly started match between two players (no-op if the game has no chat). */
     public void open(String matchId, ClientHandler a, ClientHandler b)
     {
-        MatchChatRoom room = GameChatPolicies.openRoom(matchId, gameId, Arrays.asList(a, b));
+        open(matchId, Arrays.asList(a, b));
+    }
+
+    /** Opens the room for a freshly started match of any size (no-op if the game has no chat). */
+    public void open(String matchId, List<ClientHandler> members)
+    {
+        MatchChatRoom room = GameChatPolicies.openRoom(matchId, gameId, members);
         if (room != null)
         {
             rooms.put(matchId, room);

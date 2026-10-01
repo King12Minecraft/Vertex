@@ -30,6 +30,7 @@ public class SpaceBattleMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, SpaceBattleMatch> activeMatches = new HashMap<String, SpaceBattleMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("space-battle");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final EconomyManager economyManager;
@@ -76,6 +77,7 @@ public class SpaceBattleMatchManager
                 recordPlay(pilots.get(i));
             }
             match.start();
+            chatRooms.open(matchId, pilots);
         }
 
         broadcastQueueCount();
@@ -101,6 +103,7 @@ public class SpaceBattleMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized int getQueueCount()

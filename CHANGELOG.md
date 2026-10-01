@@ -10,7 +10,7 @@
 
 ## 2026-10-02 - Chat in more games
 - On Leaderboards, click a player's name to see their stats.
-- You can now chat with your opponent while you play Tic-Tac-Toe, Chess, Battleship and Rock Paper Scissors, the same way as in the other online games.
+- You can now chat while you play Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors, Racing, Space Battle, Square Wars, Zombie Survival and Fight Arena, the same way as in the other online games. Trivia Blitz has chat too, but it only opens once the match is over (so nobody can call out answers).
 
 ## 2026-10-01 - A fresh look for every page
 - Every page now shares the same cards-and-headers look as the new Home page, and it follows your theme: Quests, Leaderboards, Achievements, Friends, Shop, Tournaments, Changelog, Suggest a Game, Settings, Profile, Stats, Forums, Games, Moderation and Admin.

@@ -55,14 +55,21 @@ Items he has said not to start ("None yet": TLS, signed updates, jars out of git
 |---|---|---|---|
 | 1 | In-match chat for Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors | The most-played games were the ones without it; the room/dock already exist, small per game | **done 2026-10-01** |
 | 2 | Stats from a leaderboard row (open a player's stats page) | Small, finishes the Stats feature | **done 2026-10-01** |
-| 3 | In-match chat for the group/real-time games (Trivia, Racing, Fight Arena, Square Wars...) | Same pattern, but each needs a deliberate hidden-info call | **next** |
-| 4 | Obfuscated client jar (ProGuard) | Roadmap item 2(e): raises the cost of copying the client | planned (needs the tool downloadable) |
+| 3 | In-match chat for the group/real-time games (Trivia, Racing, Fight Arena, Square Wars...) | Same pattern, but each needs a deliberate hidden-info call | **done 2026-10-01** (defaults; question in BLOCKED_QUESTIONS.md) |
+| 4 | Obfuscated client jar (ProGuard) | Roadmap item 2(e): raises the cost of copying the client | **next** (needs the tool downloadable) |
 | 5 | New games from the concept backlog | Player-visible content, each its own unit of work | planned |
 | 6 | Reconnect for the group games (tier C) | Only matters for the longer group matches; design question first | planned |
 | 7 | Rest of the `MatchmakingKernel` rollout | Internal cleanup, no player-visible change | planned |
 | 8 | `save` package, procedural characters | Infrastructure for games that don't exist yet | planned |
 
 ## ✅ Done
+
+- **In-match chat for the group and real-time games.** (2026-10-01) Priority-queue item 3. `MatchChatRooms.open(matchId, List)` for any size;
+  Racing, Space Battle, Square Wars, Zombie Survival and Fight Arena open an OPEN room; Trivia Blitz opens it LOCKED and `TriviaMatch.finishMatch`
+  unlocks it so players can say "gg"; Among Us stays chat-less. These are my defaults for a real design question and are recorded in
+  `BLOCKED_QUESTIONS.md` for Bipin to confirm or change (each is one line in `GameChatPolicies`). Tested: policies, and that Square Wars, Racing
+  and Zombie Survival pairings put everyone in one room. Not directly tested: Trivia's unlock-at-end and the Fight Arena / Space Battle start
+  paths (their match classes need a full economy/leaderboard to run), so those are checked by reading the three-line change only.
 
 - **Leaderboard names open that player's Stats page.** (2026-10-01) Priority-queue item 2. A name on a leaderboard row is now a link (hand
   cursor, tooltip) to `MainMenu.showStats(name)`; Back returns to Leaderboards. Client-only (`STATS_REQUEST` for another player was

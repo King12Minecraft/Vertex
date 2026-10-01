@@ -502,6 +502,12 @@ public class TriviaMatch
     private void finishMatch()
     {
         over = true;
+        // chat was locked so nobody could call out answers mid-match; it opens for the post-match "gg"
+        chat.MatchChatRoom chatRoom = chat.MatchChatRoom.find(matchId);
+        if (chatRoom != null)
+        {
+            chatRoom.unlock();
+        }
         matchManager.endMatch(matchId);
 
         int maxScore = 0;

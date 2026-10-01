@@ -28,6 +28,7 @@ public class SquareWarsMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, SquareWarsMatch> activeMatches = new HashMap<String, SquareWarsMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("square-wars");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final EconomyManager economyManager;
@@ -69,6 +70,7 @@ public class SquareWarsMatchManager
                 recordPlay(group.get(i));
             }
             match.start();
+            chatRooms.open(matchId, group);
         }
 
         broadcastQueueCount();
@@ -94,6 +96,7 @@ public class SquareWarsMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized int getQueueCount()

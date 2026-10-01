@@ -36,6 +36,7 @@ public class MatchChatRoomTest
         testRejoinAfterReconnect(check);
         testKernelOpensAndKeepsRoomAfterMatchEnds(check);
         testHandWrittenManagersOpenRooms(check);
+        testGroupGameChatDefaults(check);
 
         check.finish();
     }
@@ -286,5 +287,43 @@ public class MatchChatRoomTest
         rps.findMatch(h);
         check.check("Rock Paper Scissors pairing opens a chat room for both players", g.getMatchChatRoom() != null && g.getMatchChatRoom() == h.getMatchChatRoom());
         check.check("...announced OPEN for the right game", "rock-paper-scissors".equals(g.lastOfType(MessageType.MATCH_CHAT_STATE).getGameId()));
+    }
+
+    /** Decided 2026-10-01 (reversible defaults): open chat for the group/real-time games, Trivia locked until the match ends, Among Us none. */
+    private static void testGroupGameChatDefaults(Check check)
+    {
+        for (String id : new String[] { "racing", "space-battle", "square-wars", "zombie-survival", "fight-arena" })
+        {
+            check.check(id + " has open match chat", GameChatPolicies.startingRestriction(id) == ChatRestriction.OPEN);
+        }
+        check.check("Trivia Blitz chat starts LOCKED (answers called out would be cheating)",
+            GameChatPolicies.startingRestriction("trivia-blitz") == ChatRestriction.LOCKED);
+        check.check("Among Us has no chat (hidden roles)", !GameChatPolicies.hasMatchChat("among-us"));
+
+        economy.GameHistoryManager history = new economy.GameHistoryManager();
+        social.ChatManager chat = new social.ChatManager();
+        FakeClientHandler a = new FakeClientHandler("Sw-A", 31);
+        FakeClientHandler b = new FakeClientHandler("Sw-B", 32);
+        games.SquareWarsMatchManager sw = new games.SquareWarsMatchManager(history, chat, null, null);
+        sw.findMatch(a);
+        sw.findMatch(b);
+        check.check("Square Wars pairing opens one room for all players", a.getMatchChatRoom() != null && a.getMatchChatRoom() == b.getMatchChatRoom());
+
+        FakeClientHandler r1 = new FakeClientHandler("Rc-A", 33);
+        FakeClientHandler r2 = new FakeClientHandler("Rc-B", 34);
+        FakeClientHandler r3 = new FakeClientHandler("Rc-C", 35);
+        games.RacingMatchManager racing = new games.RacingMatchManager(history, chat, null, null);
+        racing.findMatch(r1);
+        racing.findMatch(r2);
+        racing.findMatch(r3);
+        check.check("Racing (3 racers) opens one room for all of them",
+            r1.getMatchChatRoom() != null && r1.getMatchChatRoom() == r2.getMatchChatRoom() && r2.getMatchChatRoom() == r3.getMatchChatRoom());
+
+        FakeClientHandler z1 = new FakeClientHandler("Zs-A", 36);
+        FakeClientHandler z2 = new FakeClientHandler("Zs-B", 37);
+        games.ZombieSurvivalMatchManager zombies = new games.ZombieSurvivalMatchManager(history, chat, null, null, null);
+        zombies.findMatch(z1);
+        zombies.findMatch(z2);
+        check.check("Zombie Survival pairing opens a room", z1.getMatchChatRoom() != null && z1.getMatchChatRoom() == z2.getMatchChatRoom());
     }
 }

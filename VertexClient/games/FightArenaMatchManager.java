@@ -35,6 +35,7 @@ public class FightArenaMatchManager
     private final Map<String, List<ClientHandler>> waitingByMode = new HashMap<String, List<ClientHandler>>();
     private final Map<String, FightMatch> activeMatches = new HashMap<String, FightMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("fight-arena");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
@@ -227,6 +228,7 @@ public class FightArenaMatchManager
             recordPlay(matched.get(i));
         }
         match.start();
+        chatRooms.open(matchId, matched);
     }
 
     private void recordPlay(ClientHandler handler)
@@ -251,6 +253,7 @@ public class FightArenaMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized int getQueueCount(String mode)

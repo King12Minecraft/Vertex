@@ -18,7 +18,12 @@ raised.
 
 ## Open
 
-_Nothing open right now - the last four were delegated to Claude on 2026-09-30 and are recorded under Resolved (all reversible)._
+- **Match chat in the group / real-time games (raised 2026-10-01).** Needs Bipin's call on which games get chat. **Default applied
+  (reversible - one line each in `chat/GameChatPolicies`):** OPEN for Racing, Space Battle, Square Wars, Zombie Survival (co-op) and Fight
+  Arena (one room for everyone in the match, enemy team included - a team-only channel would be new work); Trivia Blitz LOCKED until the match
+  ends (called-out answers are cheating; `TriviaMatch` unlocks it at the end); Among Us has none (hidden roles). Questions: is all-players
+  chat in Fight Arena team matches OK, should real-time games (Racing, Space Battle) have it at all while keys steer the vehicle, and should
+  Among Us get a locked-until-meeting version?
 
 ## Resolved
 

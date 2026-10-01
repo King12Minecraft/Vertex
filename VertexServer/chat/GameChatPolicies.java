@@ -52,6 +52,16 @@ public class GameChatPolicies
         allow("battleship");
         allow("rock-paper-scissors");
 
+        // The group / real-time games (decided 2026-10-01 as reversible defaults, see ROADMAP "Priority queue" item 3): co-op and
+        // racing/battle games are fine with open chat; Trivia Blitz starts LOCKED because answers called out would be cheating, and
+        // TriviaMatch unlocks the room when the match ends. Among Us is deliberately NOT listed - hidden roles, chat could give them away.
+        allow("racing");
+        allow("space-battle");
+        allow("square-wars");
+        allow("zombie-survival");
+        allow("fight-arena");
+        STARTING.put("trivia-blitz", ChatRestriction.LOCKED);
+
         // Telephone: free chat during the draw/guess chain would let players say the
         // answer out loud, so it starts locked and TelephoneMatch unlocks it at the reveal.
         STARTING.put("telephone", ChatRestriction.LOCKED);
