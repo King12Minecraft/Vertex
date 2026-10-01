@@ -42,6 +42,12 @@ whether leaving is OK (`games.EmbeddedGamePanel.requestLeave()`).
 (the themed replacement for `JOptionPane` messages), `SidebarButton`, `StatusPill`, `StatusDot`,
 `ToggleSwitch`, `HeroBanner`, `GameModeCard`. Copy the look of a neighbouring page rather than inventing one.
 
+**Page building blocks (2026-10-01):** every page is a `pages/PageScaffold` (header with title + subtitle, side margins, a
+width-tracking scroll body; rows via `row(...)`, `PageScaffold.fullWidth/split/columns`, `gap(n)`; `setBody(...)` for a page that
+scrolls itself) holding `pages/SectionCard`s (title row + optional link + body; `.withGlow()` for a hero card). Also `ui/ThinProgressBar`
+(not `JProgressBar`), `ui/InitialBadge` (avatar stand-in with presence dot), `pages/PickerItem` (selectable list row), `ui/WrapLayout`
+(a FlowLayout that wraps without clipping). Put rows on `BG_APP` when they sit inside a `BG_PANEL` card so they stand out.
+
 ## Pitfalls that have already cost time
 
 - **HTML in a `JLabel`:** `<body style='width:...'>` is ignored on the JDKs in use, so wrapped text comes out

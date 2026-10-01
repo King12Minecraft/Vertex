@@ -205,14 +205,8 @@ public class HomeWelcomeSection extends HomeSectionPanel
         top.add(name, BorderLayout.WEST);
         top.add(count, BorderLayout.EAST);
 
-        JProgressBar bar = new JProgressBar(0, Math.max(q.getTarget(), 1));
-        bar.setValue(Math.min(q.getProgress(), Math.max(q.getTarget(), 1)));
-        bar.setUI(new javax.swing.plaf.basic.BasicProgressBarUI());
-        bar.setBorderPainted(false);
-        bar.setOpaque(true);
+        ui.ThinProgressBar bar = new ui.ThinProgressBar(q.getProgress(), Math.max(q.getTarget(), 1));
         bar.setPreferredSize(new Dimension(10, 6));
-        bar.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
-        bar.setBackground(ThemeManager.getColor(ThemeColor.BORDER));
 
         line.add(top, BorderLayout.NORTH);
         line.add(bar, BorderLayout.CENTER);

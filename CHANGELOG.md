@@ -8,6 +8,12 @@
   build.sh / build.bat copy this file into VertexClient.jar.
 -->
 
+## 2026-10-01 - A fresh look for every page
+- Every page now shares the same cards-and-headers look as the new Home page, and it follows your theme: Quests, Leaderboards, Achievements, Friends, Shop, Tournaments, Changelog, Suggest a Game, Settings, Profile, Stats, Forums, Games, Moderation and Admin.
+- Leaderboards: pick a game from the list on the left; the top three are highlighted. Friends show a round badge with an online dot.
+- Fixed buttons whose labels were cut off (for example "Report a Player"), and the glow behind the login window no longer shows a hard edge.
+- Pinned games on the Games page and on Home are now the same list.
+
 ## 2026-10-01 - A real Home page
 - The Home page is rebuilt: a welcome card with your streak, coins and quests, a Quick play suggestion, your pinned and recent games, which friends are online right now (with a Message button), open tournaments you can join, and the latest changes.
 - Pin your favourite games to Home: use Pin to Home on a game's page, or the star on a game tile. Up to 8 games; the list is kept on this computer.

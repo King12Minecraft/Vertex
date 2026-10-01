@@ -60,7 +60,7 @@ public class AuthWindow extends JFrame
 
         final CardLayout cardLayout = new CardLayout();
         final JPanel cards = new JPanel(cardLayout);
-        cards.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
+        cards.setOpaque(false);
 
         LoginPanel.LoginSuccessListener onSuccess = new LoginPanel.LoginSuccessListener()
         {
@@ -88,7 +88,19 @@ public class AuthWindow extends JFrame
         cards.add(new LoginPanel(onSuccess, toCreate), LOGIN);
         cards.add(new CreateAccountPanel(onSuccess, toLogin), CREATE);
 
-        JPanel root = new JPanel(new BorderLayout());
+        // one soft glow behind header, form and connection row together (painted per-panel it showed a hard edge)
+        final JPanel root = new JPanel(new BorderLayout())
+        {
+            @Override
+            protected void paintComponent(java.awt.Graphics g)
+            {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                theme.GlowBackdrop.paint(g2, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
         root.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
         root.add(authHeader, BorderLayout.NORTH);
         root.add(cards, BorderLayout.CENTER);

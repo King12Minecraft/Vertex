@@ -1116,6 +1116,16 @@ Home / Play / Progress / Social / Shop & Community / Account. Collapsed state is
 selecting a page inside a collapsed group re-opens it, and a collapsed group's header echoes a button's badge
 (`SidebarButton.isShowingBadge`). `ui/NavIcons` gained Home, Forums, Suggest-a-Game, Dominion and Changelog glyphs.
 
+**Page kit (2026-10-01):** every top-level page extends `pages/PageScaffold` (a `PageHeader` with title/subtitle/right-hand action, side
+margins, a scroll body that tracks the viewport width so nothing adds a horizontal scrollbar; row helpers `fullWidth`/`split` (min 300px per
+side)/`columns` over `FitRow`s whose height follows their content; `setBody` for pages that scroll themselves) and is built from
+`pages/SectionCard`s (the old Home card, generalised: title, optional link, body, optional accent glow; `HomeSectionPanel` is now a thin subclass).
+New shared pieces: `ui/ThinProgressBar`, `ui/InitialBadge`, `ui/WrapLayout`, `pages/PickerItem`; `ThemedButton.getPreferredSize` is never
+narrower than its label. Rebuilt on it: Quests, Leaderboards, Achievements, Friends, Shop, Tournaments, Changelog, Suggest a Game, Settings,
+Profile, Stats, Forums, Games, Moderation, Admin; Chat got a subtitle and wider sidebar. Dominion is untouched (deferred). The Login/Create
+Account window paints one glow behind the whole window (`AuthWindow`) instead of per panel. `pages/PinnedGames` is the single pin list, backed by
+`economy.PinnedGamesStore` (the Games page's Pin buttons and Home's pins are the same list).
+
 **Home (restructured 2026-09-30):** `pages/HomePanel` = the scrolling ticker, then the six redesign sections, then Top Players
 (the old Recently Played / Explore rows were removed 2026-10-01). The six are subclasses of `pages/HomeSectionPanel` (card with title + body, `setBodyContent`, `refresh()` called
 on build and every 30s): `HomeWelcomeSection`, `HomeContinueSection`, `HomeQuickPlaySection`, `HomeFriendsSection`, `HomeTournamentsSection`

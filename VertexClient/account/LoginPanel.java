@@ -2,7 +2,6 @@ package account;
 import ui.GameHubDialog;
 import net.NetworkManager;
 import net.MessageType;
-import theme.GlowBackdrop;
 import theme.ThemeManager;
 import theme.UITheme;
 import theme.ThemeColor;
@@ -69,7 +68,7 @@ public class LoginPanel extends JPanel
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(title);
 
-        final JLabel subtitle = new JLabel("This computer is shared - log in with your own account.");
+        final JLabel subtitle = new JLabel("<html><table width='300' cellpadding='0' cellspacing='0'><tr><td>This computer is shared - log in with your own account.</td></tr></table></html>");
         subtitle.setFont(UITheme.FONT_SUBHEAD);
         subtitle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         subtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -150,21 +149,7 @@ public class LoginPanel extends JPanel
         });
     }
 
-    @Override
-    protected void paintComponent(java.awt.Graphics g)
-    {
-        super.paintComponent(g);
-        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-        UITheme.applyAntialiasing(g2);
-        // Solid base first - GlowBackdrop's gradient fades to fully transparent toward the
-        // edges/corners, and this panel is non-opaque, so without a solid fill underneath it,
-        // whatever sits behind this panel (the plain default-colored CardLayout container in
-        // AuthWindow) would show through as a stray light box wherever the glow doesn't reach.
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
-        g2.fillRect(0, 0, getWidth(), getHeight());
-        GlowBackdrop.paint(g2, getWidth(), getHeight());
-        g2.dispose();
-    }
+    // The soft glow behind the form is painted once for the whole window by AuthWindow, so it has no hard edge here.
 
     private JLabel fieldLabel(String text)
     {

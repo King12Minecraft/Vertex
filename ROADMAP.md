@@ -46,6 +46,19 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **UI upgrade: every page on the Home look, driven by the theme.** (2026-10-01) Bipin: "upgrade ui ... like the claude css that u do, but
+  according to theme", scope "every page, one by one". Built a small kit first - `PageScaffold` (header + subtitle + width-tracking scroll body
+  + row helpers), `SectionCard` (the Home card, generalised), `ThinProgressBar`, `InitialBadge`, `PickerItem`, `WrapLayout` - then rebuilt
+  Quests (summary + per-period cards), Leaderboards (game list + ranked table), Achievements (summary + tile grid), Friends (add/requests
+  beside the list, avatar badges with presence dots), Shop, Tournaments, Changelog, Suggest a Game, Settings (two-column cards), Profile, Stats,
+  Forums, Games, Moderation and Admin on it; Chat got a subtitle and wider sidebar; the login window's glow no longer shows a hard-edged box.
+  Found and fixed along the way: `ThemedButton` labels truncating ("Report a Pl...", "+ Gr...", "Mess...") - a button is now never narrower
+  than its label; settings rows stretching when a neighbouring card was taller; **a duplicate pinned-games store** - the Games page already had
+  Pin buttons (`economy.PinnedGamesStore`) and the Home work had added a second list without auditing; they are now one list. Dominion was
+  deliberately left alone (deferred). Verified page by page with the real server under Xvfb (seeded friends, tournament, history) on three themes;
+  `./test.sh` and the Home data checks pass. Not done: the in-game screens (each game keeps its own palette by design), the Sidebar/TopBar
+  chrome (already themed), and a pass on very narrow windows (the app minimum is 1000px).
+
 - **Home: Explore Games row removed, Top Players kept.** (2026-10-01) Bipin left the call on the older Home rows to me. Explore
   Games (six game cards, there so a brand-new account had something to click) now duplicates Quick play and Continue playing's
   "Browse games" empty state, so it is gone along with its card builder; Top Players is the one thing nothing else on Home
