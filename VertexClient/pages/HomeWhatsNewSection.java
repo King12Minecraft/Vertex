@@ -12,11 +12,10 @@ import java.awt.Component;
 import java.util.List;
 
 /**
- * HomeWhatsNewSection - a first real version (styling pending; see HomeSectionPanel).
- *
- * Shows the newest entry of CHANGELOG.md (the file the Changelog page and the website also read) - its heading and
- * first few changes. Deliberately plain: layout, a "see everything" link to Pages.CHANGELOG and any visual design are
- * still to do. Data: ChangelogPanel.load() + ChangelogParser.parse(...).
+ * HomeWhatsNewSection
+ * -------------------
+ * The newest entry of CHANGELOG.md (the file the Changelog page and the website also read): its heading and first
+ * few changes, with a "Full changelog" link in the header. Data: ChangelogPanel.load() + ChangelogParser.parse(...).
  */
 public class HomeWhatsNewSection extends HomeSectionPanel
 {
@@ -25,6 +24,10 @@ public class HomeWhatsNewSection extends HomeSectionPanel
     public HomeWhatsNewSection()
     {
         super("WHAT'S NEW", "The latest changes will show up here.");
+        setHeaderAction("Full changelog >", new Runnable()
+        {
+            public void run() { goTo(Pages.CHANGELOG); }
+        });
         refresh();
     }
 

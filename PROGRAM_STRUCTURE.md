@@ -1119,8 +1119,12 @@ selecting a page inside a collapsed group re-opens it, and a collapsed group's h
 **Home (restructured 2026-09-30):** `pages/HomePanel` = the scrolling ticker, then the six redesign sections, then the older Top Players /
 Recently Played / Explore rows. The six are subclasses of `pages/HomeSectionPanel` (card with title + body, `setBodyContent`, `refresh()` called
 on build and every 30s): `HomeWelcomeSection`, `HomeContinueSection`, `HomeQuickPlaySection`, `HomeFriendsSection`, `HomeTournamentsSection`
-(placeholders - their javadoc lists existing data sources) and `HomeWhatsNewSection` (real: newest `CHANGELOG.md` entry). The design brief for Cursor
-is `.cursor/prompts/home-redesign.md`.
+- all real as of 2026-10-01 (`HomeWelcomeSection` quests via `CHALLENGES_REQUEST`; `HomeFriendsSection` and `HomeTournamentsSection`
+are `NetworkManager.PushListener`s that ask with `sendAsync`, the tournament list being a push-only type; `HomeQuickPlaySection.pick()` holds the
+suggestion rule; `HomeContinueSection` renders `HomeGameTile`s - pinned first, from `pages/PinnedGames`, a per-computer `Preferences` list -
+then recent games). `HomePanel` lays them out with `fullWidth`/`split` rows (`FitRow`: height follows content, so cards never stretch) inside a
+`WidthTrackingPanel` scroll view (follows the viewport width; split cards keep a 300px minimum). `GameDetailPanel` has the "Pin to Home" button.
+`.cursor/prompts/home-redesign.md` is the superseded Cursor brief.
 
 **Stats (added 2026-09-30):** `STATS_REQUEST`/`STATS_RESPONSE` handled by `ClientHandler.handleStats` (public by name; own stats
 need a login) from `GameHistoryManager.getPlayCountsByGame` and `LeaderboardManager.getStatsRowsForAccount`; new `Message` fields

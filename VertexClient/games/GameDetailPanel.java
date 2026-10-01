@@ -1,4 +1,5 @@
 package games;
+import ui.GameHubDialog;
 import ui.ThemedButton;
 import theme.UITheme;
 import theme.ThemeManager;
@@ -140,6 +141,25 @@ public class GameDetailPanel extends JPanel
         {
             public void actionPerformed(ActionEvent e) { onBack.run(); }
         });
+        if (!game.isComingSoon())
+        {
+            // Pin/unpin for the Home page's "Continue playing" (a per-computer list, see pages.PinnedGames).
+            final ThemedButton pin = new ThemedButton(pages.PinnedGames.isPinned(game.getGameId()) ? "Unpin from Home" : "Pin to Home", false);
+            pin.setPreferredSize(new java.awt.Dimension(150, 36));
+            pin.addActionListener(new ActionListener()
+            {
+                public void actionPerformed(ActionEvent e)
+                {
+                    if (!pages.PinnedGames.toggle(game.getGameId()))
+                    {
+                        GameHubDialog.show(pin, "Pinned games", "You can pin up to " + pages.PinnedGames.MAX_PINNED + " games. Unpin one first.");
+                        return;
+                    }
+                    pin.setText(pages.PinnedGames.isPinned(game.getGameId()) ? "Unpin from Home" : "Pin to Home");
+                }
+            });
+            buttonRow.add(pin);
+        }
         buttonRow.add(back);
 
         ThemedButton play = new ThemedButton(game.isComingSoon() ? "Coming Soon" : "Play", !game.isComingSoon());

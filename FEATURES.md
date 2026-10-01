@@ -129,6 +129,15 @@ written down, not built yet - see the design doc's "Future depth" sections.
 
 ---
 
+## Home page
+
+- **Welcome card** — greeting by time of day, your login streak and coins, and up to three unfinished quests with progress bars.
+- **Quick play** — one suggested game with a Play now button: the online game with the most players waiting, otherwise your most recent online game.
+- **Continue playing** — your pinned games first, then recent ones, as clickable tiles. Pin a game from its page ("Pin to Home") or with the star on a tile; up to 8, kept on this computer only.
+- **Friends online** — which friends are online right now, updating live, with a Message button.
+- **Tournaments** — open and running tournaments, with Join on the ones still taking players.
+- **What's new** — the newest changelog entry, with a link to the full list.
+
 ## Customization & Performance
 
 - **11 themes**, including an animated Glitch mode.

@@ -8,6 +8,10 @@
   build.sh / build.bat copy this file into VertexClient.jar.
 -->
 
+## 2026-10-01 - A real Home page
+- The Home page is rebuilt: a welcome card with your streak, coins and quests, a Quick play suggestion, your pinned and recent games, which friends are online right now (with a Message button), open tournaments you can join, and the latest changes.
+- Pin your favourite games to Home: use Pin to Home on a game's page, or the star on a game tile. Up to 8 games; the list is kept on this computer.
+
 ## 2026-09-30 - Reconnecting, match chat, Forums and a calculator
 - If your connection drops in the middle of a match, the match now waits up to 30 seconds for you instead of ending. The app logs you back in by itself and puts you straight back on the board, and your opponent sees a live countdown. Works in Chess, Tic-Tac-Toe, Connect Four, Checkers, Reversi, Dots and Boxes, Word Duel, Battleship, Rock Paper Scissors, Dice Duel, Typing Duel, Memory Match, Signal Grid, Fusion Grid, Card Rush, Air Hockey, Snake Arena and Tetris Duel.
 - Clicking Leave is still a real leave - it ends the match straight away.

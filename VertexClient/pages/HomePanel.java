@@ -53,11 +53,13 @@ import java.util.List;
  *     so re-launching something doesn't require a detour through the
  *     Games page at all.
  *
- * (2026-09-30) Above those sit the six sections of the Home redesign -
- * welcome/daily reward/quests, continue playing, quick play, friends online,
- * tournaments and what's new - each its own HomeSectionPanel subclass. They are
- * PLACEHOLDERS to be designed (What's New already shows the latest changelog
- * entry); the older sections below stay until the redesign places them.
+ * (2026-10-01) Above those sit the six sections of the Home redesign -
+ * welcome/daily reward/quests, quick play, continue playing, friends online,
+ * tournaments and what's new - each its own HomeSectionPanel subclass with real
+ * data (see each class). They are laid out by fullWidth(...) / split(...) rows
+ * (FitRow: height follows content) inside a width-tracking scroll view, so a
+ * wide section can never push the page past the window. The older sections
+ * below stay until the redesign places them.
  *
  * Refreshes on a timer (like TopBar's online-count) and immediately
  * whenever a new NotificationCenter item arrives, so the ticker stays
@@ -74,8 +76,12 @@ public class HomePanel extends RoundedPanel
     private final List<HomeSectionPanel> homeSections = new ArrayList<HomeSectionPanel>();
     private final MarqueeBanner ticker;
     private final JPanel topPlayersRow;
-    private final JPanel recentRow;
-    private final JPanel recentSection;
+    private final HomeWelcomeSection welcome;
+    private final HomeContinueSection continuePlaying;
+    private final HomeQuickPlaySection quickPlay;
+    private final HomeFriendsSection friends;
+    private final HomeTournamentsSection tournaments;
+    private final HomeWhatsNewSection whatsNew;
     private JPanel exploreRow;
 
     private List<String> lastRecentNames = new ArrayList<String>();
@@ -87,7 +93,7 @@ public class HomePanel extends RoundedPanel
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(0, 32, 24, 32));
 
-        JPanel content = new JPanel();
+        JPanel content = new WidthTrackingPanel();
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
@@ -103,22 +109,27 @@ public class HomePanel extends RoundedPanel
         content.add(ticker);
         content.add(Box.createVerticalStrut(24));
 
-        // The six sections of the Home redesign (2026-09-30) - PLACEHOLDERS for now, each its own class so it can be
-        // designed on its own (see HomeSectionPanel and each section's javadoc for the data already available). The
-        // three sections below them are the previous Home content, kept until the redesign decides where they go.
-        homeSections.add(new HomeWelcomeSection());
-        homeSections.add(new HomeContinueSection());
-        homeSections.add(new HomeQuickPlaySection());
-        homeSections.add(new HomeFriendsSection());
-        homeSections.add(new HomeTournamentsSection());
-        homeSections.add(new HomeWhatsNewSection());
-        content.add(fullWidth(homeSections.get(0)));
+        // The Home sections, each its own class (see HomeSectionPanel): welcome across the top, then Quick play beside
+        // Continue playing (1:2), Friends beside Tournaments, and What's new across the bottom.
+        welcome = new HomeWelcomeSection();
+        continuePlaying = new HomeContinueSection();
+        quickPlay = new HomeQuickPlaySection();
+        friends = new HomeFriendsSection();
+        tournaments = new HomeTournamentsSection();
+        whatsNew = new HomeWhatsNewSection();
+        homeSections.add(welcome);
+        homeSections.add(continuePlaying);
+        homeSections.add(quickPlay);
+        homeSections.add(friends);
+        homeSections.add(tournaments);
+        homeSections.add(whatsNew);
+        content.add(fullWidth(welcome));
         content.add(Box.createVerticalStrut(16));
-        content.add(pair(homeSections.get(1), homeSections.get(2)));
+        content.add(split(quickPlay, continuePlaying, 1, 2));
         content.add(Box.createVerticalStrut(16));
-        content.add(pair(homeSections.get(3), homeSections.get(4)));
+        content.add(split(friends, tournaments, 1, 1));
         content.add(Box.createVerticalStrut(16));
-        content.add(fullWidth(homeSections.get(5)));
+        content.add(fullWidth(whatsNew));
         content.add(Box.createVerticalStrut(32));
 
         content.add(sectionLabel("TOP PLAYERS"));
@@ -126,19 +137,6 @@ public class HomePanel extends RoundedPanel
         topPlayersRow.setOpaque(false);
         topPlayersRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(topPlayersRow);
-        content.add(Box.createVerticalStrut(24));
-
-        recentSection = new JPanel();
-        recentSection.setOpaque(false);
-        recentSection.setLayout(new BoxLayout(recentSection, BoxLayout.Y_AXIS));
-        recentSection.setAlignmentX(Component.LEFT_ALIGNMENT);
-        recentSection.setVisible(false);
-        recentSection.add(sectionLabel("RECENTLY PLAYED"));
-        recentRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
-        recentRow.setOpaque(false);
-        recentRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        recentSection.add(recentRow);
-        content.add(recentSection);
         content.add(Box.createVerticalStrut(24));
 
         content.add(sectionLabel("EXPLORE GAMES"));
@@ -189,27 +187,67 @@ public class HomePanel extends RoundedPanel
         return label;
     }
 
+    /**
+     * A row whose maximum height always equals its current preferred height. A BoxLayout column otherwise hands spare
+     * height to any child that allows it, which would stretch the cards - and a fixed maximum set at construction would
+     * go stale the moment a section's content changes (a list gains a row). Asking at layout time avoids both.
+     */
+    private static class FitRow extends JPanel
+    {
+        FitRow(java.awt.LayoutManager layout)
+        {
+            super(layout);
+            setOpaque(false);
+            setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
+
+        @Override
+        public Dimension getMaximumSize()
+        {
+            return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+        }
+    }
+
+    /**
+     * The scroll view: follows the viewport's width instead of its own preferred width. Without this a wide section (a
+     * row of game tiles, a long changelog line) would stretch the whole page past the window and add a horizontal
+     * scrollbar - sections have to fit the window, not the other way round.
+     */
+    private static class WidthTrackingPanel extends JPanel implements javax.swing.Scrollable
+    {
+        public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
+        public int getScrollableUnitIncrement(java.awt.Rectangle r, int orientation, int direction) { return 16; }
+        public int getScrollableBlockIncrement(java.awt.Rectangle r, int orientation, int direction) { return r.height - 32; }
+        public boolean getScrollableTracksViewportWidth() { return true; }
+        public boolean getScrollableTracksViewportHeight() { return false; }
+    }
+
     /** One section spanning the full width. */
     private JPanel fullWidth(HomeSectionPanel section)
     {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel row = new FitRow(new BorderLayout());
         row.add(section, BorderLayout.CENTER);
-        row.setMaximumSize(new Dimension(4000, section.getPreferredSize().height + 4));
         return row;
     }
 
-    /** Two sections side by side, equal width. */
-    private JPanel pair(HomeSectionPanel left, HomeSectionPanel right)
+    /** Two sections side by side; widths in the ratio leftWeight:rightWeight, equal heights. */
+    private JPanel split(HomeSectionPanel left, HomeSectionPanel right, double leftWeight, double rightWeight)
     {
-        JPanel row = new JPanel(new java.awt.GridLayout(1, 2, 16, 0));
-        row.setOpaque(false);
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.add(left);
-        row.add(right);
-        int height = Math.max(left.getPreferredSize().height, right.getPreferredSize().height) + 4;
-        row.setMaximumSize(new Dimension(4000, height));
+        JPanel row = new FitRow(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
+        c.fill = java.awt.GridBagConstraints.BOTH;
+        c.weighty = 1;
+        c.gridy = 0;
+        c.gridx = 0;
+        c.weightx = leftWeight;
+        c.insets = new java.awt.Insets(0, 0, 0, 8);
+        left.setMinimumSize(new Dimension(300, 0));
+        right.setMinimumSize(new Dimension(300, 0));
+        row.add(left, c);
+        c.gridx = 1;
+        c.weightx = rightWeight;
+        c.insets = new java.awt.Insets(0, 8, 0, 0);
+        row.add(right, c);
         return row;
     }
 
@@ -276,10 +314,11 @@ public class HomePanel extends RoundedPanel
 
     private void renderRecent(List<String> gameIds)
     {
-        recentRow.removeAll();
-        lastRecentNames = new ArrayList<String>();
+        // Recently played now lives in the Continue playing section (and informs Quick play): hand the ids over.
+        continuePlaying.setRecentGameIds(gameIds);
+        quickPlay.setRecentGameIds(gameIds);
 
-        List<GameInfo> matched = new ArrayList<GameInfo>();
+        lastRecentNames = new ArrayList<String>();
         if (gameIds != null)
         {
             for (int i = 0; i < gameIds.size(); i++)
@@ -287,19 +326,10 @@ public class HomePanel extends RoundedPanel
                 GameInfo info = findCachedGame(gameIds.get(i));
                 if (info != null)
                 {
-                    matched.add(info);
                     lastRecentNames.add(info.getName());
                 }
             }
         }
-
-        recentSection.setVisible(!matched.isEmpty());
-        for (int i = 0; i < matched.size(); i++)
-        {
-            recentRow.add(buildRecentCard(matched.get(i)));
-        }
-        recentRow.revalidate();
-        recentRow.repaint();
         rebuildExplore();
     }
 
@@ -308,7 +338,7 @@ public class HomePanel extends RoundedPanel
         RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
         card.setLayout(new BorderLayout());
         card.setBorder(new EmptyBorder(14, 16, 14, 16));
-        card.setPreferredSize(new Dimension(220, 92));
+        card.setPreferredSize(new Dimension(220, 118));
         card.enableTopAccent();
 
         JPanel info = new JPanel();

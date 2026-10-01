@@ -46,6 +46,23 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Home page: all six sections built with real data.** (2026-10-01) Bipin asked me to build the Home UI myself rather than
+  hand it to Cursor ("can u upgrade to the best ui?" - scope: Home only; style left to me), so the placeholders are now real:
+  *Welcome* (time-of-day greeting, login-streak and coin chips, up to three unfinished quests with progress bars from
+  `CHALLENGES_REQUEST`), *Quick play* (one suggested game + Play now), *Continue playing* (pinned games, then recent ones, as
+  clickable tiles; the count adapts to the width), *Friends online* (live: `FRIEND_LIST_REQUEST` + the friend-status push,
+  Message button), *Tournaments* (open/running ones with Join, via `TOURNAMENT_LIST_RESPONSE` as a push - deliberately not a
+  blocking `send`, see the note on `HomeTournamentsSection`) and *What's new* (newest changelog entry, now with a Full
+  changelog link). Two decisions the placeholders had flagged are now reversible defaults, **not** confirmed by Bipin: Quick
+  play picks the online game with the most players waiting, else your most recent online game, else the first online game
+  (`HomeQuickPlaySection.pick()`); pinned games are stored per computer in `Preferences` (`pages/PinnedGames`, max 8, never sent
+  to the server) and pinned from the game detail page ("Pin to Home") or the star on a tile. Layout fixes found while
+  verifying: the page's scroll view now tracks the viewport width (a wide section used to stretch the page and add a
+  horizontal scrollbar), split rows keep each card at least 300px, the Explore cards' Play button was clipped. Verified with a
+  real in-process server and the real client under Xvfb (seeded friends, a live friend arriving, a tournament, history, pins):
+  all data assertions pass and the page was screenshotted at 800/1000/1300px on three themes plus an empty account. `.cursor/
+  prompts/home-redesign.md` is kept but superseded.
+
 - **Home page: structure and placeholders built; the design goes to Cursor.** (2026-09-30) Bipin approved the proposed layout
   ("whatever you recommend") and asked for placeholders he'll give to Cursor, plus a prompt. `HomePanel` now has the six agreed
   sections above its older content, each its own `pages/HomeSectionPanel` subclass so they can be designed independently:
@@ -1985,7 +2002,7 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
 - **8. Changelog (app + website) and a Roadmap (website only). - DONE 2026-09-30** (see "Done").
 - **9. Profile with Stats inside (not a separate top-level tab). - DONE 2026-09-30** (see "Done"). Not done: reusing the stats view for a player's profile from a leaderboard row (only the profile window's button so far).
 - **10. Sidebar: scrollable and regrouped. - DONE 2026-09-30** (see "Done").
-- **11. Main page. - structure and placeholders DONE 2026-09-30; design/implementation of the sections is with Bipin + Cursor** (prompt: `.cursor/prompts/home-redesign.md`; see "Done"). Open decisions recorded in the prompt: what Quick play picks, where the older Home sections go.
+- **11. Main page. - DONE 2026-10-01** (all six sections real; see "Done"). Still open: whether the older Top Players / Explore rows stay below, and Bipin's call on the Quick play rule and per-computer pinning (both reversible defaults).
 - **Decisions taken on Bipin's delegation ("you decide"), 2026-09-30 - all reversible, none built.**
   Full text in `BLOCKED_QUESTIONS.md` (Resolved). In short: **repo goes private** (Bipin flips the
   GitHub setting) and the jars leave git; **official servers only** (server jar/source not
