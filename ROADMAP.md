@@ -46,6 +46,11 @@ recorded below as they're confirmed.
 
 ## ✅ Done
 
+- **Home: Explore Games row removed, Top Players kept.** (2026-10-01) Bipin left the call on the older Home rows to me. Explore
+  Games (six game cards, there so a brand-new account had something to click) now duplicates Quick play and Continue playing's
+  "Browse games" empty state, so it is gone along with its card builder; Top Players is the one thing nothing else on Home
+  shows, so it stays. Verified by re-rendering Home under Xvfb.
+
 - **Home page: all six sections built with real data.** (2026-10-01) Bipin asked me to build the Home UI myself rather than
   hand it to Cursor ("can u upgrade to the best ui?" - scope: Home only; style left to me), so the placeholders are now real:
   *Welcome* (time-of-day greeting, login-streak and coin chips, up to three unfinished quests with progress bars from
@@ -2002,7 +2007,7 @@ assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
 - **8. Changelog (app + website) and a Roadmap (website only). - DONE 2026-09-30** (see "Done").
 - **9. Profile with Stats inside (not a separate top-level tab). - DONE 2026-09-30** (see "Done"). Not done: reusing the stats view for a player's profile from a leaderboard row (only the profile window's button so far).
 - **10. Sidebar: scrollable and regrouped. - DONE 2026-09-30** (see "Done").
-- **11. Main page. - DONE 2026-10-01** (all six sections real; see "Done"). Still open: whether the older Top Players / Explore rows stay below, and Bipin's call on the Quick play rule and per-computer pinning (both reversible defaults).
+- **11. Main page. - DONE 2026-10-01** (all six sections real; see "Done"). Older Home rows resolved 2026-10-01 (Bipin: "whatever u suggest"): Top Players stays, Explore Games removed as redundant with Quick play / Continue playing. Still open: Bipin's call on the Quick play rule and per-computer pinning (both reversible defaults).
 - **Decisions taken on Bipin's delegation ("you decide"), 2026-09-30 - all reversible, none built.**
   Full text in `BLOCKED_QUESTIONS.md` (Resolved). In short: **repo goes private** (Bipin flips the
   GitHub setting) and the jars leave git; **official servers only** (server jar/source not

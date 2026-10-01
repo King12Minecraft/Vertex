@@ -1116,8 +1116,8 @@ Home / Play / Progress / Social / Shop & Community / Account. Collapsed state is
 selecting a page inside a collapsed group re-opens it, and a collapsed group's header echoes a button's badge
 (`SidebarButton.isShowingBadge`). `ui/NavIcons` gained Home, Forums, Suggest-a-Game, Dominion and Changelog glyphs.
 
-**Home (restructured 2026-09-30):** `pages/HomePanel` = the scrolling ticker, then the six redesign sections, then the older Top Players /
-Recently Played / Explore rows. The six are subclasses of `pages/HomeSectionPanel` (card with title + body, `setBodyContent`, `refresh()` called
+**Home (restructured 2026-09-30):** `pages/HomePanel` = the scrolling ticker, then the six redesign sections, then Top Players
+(the old Recently Played / Explore rows were removed 2026-10-01). The six are subclasses of `pages/HomeSectionPanel` (card with title + body, `setBodyContent`, `refresh()` called
 on build and every 30s): `HomeWelcomeSection`, `HomeContinueSection`, `HomeQuickPlaySection`, `HomeFriendsSection`, `HomeTournamentsSection`
 - all real as of 2026-10-01 (`HomeWelcomeSection` quests via `CHALLENGES_REQUEST`; `HomeFriendsSection` and `HomeTournamentsSection`
 are `NetworkManager.PushListener`s that ask with `sendAsync`, the tournament list being a push-only type; `HomeQuickPlaySection.pick()` holds the

@@ -48,18 +48,16 @@ import java.util.List;
  *   - "Top Players": a compact leaderboard snapshot for a few
  *     spotlighted rated games (LEADERBOARD_REQUEST, same protocol
  *     LeaderboardPanel already uses).
- *   - "Recently Played": your own recent games (GAME_HISTORY_REQUEST,
- *     same as GamesPanel's Home view) with a Play button right here,
- *     so re-launching something doesn't require a detour through the
- *     Games page at all.
  *
  * (2026-10-01) Above those sit the six sections of the Home redesign -
  * welcome/daily reward/quests, quick play, continue playing, friends online,
  * tournaments and what's new - each its own HomeSectionPanel subclass with real
  * data (see each class). They are laid out by fullWidth(...) / split(...) rows
  * (FitRow: height follows content) inside a width-tracking scroll view, so a
- * wide section can never push the page past the window. The older sections
- * below stay until the redesign places them.
+ * wide section can never push the page past the window. The old "Recently
+ * Played" and "Explore Games" rows are gone (Continue playing and Quick play
+ * cover them); the history fetch now just feeds those two sections and the
+ * ticker. Top Players stays below.
  *
  * Refreshes on a timer (like TopBar's online-count) and immediately
  * whenever a new NotificationCenter item arrives, so the ticker stays
@@ -82,7 +80,6 @@ public class HomePanel extends RoundedPanel
     private final HomeFriendsSection friends;
     private final HomeTournamentsSection tournaments;
     private final HomeWhatsNewSection whatsNew;
-    private JPanel exploreRow;
 
     private List<String> lastRecentNames = new ArrayList<String>();
     private List<String> lastTopPlayerLines = new ArrayList<String>();
@@ -137,13 +134,6 @@ public class HomePanel extends RoundedPanel
         topPlayersRow.setOpaque(false);
         topPlayersRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(topPlayersRow);
-        content.add(Box.createVerticalStrut(24));
-
-        content.add(sectionLabel("EXPLORE GAMES"));
-        exploreRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
-        exploreRow.setOpaque(false);
-        exploreRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(exploreRow);
 
         JScrollPane scroll = new JScrollPane(content);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -259,29 +249,6 @@ public class HomePanel extends RoundedPanel
         }
         fetchHistoryInBackground();
         fetchTopPlayersInBackground();
-        rebuildExplore();
-    }
-
-    /** A handful of playable games as a quick jump-in point, so Home has something to look at even for a brand new account with no recent/leaderboard activity yet - skips anything still "Coming Soon" and anything already shown in Recently Played, capped at 6 so this stays a preview, not a second copy of the full Games page. */
-    private void rebuildExplore()
-    {
-        exploreRow.removeAll();
-
-        List<GameInfo> all = GameManager.getCachedGames();
-        int shown = 0;
-        for (int i = 0; i < all.size() && shown < 6; i++)
-        {
-            GameInfo game = all.get(i);
-            if (game.isComingSoon() || lastRecentNames.contains(game.getName()))
-            {
-                continue;
-            }
-            exploreRow.add(buildRecentCard(game));
-            shown++;
-        }
-
-        exploreRow.revalidate();
-        exploreRow.repaint();
     }
 
     // ==================== Recently played ====================
@@ -330,46 +297,6 @@ public class HomePanel extends RoundedPanel
                 }
             }
         }
-        rebuildExplore();
-    }
-
-    private JPanel buildRecentCard(final GameInfo game)
-    {
-        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(14, 16, 14, 16));
-        card.setPreferredSize(new Dimension(220, 118));
-        card.enableTopAccent();
-
-        JPanel info = new JPanel();
-        info.setOpaque(false);
-        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
-
-        JLabel name = new ThemedLabel(game.getName(), ThemeColor.TEXT_PRIMARY);
-        name.setFont(UITheme.FONT_NAV_BOLD);
-        name.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel type = new ThemedLabel(game.getType(), ThemeColor.TEXT_MUTED);
-        type.setFont(UITheme.FONT_SMALL);
-        type.setAlignmentX(Component.LEFT_ALIGNMENT);
-        type.setBorder(new EmptyBorder(2, 0, 10, 0));
-
-        info.add(name);
-        info.add(type);
-        info.add(Box.createVerticalGlue());
-
-        final ThemedButton play = new ThemedButton("Play", true);
-        play.setAlignmentX(Component.LEFT_ALIGNMENT);
-        play.setPreferredSize(new Dimension(188, 32));
-        play.setMaximumSize(new Dimension(188, 32));
-        play.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e) { GameLauncher.launch(play, game); }
-        });
-        info.add(play);
-
-        card.add(info, BorderLayout.CENTER);
-        return card;
     }
 
     // ==================== Top players ====================
