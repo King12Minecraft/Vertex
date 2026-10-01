@@ -55,67 +55,28 @@ import java.awt.event.ActionListener;
  * UI itself is Phase 17), the connection status, and Account buttons
  * that explain they're coming in Phase 3.
  */
-public class SettingsPanel extends RoundedPanel
+public class SettingsPanel extends PageScaffold
 {
     public SettingsPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("SETTINGS", "How Vertex looks, runs and connects on this computer, plus your account.");
 
-        add(new PageHeader("SETTINGS"), BorderLayout.NORTH);
-
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(24, 0, 24, 0));
-
-        content.add(section("GENERAL", createGeneralSection()));
-
-        content.add(section("PERFORMANCE", createPerformanceSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("APPEARANCE", createAppearanceSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("FUN", createPartyModeSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("CONNECTION", createConnectionSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("FEEDBACK", createFeedbackSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("ACCOUNT", createAccountSection()));
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-
-        add(scroll, BorderLayout.CENTER);
+        row(PageScaffold.split(section("GENERAL", createGeneralSection()), section("PERFORMANCE", createPerformanceSection()), 1, 1));
+        gap(16);
+        row(PageScaffold.split(section("APPEARANCE", createAppearanceSection()), section("FUN", createPartyModeSection()), 1, 1));
+        gap(16);
+        row(PageScaffold.split(section("CONNECTION", createConnectionSection()), section("FEEDBACK", createFeedbackSection()), 1, 1));
+        gap(16);
+        row(PageScaffold.fullWidth(section("ACCOUNT", createAccountSection())));
     }
 
-    private JPanel section(String title, JPanel body)
+    private SectionCard section(String title, JPanel body)
     {
-        JPanel wrap = new JPanel();
-        wrap.setOpaque(false);
-        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrap.setMaximumSize(new Dimension(2000, 600));
-
-        JLabel label = new ThemedLabel(title, ThemeColor.TEXT_PRIMARY);
-        label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(new EmptyBorder(0, 0, 12, 0));
-        wrap.add(label);
-
-        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(18, 20, 18, 20));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(body);
-        wrap.add(card);
-
-        return wrap;
+        // NORTH keeps the body at its own height when a neighbouring card makes this one taller (no stretched rows)
+        JPanel holder = new JPanel(new BorderLayout());
+        holder.setOpaque(false);
+        holder.add(body, BorderLayout.NORTH);
+        return new SectionCard(title).content(holder);
     }
 
     private JPanel createGeneralSection()

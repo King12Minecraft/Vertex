@@ -47,7 +47,7 @@ import java.util.List;
  * profile instead of a featured game. Every launcher (Steam, Epic,
  * Discord) treats its own profile page this way.
  */
-public class ProfilePanel extends RoundedPanel
+public class ProfilePanel extends pages.PageScaffold
 {
     private JLabel nameLabel;
     private StatusPill rolePill;
@@ -59,33 +59,18 @@ public class ProfilePanel extends RoundedPanel
 
     public ProfilePanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
-
-        JPanel wrap = new JPanel();
-        wrap.setOpaque(false);
-        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-        wrap.setBorder(new EmptyBorder(24, 0, 0, 0));
+        super("PROFILE", "Your account at a glance.");
 
         heroCard = new HeroCard();
-        heroCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        heroCard.setMaximumSize(new Dimension(4000, 170));
-        wrap.add(heroCard);
-        wrap.add(Box.createVerticalStrut(20));
+        heroCard.setPreferredSize(new Dimension(100, 150));
+        row(pages.PageScaffold.fullWidth(heroCard));
+        gap(16);
 
-        RoundedPanel statsCard = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        statsCard.setLayout(new BorderLayout());
-        statsCard.setBorder(new EmptyBorder(24, 24, 24, 24));
-        statsCard.setAlignmentX(Component.LEFT_ALIGNMENT);
-        statsCard.add(createStatsGrid(), BorderLayout.CENTER);
-        wrap.add(statsCard);
-        wrap.add(Box.createVerticalStrut(16));
-        wrap.add(createStatsRow());
-        wrap.add(Box.createVerticalStrut(16));
-        wrap.add(createTransactionHistoryRow());
-
-        add(wrap, BorderLayout.NORTH);
+        row(pages.PageScaffold.fullWidth(new pages.SectionCard("ACCOUNT").content(createStatsGrid())));
+        gap(16);
+        row(pages.PageScaffold.fullWidth(createStatsRow()));
+        gap(16);
+        row(pages.PageScaffold.fullWidth(createTransactionHistoryRow()));
 
         Session.addListener(new Runnable()
         {

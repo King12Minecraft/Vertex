@@ -49,20 +49,16 @@ import java.util.Map;
  * not shown: time played, and losses in games that have no rating. The page says so rather than
  * implying a zero.
  */
-public class StatsPanel extends RoundedPanel
+public class StatsPanel extends PageScaffold
 {
     private final String username;   // null = the logged-in player
     private final JPanel content = new JPanel();
 
     public StatsPanel(String username, final Runnable onBack)
     {
-        super(ThemeColor.BG_APP, 0);
+        super(username == null ? "MY STATS" : username.toUpperCase() + " - STATS", "Plays, ratings and records, as recorded by the server.");
         this.username = username;
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
 
-        JPanel top = new JPanel(new BorderLayout());
-        top.setOpaque(false);
         ThemedButton back = new ThemedButton("< Back", false);
         back.setPreferredSize(new Dimension(110, 34));
         back.addActionListener(new ActionListener()
@@ -72,21 +68,11 @@ public class StatsPanel extends RoundedPanel
         JPanel backWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         backWrap.setOpaque(false);
         backWrap.add(back);
-        top.add(new PageHeader(username == null ? "MY STATS" : username.toUpperCase() + " - STATS"), BorderLayout.WEST);
-        top.add(backWrap, BorderLayout.EAST);
-        add(top, BorderLayout.NORTH);
+        header().setRightComponent(backWrap);
 
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(8, 0, 24, 0));
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        add(scroll, BorderLayout.CENTER);
+        row(content);
 
         PlaceholderPanel.show(content, "Loading stats...");
         load();
@@ -124,7 +110,7 @@ public class StatsPanel extends RoundedPanel
         }
 
         content.add(summaryRow(response));
-        content.add(Box.createVerticalStrut(18));
+        content.add(Box.createVerticalStrut(16));
 
         List<String> playCounts = response.getStatsPlayCounts() == null ? new ArrayList<String>() : response.getStatsPlayCounts();
         Map<String, String[]> rowsByGame = new HashMap<String, String[]>();
@@ -161,22 +147,15 @@ public class StatsPanel extends RoundedPanel
             return;
         }
 
-        JLabel heading = new ThemedLabel("BY GAME", ThemeColor.TEXT_PRIMARY);
-        heading.setFont(UITheme.FONT_NAV_BOLD);
-        heading.setAlignmentX(Component.LEFT_ALIGNMENT);
-        heading.setBorder(new EmptyBorder(0, 0, 10, 0));
-        content.add(heading);
-
-        RoundedPanel table = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        JPanel table = new JPanel();
         table.setLayout(new BoxLayout(table, BoxLayout.Y_AXIS));
-        table.setBorder(new EmptyBorder(14, 18, 14, 18));
-        table.setAlignmentX(Component.LEFT_ALIGNMENT);
+        table.setOpaque(false);
         table.add(headerRow());
         for (String id : gameIds)
         {
             table.add(gameRow(id, plays.get(id), maxPlays, rowsByGame.get(id)));
         }
-        content.add(table);
+        content.add(PageScaffold.fullWidth(new SectionCard("BY GAME").content(table)));
 
         JLabel note = new ThemedLabel("<html><table width='640'><tr><td>Rating and win/loss/draw are recorded for ranked games and best score for score games. "
             + "Time played, and losses in games without a rating, aren't tracked.</td></tr></table></html>", ThemeColor.TEXT_MUTED);
