@@ -9,6 +9,7 @@
 -->
 
 ## 2026-10-02 - Chat in more games
+- On Leaderboards, click a player's name to see their stats.
 - You can now chat with your opponent while you play Tic-Tac-Toe, Chess, Battleship and Rock Paper Scissors, the same way as in the other online games.
 
 ## 2026-10-01 - A fresh look for every page

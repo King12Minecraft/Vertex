@@ -71,7 +71,7 @@ public class LeaderboardPanel extends PageScaffold
 
     public LeaderboardPanel()
     {
-        super("LEADERBOARDS", "Pick a game to see its top players. Rated games show an ELO rating, the rest show best scores.");
+        super("LEADERBOARDS", "Pick a game to see its top players (click a name for their stats). Rated games show an ELO rating, the rest show best scores.");
 
         // ---- left: the game list ----
         gameList.setOpaque(false);
@@ -288,8 +288,22 @@ public class LeaderboardPanel extends PageScaffold
         rankLabel.setPreferredSize(new Dimension(40, 20));
         row.add(rankLabel, BorderLayout.WEST);
 
+        final String playerName = username;
         JLabel name = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         name.setFont(podium ? UITheme.FONT_NAV_BOLD : UITheme.FONT_BODY);
+        name.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        name.setToolTipText("View " + username + "'s stats");
+        name.addMouseListener(new MouseAdapter()
+        {
+            public void mouseClicked(MouseEvent e)
+            {
+                MainMenu menu = MainMenu.getInstance();
+                if (menu != null)
+                {
+                    menu.showStats(playerName);
+                }
+            }
+        });
         row.add(name, BorderLayout.CENTER);
 
         String rightText;
