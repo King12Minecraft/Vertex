@@ -26,6 +26,7 @@ public class RockPaperScissorsMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, RockPaperScissorsMatch> activeMatches = new HashMap<String, RockPaperScissorsMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("rock-paper-scissors");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
@@ -60,6 +61,7 @@ public class RockPaperScissorsMatchManager
             opponent.setCurrentRpsMatch(match);
             player.setCurrentRpsMatch(match);
             match.start();
+            chatRooms.open(matchId, opponent, player);
 
             recordPlay(opponent);
             recordPlay(player);
@@ -93,6 +95,7 @@ public class RockPaperScissorsMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
@@ -103,6 +106,7 @@ public class RockPaperScissorsMatchManager
         playerA.setCurrentRpsMatch(match);
         playerB.setCurrentRpsMatch(match);
         match.start();
+            chatRooms.open(matchId, playerA, playerB);
 
         recordPlay(playerA);
         recordPlay(playerB);

@@ -46,6 +46,12 @@ public class GameChatPolicies
         allow("snake-arena");
         allow("tetris-duel");
 
+        // The older hand-written 1v1 managers (they open their room through chat.MatchChatRooms).
+        allow("tictactoe-online");
+        allow("chess");
+        allow("battleship");
+        allow("rock-paper-scissors");
+
         // Telephone: free chat during the draw/guess chain would let players say the
         // answer out loud, so it starts locked and TelephoneMatch unlocks it at the reveal.
         STARTING.put("telephone", ChatRestriction.LOCKED);

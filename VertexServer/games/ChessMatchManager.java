@@ -25,6 +25,7 @@ public class ChessMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, ChessMatch> activeMatches = new HashMap<String, ChessMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("chess");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
@@ -56,6 +57,7 @@ public class ChessMatchManager
             opponent.setCurrentChessMatch(match);
             player.setCurrentChessMatch(match);
             match.start();
+            chatRooms.open(matchId, opponent, player);
 
             recordPlay(opponent);
             recordPlay(player);
@@ -95,6 +97,7 @@ public class ChessMatchManager
         playerA.setCurrentChessMatch(match);
         playerB.setCurrentChessMatch(match);
         match.start();
+            chatRooms.open(matchId, playerA, playerB);
 
         recordPlay(playerA);
         recordPlay(playerB);
@@ -103,6 +106,7 @@ public class ChessMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     /** Every currently-live match, "matchId|whiteUsername|blackUsername" per entry - for the spectator browser. */

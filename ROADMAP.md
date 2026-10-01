@@ -44,7 +44,33 @@ recorded below as they're confirmed.
 
 ---
 
+## 🎯 Priority queue (the order work gets done in)
+
+Bipin (2026-10-01): "there is too much backlog, do it by priority; if I give new items, rank them." This list is the single
+ordering - work starts at the top and moves down; anything new from Bipin is ranked into it (his stated priority wins, otherwise by
+player impact, then size) and noted with the date. Everything below it in this file is the detailed backlog, not a to-do order.
+Items he has said not to start ("None yet": TLS, signed updates, jars out of git, LICENSE; Dominion deferred) are not on the list.
+
+| # | Item | Why this rank | Status |
+|---|---|---|---|
+| 1 | In-match chat for Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors | The most-played games were the ones without it; the room/dock already exist, small per game | **done 2026-10-01** |
+| 2 | Stats from a leaderboard row (open a player's stats page) | Small, finishes the Stats feature | next |
+| 3 | In-match chat for the group/real-time games (Trivia, Racing, Fight Arena, Square Wars...) | Same pattern, but each needs a deliberate hidden-info call | planned |
+| 4 | Obfuscated client jar (ProGuard) | Roadmap item 2(e): raises the cost of copying the client | planned (needs the tool downloadable) |
+| 5 | New games from the concept backlog | Player-visible content, each its own unit of work | planned |
+| 6 | Reconnect for the group games (tier C) | Only matters for the longer group matches; design question first | planned |
+| 7 | Rest of the `MatchmakingKernel` rollout | Internal cleanup, no player-visible change | planned |
+| 8 | `save` package, procedural characters | Infrastructure for games that don't exist yet | planned |
+
 ## ✅ Done
+
+- **In-match chat for Tic-Tac-Toe, Chess, Battleship and Rock Paper Scissors.** (2026-10-01) Priority-queue item 1. These four have
+  their own hand-written managers (not the kernel), so they never opened a chat room. New `chat/MatchChatRooms` holds the open/close
+  bookkeeping each manager needs (a room when a match - queue pairing, rematch or tournament bracket - starts, closed 60s after it ends);
+  `GameChatPolicies` lists the four as OPEN. No client change: the dock appears from the server's `MATCH_CHAT_STATE` like for the other
+  14. Hidden information: nothing in these four's server messages is secret from the opponent beyond what a player could type, so OPEN
+  (not LOCKED) matches the kernel games. Tests: each manager pairs two fake players and both end up in one room, announced OPEN for the
+  right game (and `GameChatPolicies` tests now use Among Us - deliberately chat-less - as the "not in the table" example).
 
 - **UI upgrade: every page on the Home look, driven by the theme.** (2026-10-01) Bipin: "upgrade ui ... like the claude css that u do, but
   according to theme", scope "every page, one by one". Built a small kit first - `PageScaffold` (header + subtitle + width-tracking scroll body

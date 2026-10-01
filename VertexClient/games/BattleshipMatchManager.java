@@ -27,6 +27,7 @@ public class BattleshipMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, BattleshipMatch> activeMatches = new HashMap<String, BattleshipMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("battleship");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
@@ -61,6 +62,7 @@ public class BattleshipMatchManager
             opponent.setCurrentBattleshipMatch(match);
             player.setCurrentBattleshipMatch(match);
             match.start();
+            chatRooms.open(matchId, opponent, player);
 
             recordPlay(opponent);
             recordPlay(player);
@@ -94,6 +96,7 @@ public class BattleshipMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
@@ -104,6 +107,7 @@ public class BattleshipMatchManager
         playerA.setCurrentBattleshipMatch(match);
         playerB.setCurrentBattleshipMatch(match);
         match.start();
+            chatRooms.open(matchId, playerA, playerB);
 
         recordPlay(playerA);
         recordPlay(playerB);

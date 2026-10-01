@@ -20,6 +20,7 @@ public class MatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, TicTacToeMatch> activeMatches = new HashMap<String, TicTacToeMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("tictactoe-online");
     private final EconomyManager economyManager;
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
@@ -52,6 +53,7 @@ public class MatchManager
             opponent.setCurrentMatch(match);
             player.setCurrentMatch(match);
             match.start();
+            chatRooms.open(matchId, opponent, player);
 
             recordPlay(opponent);
             recordPlay(player);
@@ -85,6 +87,7 @@ public class MatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized int getQueueCount()

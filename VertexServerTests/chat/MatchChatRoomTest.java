@@ -35,6 +35,7 @@ public class MatchChatRoomTest
         testCloseAfterEventuallyCloses(check);
         testRejoinAfterReconnect(check);
         testKernelOpensAndKeepsRoomAfterMatchEnds(check);
+        testHandWrittenManagersOpenRooms(check);
 
         check.finish();
     }
@@ -85,11 +86,11 @@ public class MatchChatRoomTest
         check.check("Telephone has match chat, starting LOCKED",
             GameChatPolicies.startingRestriction("telephone") == ChatRestriction.LOCKED);
         check.check("A game not in the table has no chat (opt-in, never by accident)",
-            !GameChatPolicies.hasMatchChat("chess") && GameChatPolicies.startingRestriction("chess") == null);
+            !GameChatPolicies.hasMatchChat("among-us") && GameChatPolicies.startingRestriction("among-us") == null);
 
         FakeClientHandler a = new FakeClientHandler("Ann", 1);
         FakeClientHandler b = new FakeClientHandler("Ben", 2);
-        MatchChatRoom none = GameChatPolicies.openRoom("chess-1", "chess", pair(a, b));
+        MatchChatRoom none = GameChatPolicies.openRoom("among-us-1", "among-us", pair(a, b));
         check.check("openRoom for a game with no chat returns null and tells nobody anything",
             none == null && a.sent.isEmpty() && b.sent.isEmpty() && a.getMatchChatRoom() == null);
     }
@@ -245,5 +246,45 @@ public class MatchChatRoomTest
         check.check("When the match ends the room stays open for a while (time for a 'gg')",
             !room.isClosed() && room.post(b, "gg"));
         room.close();
+    }
+
+    /** Tic-Tac-Toe, Chess, Battleship and Rock Paper Scissors have their own managers (not the kernel) - each must open a room too. */
+    private static void testHandWrittenManagersOpenRooms(Check check)
+    {
+        economy.GameHistoryManager history = new economy.GameHistoryManager();
+        social.ChatManager chat = new social.ChatManager();
+
+        FakeClientHandler a = new FakeClientHandler("Ttt-A", 11);
+        FakeClientHandler b = new FakeClientHandler("Ttt-B", 12);
+        games.MatchManager ttt = new games.MatchManager(null, history, chat, null);
+        ttt.findMatch(a);
+        ttt.findMatch(b);
+        check.check("Tic-Tac-Toe pairing opens a chat room for both players", a.getMatchChatRoom() != null && a.getMatchChatRoom() == b.getMatchChatRoom());
+
+        FakeClientHandler c = new FakeClientHandler("Chs-A", 13);
+        FakeClientHandler d = new FakeClientHandler("Chs-B", 14);
+        games.ChessMatchManager chess = new games.ChessMatchManager(history, chat, null, null, null);
+        chess.findMatch(c);
+        chess.findMatch(d);
+        check.check("Chess pairing opens a chat room for both players", c.getMatchChatRoom() != null && c.getMatchChatRoom() == d.getMatchChatRoom());
+        FakeClientHandler c2 = new FakeClientHandler("Chs-C", 15);
+        FakeClientHandler d2 = new FakeClientHandler("Chs-D", 16);
+        chess.createDirectMatch(c2, d2);
+        check.check("...and so does a direct match (rematch / tournament bracket)", c2.getMatchChatRoom() != null && c2.getMatchChatRoom() == d2.getMatchChatRoom());
+
+        FakeClientHandler e = new FakeClientHandler("Bs-A", 17);
+        FakeClientHandler f = new FakeClientHandler("Bs-B", 18);
+        games.BattleshipMatchManager ships = new games.BattleshipMatchManager(history, chat, null, null, null);
+        ships.findMatch(e);
+        ships.findMatch(f);
+        check.check("Battleship pairing opens a chat room for both players", e.getMatchChatRoom() != null && e.getMatchChatRoom() == f.getMatchChatRoom());
+
+        FakeClientHandler g = new FakeClientHandler("Rps-A", 19);
+        FakeClientHandler h = new FakeClientHandler("Rps-B", 20);
+        games.RockPaperScissorsMatchManager rps = new games.RockPaperScissorsMatchManager(history, chat, null, null, null);
+        rps.findMatch(g);
+        rps.findMatch(h);
+        check.check("Rock Paper Scissors pairing opens a chat room for both players", g.getMatchChatRoom() != null && g.getMatchChatRoom() == h.getMatchChatRoom());
+        check.check("...announced OPEN for the right game", "rock-paper-scissors".equals(g.lastOfType(MessageType.MATCH_CHAT_STATE).getGameId()));
     }
 }

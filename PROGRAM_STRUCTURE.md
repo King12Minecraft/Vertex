@@ -1116,6 +1116,10 @@ Home / Play / Progress / Social / Shop & Community / Account. Collapsed state is
 selecting a page inside a collapsed group re-opens it, and a collapsed group's header echoes a button's badge
 (`SidebarButton.isShowingBadge`). `ui/NavIcons` gained Home, Forums, Suggest-a-Game, Dominion and Changelog glyphs.
 
+**Match chat for the hand-written managers (2026-10-01):** `chat/MatchChatRooms` (per manager, per game id: `open(matchId, a, b)` on match start,
+`close(matchId)` from `endMatch`, 60s grace) is what `MatchManager` (Tic-Tac-Toe), `ChessMatchManager`, `BattleshipMatchManager` and
+`RockPaperScissorsMatchManager` use; `MatchmakingKernel` still does the same inline. `GameChatPolicies` stays the one place that says which games get chat.
+
 **Page kit (2026-10-01):** every top-level page extends `pages/PageScaffold` (a `PageHeader` with title/subtitle/right-hand action, side
 margins, a scroll body that tracks the viewport width so nothing adds a horizontal scrollbar; row helpers `fullWidth`/`split` (min 300px per
 side)/`columns` over `FitRow`s whose height follows their content; `setBody` for pages that scroll themselves) and is built from

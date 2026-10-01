@@ -8,6 +8,9 @@
   build.sh / build.bat copy this file into VertexClient.jar.
 -->
 
+## 2026-10-02 - Chat in more games
+- You can now chat with your opponent while you play Tic-Tac-Toe, Chess, Battleship and Rock Paper Scissors, the same way as in the other online games.
+
 ## 2026-10-01 - A fresh look for every page
 - Every page now shares the same cards-and-headers look as the new Home page, and it follows your theme: Quests, Leaderboards, Achievements, Friends, Shop, Tournaments, Changelog, Suggest a Game, Settings, Profile, Stats, Forums, Games, Moderation and Admin.
 - Leaderboards: pick a game from the list on the left; the top three are highlighted. Friends show a round badge with an online dot.
