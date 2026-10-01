@@ -192,7 +192,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private PageHeader createHeader()
     {
-        headerLabel = new PageHeader("MESSAGES");
+        headerLabel = new PageHeader("MESSAGES", "Direct messages and group chats.");
 
         ThemedButton report = new ThemedButton("Report a Player", false);
         report.setPreferredSize(new Dimension(150, 34));
@@ -209,7 +209,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     {
         RoundedPanel wrap = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
         wrap.setLayout(new BorderLayout());
-        wrap.setPreferredSize(new Dimension(210, 0));
+        wrap.setPreferredSize(new Dimension(240, 0));
         wrap.setBorder(new EmptyBorder(12, 8, 12, 8));
 
         sidebarList = new JPanel();

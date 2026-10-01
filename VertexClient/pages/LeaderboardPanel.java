@@ -64,7 +64,7 @@ public class LeaderboardPanel extends PageScaffold
     private final JPanel entriesList = new JPanel();
     private final JLabel myRankLabel;
     private final SectionCard resultsCard;
-    private final List<GameItem> items = new java.util.ArrayList<GameItem>();
+    private final java.util.Map<String, PickerItem> items = new java.util.LinkedHashMap<String, PickerItem>();
     private ThemedButton spectateButton;
     private ThemedButton replaysButton;
     private String selectedGameId;
@@ -141,62 +141,6 @@ public class LeaderboardPanel extends PageScaffold
         populateGames();
     }
 
-    /** One clickable row in the game list; highlighted while it's the selected game. */
-    private class GameItem extends JPanel
-    {
-        final String gameId;
-        final String name;
-        boolean selected;
-        boolean hover;
-
-        GameItem(final String gameId, final String name, final boolean rated)
-        {
-            this.gameId = gameId;
-            this.name = name;
-            setOpaque(false);
-            setLayout(new BorderLayout());
-            setBorder(new EmptyBorder(7, 12, 7, 10));
-            setAlignmentX(Component.LEFT_ALIGNMENT);
-            setMaximumSize(new Dimension(4000, 34));
-            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-            JLabel label = new ThemedLabel(name, ThemeColor.TEXT_PRIMARY);
-            label.setFont(UITheme.FONT_BODY);
-            add(label, BorderLayout.CENTER);
-            if (rated)
-            {
-                JLabel tag = new ThemedLabel("ELO", ThemeColor.ACCENT);
-                tag.setFont(UITheme.FONT_SMALL.deriveFont(10f));
-                add(tag, BorderLayout.EAST);
-            }
-            addMouseListener(new MouseAdapter()
-            {
-                public void mouseClicked(MouseEvent e) { selectGame(gameId, name); }
-                public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
-                public void mouseExited(MouseEvent e) { hover = false; repaint(); }
-            });
-        }
-
-        @Override
-        protected void paintComponent(Graphics g)
-        {
-            if (selected || hover)
-            {
-                Graphics2D g2 = (Graphics2D) g.create();
-                UITheme.applyAntialiasing(g2);
-                Color c = ThemeManager.getColor(selected ? ThemeColor.ACCENT : ThemeColor.BG_PANEL_HOVER);
-                g2.setColor(selected ? new Color(c.getRed(), c.getGreen(), c.getBlue(), 40) : c);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                if (selected)
-                {
-                    g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
-                    g2.fillRoundRect(0, 6, 3, getHeight() - 12, 3, 3);
-                }
-                g2.dispose();
-            }
-            super.paintComponent(g);
-        }
-    }
-
     private void populateGames()
     {
         List<GameInfo> games = GameManager.getCachedGames();
@@ -213,8 +157,13 @@ public class LeaderboardPanel extends PageScaffold
                 {
                     continue;
                 }
-                GameItem item = new GameItem(game.getGameId(), game.getName(), rated);
-                items.add(item);
+                final String id = game.getGameId();
+                final String name = game.getName();
+                PickerItem item = new PickerItem(name, rated ? "ELO" : null, new Runnable()
+                {
+                    public void run() { selectGame(id, name); }
+                });
+                items.put(id, item);
                 gameList.add(item);
                 if (first == null)
                 {
@@ -232,10 +181,9 @@ public class LeaderboardPanel extends PageScaffold
     private void selectGame(final String gameId, String gameName)
     {
         selectedGameId = gameId;
-        for (GameItem item : items)
+        for (java.util.Map.Entry<String, PickerItem> item : items.entrySet())
         {
-            item.selected = item.gameId.equals(gameId);
-            item.repaint();
+            item.getValue().setSelected(item.getKey().equals(gameId));
         }
         resultsCard.setTitle(gameName.toUpperCase() + " - TOP PLAYERS");
         myRankLabel.setText("Loading " + gameName + " leaderboard...");

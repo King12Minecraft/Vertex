@@ -59,7 +59,7 @@ import java.util.List;
  * Delete and Lock/Unlock. Data is re-fetched whenever the page is shown, so it isn't
  * stale after time away.
  */
-public class ForumsPanel extends RoundedPanel
+public class ForumsPanel extends PageScaffold
 {
     private static final String GENERAL = "general";
     private static final String CARD_LIST = "LIST";
@@ -99,21 +99,9 @@ public class ForumsPanel extends RoundedPanel
 
     public ForumsPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("FORUMS", "Talk about Vertex and its games - one board per game, plus General.");
 
         buildBoardList();
-
-        JPanel header = new JPanel();
-        header.setOpaque(false);
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
-        header.add(new PageHeader("FORUMS"));
-        JLabel subtitle = new ThemedLabel("Talk about Vertex and its games - one board per game, plus General.", ThemeColor.TEXT_SECONDARY);
-        subtitle.setFont(UITheme.FONT_SUBHEAD);
-        subtitle.setBorder(new EmptyBorder(4, 0, 16, 0));
-        header.add(subtitle);
-        add(header, BorderLayout.NORTH);
 
         JPanel body = new JPanel(new BorderLayout(16, 0));
         body.setOpaque(false);
@@ -122,15 +110,21 @@ public class ForumsPanel extends RoundedPanel
         boardScroll.setOpaque(false);
         boardScroll.getViewport().setOpaque(false);
         boardScroll.getVerticalScrollBar().setUnitIncrement(16);
-        boardScroll.setPreferredSize(new Dimension(236, 100));
+        boardScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         ThemedScrollBarUI.apply(boardScroll);
-        body.add(boardScroll, BorderLayout.WEST);
+        SectionCard boardsCard = new SectionCard("BOARDS").content(boardScroll);
+        boardsCard.setPreferredSize(new Dimension(236, 100));
+        body.add(boardsCard, BorderLayout.WEST);
 
         cardHost.setOpaque(false);
         cardHost.add(buildListCard(), CARD_LIST);
         cardHost.add(buildThreadCard(), CARD_THREAD);
-        body.add(cardHost, BorderLayout.CENTER);
-        add(body, BorderLayout.CENTER);
+        RoundedPanel threadsCard = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        threadsCard.setLayout(new BorderLayout());
+        threadsCard.setBorder(new EmptyBorder(16, 20, 16, 20));
+        threadsCard.add(cardHost, BorderLayout.CENTER);
+        body.add(threadsCard, BorderLayout.CENTER);
+        setBody(body);
 
         addHierarchyListener(new HierarchyListener()
         {
@@ -170,16 +164,12 @@ public class ForumsPanel extends RoundedPanel
         for (int i = 0; i < boards.size(); i++)
         {
             final String id = boards.get(i)[0];
-            ThemedButton button = new ThemedButton(boards.get(i)[1], id.equals(currentBoard));
-            button.setAlignmentX(Component.LEFT_ALIGNMENT);
-            button.setPreferredSize(new Dimension(212, 34));
-            button.setMaximumSize(new Dimension(212, 34));
-            button.addActionListener(new ActionListener()
+            PickerItem item = new PickerItem(boards.get(i)[1], null, new Runnable()
             {
-                public void actionPerformed(ActionEvent e) { selectBoard(id); }
+                public void run() { selectBoard(id); }
             });
-            boardColumn.add(button);
-            boardColumn.add(Box.createVerticalStrut(6));
+            item.setSelected(id.equals(currentBoard));
+            boardColumn.add(item);
         }
         boardColumn.revalidate();
         boardColumn.repaint();
@@ -252,7 +242,7 @@ public class ForumsPanel extends RoundedPanel
             return;
         }
         composer.removeAll();
-        RoundedPanel box = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel box = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         box.setLayout(new BoxLayout(box, BoxLayout.Y_AXIS));
         box.setBorder(new EmptyBorder(12, 12, 12, 12));
 
@@ -371,7 +361,7 @@ public class ForumsPanel extends RoundedPanel
     private JPanel buildThreadRow(List<String> f)
     {
         final String threadId = f.get(0);
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout(0, 4));
         row.setBorder(new EmptyBorder(12, 14, 12, 14));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -533,7 +523,7 @@ public class ForumsPanel extends RoundedPanel
     private JPanel buildPostRow(List<String> f, boolean deletable)
     {
         final String postId = f.get(0);
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout(0, 6));
         row.setBorder(new EmptyBorder(12, 14, 12, 14));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);

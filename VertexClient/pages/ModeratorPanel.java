@@ -47,7 +47,7 @@ import java.util.List;
  * (ClientHandler.isModeratorOrAdmin) - never trusts the client's own
  * role claim, matching the pattern already used for the player lists.
  */
-public class ModeratorPanel extends RoundedPanel
+public class ModeratorPanel extends PageScaffold
 {
     private JLabel onlineCountLabel;
     private JLabel allCountLabel;
@@ -59,30 +59,13 @@ public class ModeratorPanel extends RoundedPanel
 
     public ModeratorPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("MODERATION", "Keep the community friendly: players, reports and the staff chat.");
 
-        PageHeader header = new PageHeader("MODERATION");
-        add(header, BorderLayout.NORTH);
-
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-
-        content.add(createModChatRow());
-        content.add(Box.createVerticalStrut(20));
-        content.add(createPlayersSection());
-        content.add(Box.createVerticalStrut(20));
-        content.add(createReportsSection());
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        add(scroll, BorderLayout.CENTER);
+        row(PageScaffold.fullWidth(new SectionCard("STAFF CHAT").content(createModChatRow())));
+        gap(16);
+        row(PageScaffold.fullWidth(new SectionCard("PLAYERS").content(createPlayersSection())));
+        gap(16);
+        row(PageScaffold.fullWidth(new SectionCard("REPORT QUEUE").content(createReportsSection())));
 
         loadPlayerLists();
         loadReports();
@@ -124,10 +107,7 @@ public class ModeratorPanel extends RoundedPanel
         JPanel headerRow = new JPanel(new BorderLayout());
         headerRow.setOpaque(false);
         headerRow.setBorder(new EmptyBorder(0, 0, 14, 0));
-
-        JLabel title = sectionLabel("PLAYERS");
-        title.setBorder(new EmptyBorder(0, 0, 0, 0));
-        headerRow.add(title, BorderLayout.WEST);
+        headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         ThemedButton refresh = new ThemedButton("Refresh", false);
         refresh.setPreferredSize(new Dimension(100, 32));
@@ -140,6 +120,7 @@ public class ModeratorPanel extends RoundedPanel
         JPanel wrap = new JPanel();
         wrap.setOpaque(false);
         wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
+        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
         wrap.add(headerRow);
 
         JPanel columns = new JPanel(new GridLayout(1, 2, 18, 0));
@@ -161,11 +142,10 @@ public class ModeratorPanel extends RoundedPanel
 
     private RoundedPanel playerListCard(JLabel countLabel, JPanel listPanel)
     {
-        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel card = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(16, 16, 16, 16));
+        card.setBorder(new EmptyBorder(14, 14, 14, 14));
         card.setPreferredSize(new Dimension(0, 300));
-        card.enableTopAccent();
 
         countLabel.setFont(UITheme.FONT_NAV_BOLD);
         countLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
@@ -243,7 +223,7 @@ public class ModeratorPanel extends RoundedPanel
 
     private JPanel buildOnlinePlayerRow(final String username)
     {
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_BUTTON);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
         row.setBorder(new EmptyBorder(8, 10, 8, 10));
         row.setMaximumSize(new Dimension(2000, 44));
@@ -296,7 +276,7 @@ public class ModeratorPanel extends RoundedPanel
 
     private JPanel buildAllPlayerRow(final String username)
     {
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_BUTTON);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
         row.setBorder(new EmptyBorder(8, 10, 8, 10));
         row.setMaximumSize(new Dimension(2000, 44));
@@ -389,6 +369,7 @@ public class ModeratorPanel extends RoundedPanel
         JPanel headerRow = new JPanel(new BorderLayout());
         headerRow.setOpaque(false);
         headerRow.setBorder(new EmptyBorder(0, 0, 14, 0));
+        headerRow.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         reportsCountLabel = sectionLabel("REPORTS");
         reportsCountLabel.setBorder(new EmptyBorder(0, 0, 0, 0));
@@ -405,6 +386,7 @@ public class ModeratorPanel extends RoundedPanel
         JPanel wrap = new JPanel();
         wrap.setOpaque(false);
         wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
+        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
         wrap.add(headerRow);
 
         reportsList = new JPanel();
@@ -469,7 +451,7 @@ public class ModeratorPanel extends RoundedPanel
 
     private JPanel buildReportRow(final String reportId, String displayText)
     {
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
         row.setBorder(new EmptyBorder(12, 16, 12, 16));
         row.setMaximumSize(new Dimension(2000, 60));

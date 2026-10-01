@@ -146,4 +146,23 @@ public class ThemedButton extends JButton
 
         setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
     }
+
+    /**
+     * Never narrower than its own label (plus padding). Callers often fix a width that was right for one font or one
+     * label and then truncate to "Report a Pl..." under another; asking for at least the text width means a
+     * button can be wider than the caller guessed but never cuts its label.
+     */
+    @Override
+    public java.awt.Dimension getPreferredSize()
+    {
+        java.awt.Dimension d = super.getPreferredSize();
+        String text = getText();
+        if (text == null || text.isEmpty())
+        {
+            return d;
+        }
+        java.awt.Insets in = getInsets();
+        int needed = getFontMetrics(getFont()).stringWidth(text) + in.left + in.right + 4;
+        return needed > d.width ? new java.awt.Dimension(needed, d.height) : d;
+    }
 }

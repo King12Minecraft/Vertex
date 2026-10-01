@@ -47,7 +47,7 @@ import java.util.List;
  * UI convenience, not security - the server independently verifies
  * ADMIN role for every one of these requests, never trusting the client.
  */
-public class AdminPanel extends RoundedPanel
+public class AdminPanel extends PageScaffold
 {
     private static final String OVERVIEW = "OVERVIEW";
     private static final String PLAYERS = "PLAYERS";
@@ -62,18 +62,14 @@ public class AdminPanel extends RoundedPanel
 
     public AdminPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
-
-        PageHeader header = new PageHeader("ADMIN PANEL");
-        add(header, BorderLayout.NORTH);
+        super("ADMIN PANEL", "Roles, bans and the server's audit log.");
 
         cards.add(createOverview(), OVERVIEW);
         cards.add(createPlayersView(), PLAYERS);
         cards.add(createLogView(), LOG);
         cards.add(createBansView(), BANS);
-        add(cards, BorderLayout.CENTER);
+        cards.setOpaque(false);
+        setBody(cards);
         cardLayout.show(cards, OVERVIEW);
     }
 
