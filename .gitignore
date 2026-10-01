@@ -28,3 +28,7 @@ out/
 # OS/editor cruft.
 .DS_Store
 Thumbs.db
+
+# Obfuscation tooling cache and its output (./build.sh --obfuscate)
+.tools/
+VertexClient-release.jar

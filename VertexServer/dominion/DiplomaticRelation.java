@@ -17,6 +17,8 @@ import java.io.Serializable;
  */
 public class DiplomaticRelation implements Serializable
 {
+    private static final long serialVersionUID = 1L;
+
     private final int nationAId;
     private final int nationBId;
     private RelationType type;

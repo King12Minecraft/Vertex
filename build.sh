@@ -55,5 +55,71 @@ build_one() {
 build_one VertexClient Vertex VertexClient.jar
 build_one VertexServer ServerMain VertexServer.jar
 
+# ./build.sh --obfuscate  also writes VertexClient-release.jar: the same client with class/method/field names
+# scrambled and debug info removed (roadmap item "protect the source code"). It is a speed bump for casual
+# copying, not a lock - the server stays the authority. Needs a JDK with jmods/ and a one-time ProGuard
+# download (cached in .tools/, checksum-verified). See proguard/vertex-client.pro for what is kept and why.
+obfuscate_client() {
+    local PG_VERSION="7.6.1"
+    local PG_SHA256="ce491ec6ed3a8c03b663db65ea31702acd710d7b0af16e12b81a016da57600d6"
+    local PG_JAR=".tools/proguard-$PG_VERSION/lib/proguard.jar"
+    local JAVA_HOME_DIR
+    JAVA_HOME_DIR=$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")
+
+    if [ ! -d "$JAVA_HOME_DIR/jmods" ]; then
+        echo "Obfuscation needs a full JDK with a jmods/ folder (looked in $JAVA_HOME_DIR). Skipping." >&2
+        return 1
+    fi
+
+    if [ ! -f "$PG_JAR" ]; then
+        echo "Downloading ProGuard $PG_VERSION (one time, cached in .tools/)..."
+        mkdir -p .tools
+        curl -fsSL -o ".tools/proguard-$PG_VERSION.zip" \
+            "https://github.com/Guardsquare/proguard/releases/download/v$PG_VERSION/proguard-$PG_VERSION.zip"
+        local GOT
+        GOT=$(sha256sum ".tools/proguard-$PG_VERSION.zip" | cut -d' ' -f1)
+        if [ "$GOT" != "$PG_SHA256" ]; then
+            echo "ProGuard download failed its checksum (got $GOT) - not using it." >&2
+            rm -f ".tools/proguard-$PG_VERSION.zip"
+            return 1
+        fi
+        unzip -q -o ".tools/proguard-$PG_VERSION.zip" -d .tools
+    fi
+
+    local LIBS=()
+    local JMOD
+    for JMOD in "$JAVA_HOME_DIR"/jmods/*.jmod; do
+        LIBS+=(-libraryjars "$JMOD(!**.jar;!module-info.class)")
+    done
+
+    echo ""
+    echo "--- Obfuscating VertexClient.jar -> VertexClient-release.jar ---"
+    java -jar "$PG_JAR" @proguard/vertex-client.pro \
+        -injars VertexClient.jar -outjars VertexClient-release.jar "${LIBS[@]}" > /dev/null
+
+    # The manifest (Main-Class, version) is not carried over by ProGuard - rebuild it on the output.
+    local MANIFEST
+    MANIFEST=$(mktemp)
+    {
+        echo "Main-Class: Vertex"
+        echo "Implementation-Version: $VERSION"
+        echo "Implementation-Build-Date: $BUILD_DATE"
+    } > "$MANIFEST"
+    jar ufm VertexClient-release.jar "$MANIFEST"
+    rm -f "$MANIFEST"
+
+    # Obfuscation must never change what goes over the wire - verify against the plain jar.
+    local CHECK_DIR
+    CHECK_DIR=$(mktemp -d)
+    javac -d "$CHECK_DIR" proguard/WireCompatCheck.java
+    java -cp "$CHECK_DIR" WireCompatCheck VertexClient.jar VertexClient-release.jar
+    rm -rf "$CHECK_DIR"
+    echo "Built VertexClient-release.jar"
+}
+
+if [ "$1" = "--obfuscate" ]; then
+    obfuscate_client
+fi
+
 echo ""
 echo "Done. VertexClient.jar and VertexServer.jar are ready at the repo root."

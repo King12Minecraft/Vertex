@@ -56,13 +56,26 @@ Items he has said not to start ("None yet": TLS, signed updates, jars out of git
 | 1 | In-match chat for Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors | The most-played games were the ones without it; the room/dock already exist, small per game | **done 2026-10-01** |
 | 2 | Stats from a leaderboard row (open a player's stats page) | Small, finishes the Stats feature | **done 2026-10-01** |
 | 3 | In-match chat for the group/real-time games (Trivia, Racing, Fight Arena, Square Wars...) | Same pattern, but each needs a deliberate hidden-info call | **done 2026-10-01** (defaults; question in BLOCKED_QUESTIONS.md) |
-| 4 | Obfuscated client jar (ProGuard) | Roadmap item 2(e): raises the cost of copying the client | **next** (needs the tool downloadable) |
+| 4 | Obfuscated client jar (ProGuard) | Roadmap item 2(e): raises the cost of copying the client | **done 2026-10-01** (Mac/Linux build only) |
 | 5 | New games from the concept backlog | Player-visible content, each its own unit of work | planned |
 | 6 | Reconnect for the group games (tier C) | Only matters for the longer group matches; design question first | planned |
 | 7 | Rest of the `MatchmakingKernel` rollout | Internal cleanup, no player-visible change | planned |
 | 8 | `save` package, procedural characters | Infrastructure for games that don't exist yet | planned |
 
 ## ✅ Done
+
+- **Obfuscated client jar.** (2026-10-01) Priority-queue item 4 / source-protection item 2(e). `./build.sh --obfuscate` additionally writes
+  `VertexClient-release.jar` (gitignored): ProGuard 7.6.1 (downloaded once into `.tools/`, SHA-256 pinned) in obfuscate-only mode - no
+  shrinking or optimising - scrambles class/method/field names and drops line numbers and source file names. Rules in
+  `proguard/vertex-client.pro`. What it must not break, and how that is guarded: **(1) the wire** - Java serialization matches class and field
+  names and serial versions, so every Serializable class in the shared packages keeps its name and fields, and the build runs
+  `proguard/WireCompatCheck` against the plain jar and fails on any difference (66 classes checked; it caught six Dominion data classes with no
+  explicit `serialVersionUID`, whose implicit one depends on method names - they now declare `serialVersionUID = 1L`, in both trees); **(2) saved
+  settings** - `-keeppackagenames`, because `java.util.prefs` nodes are named after the package; **(3) enums** (used by name) are kept.
+  `pages`, `ui`, `theme`, `engine` (client-only) are renamed completely; Window/Dialog classes inside shared packages stay readable because they
+  are Serializable (a limitation, noted here rather than hidden). Verified end to end: the obfuscated jar was run under Xvfb against the real
+  server jar, a Robot logged in as an admin, the daily-reward dialog came back over the wire and the whole Home page rendered. Not done:
+  `build.bat` (Windows) and wiring the release jar into the download page / auto-update (still "None yet" territory).
 
 - **In-match chat for the group and real-time games.** (2026-10-01) Priority-queue item 3. `MatchChatRooms.open(matchId, List)` for any size;
   Racing, Space Battle, Square Wars, Zombie Survival and Fight Arena open an OPEN room; Trivia Blitz opens it LOCKED and `TriviaMatch.finishMatch`

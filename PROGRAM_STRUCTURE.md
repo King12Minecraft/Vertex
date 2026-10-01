@@ -1116,6 +1116,10 @@ Home / Play / Progress / Social / Shop & Community / Account. Collapsed state is
 selecting a page inside a collapsed group re-opens it, and a collapsed group's header echoes a button's badge
 (`SidebarButton.isShowingBadge`). `ui/NavIcons` gained Home, Forums, Suggest-a-Game, Dominion and Changelog glyphs.
 
+**Obfuscated build (2026-10-01):** `build.sh --obfuscate` -> `VertexClient-release.jar` via ProGuard (`proguard/vertex-client.pro`); `proguard/WireCompatCheck.java`
+verifies every shared Serializable class still matches the plain jar (name, fields, serialVersionUID). Adding a new shared package means adding it to both
+the `.pro` keep rules and `WireCompatCheck.SHARED`. Shared data classes should declare `serialVersionUID` (an implicit one changes when methods are renamed).
+
 **Match chat for the hand-written managers (2026-10-01):** `chat/MatchChatRooms` (per manager, per game id: `open(matchId, a, b)` on match start,
 `close(matchId)` from `endMatch`, 60s grace) is what `MatchManager` (Tic-Tac-Toe), `ChessMatchManager`, `BattleshipMatchManager` and
 `RockPaperScissorsMatchManager` use; `MatchmakingKernel` still does the same inline. `GameChatPolicies` stays the one place that says which games get chat.

@@ -21,6 +21,8 @@ import java.util.List;
  */
 public class DominionSnapshot implements Serializable
 {
+    private static final long serialVersionUID = 1L;
+
     private final int currentTick;
     private final List<Province> provinces;
     private final List<Nation> nations;

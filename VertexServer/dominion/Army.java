@@ -15,6 +15,8 @@ import java.io.Serializable;
  */
 public class Army implements Serializable
 {
+    private static final long serialVersionUID = 1L;
+
     private final int id;
     private final int nationId;
     private int troopCount;
