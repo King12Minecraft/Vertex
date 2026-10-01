@@ -1,7 +1,7 @@
 package pages;
 import games.GamePickerDialog;
 import account.PlayerProfileDialog;
-import ui.StatusDot;
+import ui.InitialBadge;
 import economy.PinnedFriendsStore;
 import theme.ThemeManager;
 import ui.GameHubDialog;
@@ -48,12 +48,12 @@ import java.util.List;
  * those pushes this just refetches the whole list rather than patching
  * individual rows in place - simpler and plenty fast at this scale.
  */
-public class FriendsPanel extends RoundedPanel implements NetworkManager.PushListener
+public class FriendsPanel extends PageScaffold implements NetworkManager.PushListener
 {
     private JPanel requestsList;
-    private JLabel requestsCountLabel;
+    private SectionCard requestsCard;
     private JPanel friendsList;
-    private JLabel friendsCountLabel;
+    private SectionCard friendsCard;
     private ThemedTextField friendSearchField;
     private List<String> cachedFriends;
     private List<String> cachedOnlineFriends;
@@ -61,63 +61,43 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
 
     public FriendsPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("FRIENDS", "Add friends, answer requests, and see who is online.");
 
-        add(new PageHeader("FRIENDS"), BorderLayout.NORTH);
-        add(createContent(), BorderLayout.CENTER);
+        JPanel left = new JPanel();
+        left.setOpaque(false);
+        left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
+        SectionCard addCard = createAddFriendCard();
+        requestsCard = createRequestsCard();
+        left.add(addCard);
+        left.add(Box.createVerticalStrut(16));
+        left.add(requestsCard);
+        left.add(Box.createVerticalGlue());
+        friendsCard = createFriendsCard();
+
+        row(PageScaffold.split(left, friendsCard, 1, 1));
 
         NetworkManager.addPushListener(this);
         loadFriendData();
     }
 
-    private JScrollPane createContent()
+    private SectionCard createAddFriendCard()
     {
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-
-        content.add(createAddFriendRow());
-        content.add(Box.createVerticalStrut(20));
-        content.add(createRequestsSection());
-        content.add(Box.createVerticalStrut(20));
-        content.add(createFriendsSection());
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        return scroll;
-    }
-
-    private JPanel createAddFriendRow()
-    {
-        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(16, 16, 16, 16));
-        card.setMaximumSize(new Dimension(2000, 66));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.enableTopAccent();
+        JPanel box = new JPanel(new BorderLayout(10, 0));
+        box.setOpaque(false);
 
         addFriendField = new ThemedTextField("Username to add");
-        card.add(addFriendField, BorderLayout.CENTER);
+        box.add(addFriendField, BorderLayout.CENTER);
 
-        ThemedButton send = new ThemedButton("Add Friend", true);
-        send.setPreferredSize(new Dimension(130, 34));
+        ThemedButton send = new ThemedButton("Add", true);
+        send.setPreferredSize(new Dimension(80, 34));
         send.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { sendFriendRequest(); }
         });
+        box.add(send, BorderLayout.EAST);
 
-        JPanel sendWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        sendWrap.setOpaque(false);
-        sendWrap.setBorder(new EmptyBorder(0, 12, 0, 0));
-        sendWrap.add(send);
-        card.add(sendWrap, BorderLayout.EAST);
-
+        SectionCard card = new SectionCard("ADD A FRIEND").content(box);
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
         return card;
     }
 
@@ -164,34 +144,21 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         worker.start();
     }
 
-    private JPanel createRequestsSection()
+    private SectionCard createRequestsCard()
     {
-        JPanel wrap = new JPanel();
-        wrap.setOpaque(false);
-        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        requestsCountLabel = sectionLabel("FRIEND REQUESTS");
-        wrap.add(requestsCountLabel);
-
         requestsList = new JPanel();
         requestsList.setOpaque(false);
         requestsList.setLayout(new BoxLayout(requestsList, BoxLayout.Y_AXIS));
-        requestsList.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrap.add(requestsList);
-
-        return wrap;
+        SectionCard card = new SectionCard("FRIEND REQUESTS").content(requestsList);
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return card;
     }
 
-    private JPanel createFriendsSection()
+    private SectionCard createFriendsCard()
     {
         JPanel wrap = new JPanel();
         wrap.setOpaque(false);
         wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        friendsCountLabel = sectionLabel("YOUR FRIENDS");
-        wrap.add(friendsCountLabel);
 
         friendSearchField = new ThemedTextField("Search friends...");
         friendSearchField.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -209,16 +176,7 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         friendsList.setAlignmentX(Component.LEFT_ALIGNMENT);
         wrap.add(friendsList);
 
-        return wrap;
-    }
-
-    private JLabel sectionLabel(String text)
-    {
-        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_PRIMARY);
-        label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(new EmptyBorder(0, 0, 12, 0));
-        return label;
+        return new SectionCard("YOUR FRIENDS").content(wrap);
     }
 
     private void loadFriendData()
@@ -259,7 +217,7 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
     private void renderRequests(List<String> pending)
     {
         int count = pending == null ? 0 : pending.size();
-        requestsCountLabel.setText("FRIEND REQUESTS" + (count > 0 ? " (" + count + ")" : ""));
+        requestsCard.setTitle("FRIEND REQUESTS" + (count > 0 ? " (" + count + ")" : ""));
 
         requestsList.removeAll();
         if (pending == null || pending.isEmpty())
@@ -280,15 +238,19 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
 
     private JPanel buildRequestRow(final String username)
     {
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(12, 16, 12, 16));
+        row.setBorder(new EmptyBorder(8, 12, 8, 12));
         row.setMaximumSize(new Dimension(2000, 54));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
+        JPanel who = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        who.setOpaque(false);
+        who.add(new InitialBadge(username, 32));
         JLabel nameLabel = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_BODY);
-        row.add(nameLabel, BorderLayout.WEST);
+        who.add(nameLabel);
+        row.add(who, BorderLayout.WEST);
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         buttons.setOpaque(false);
@@ -329,7 +291,7 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         cachedOnlineFriends = onlineFriends;
 
         int count = friends == null ? 0 : friends.size();
-        friendsCountLabel.setText("YOUR FRIENDS" + (count > 0 ? " (" + count + ")" : ""));
+        friendsCard.setTitle("YOUR FRIENDS" + (count > 0 ? " (" + count + ")" : ""));
 
         String query = friendSearchField != null ? friendSearchField.getValue().toLowerCase() : "";
         List<String> visible = new java.util.ArrayList<String>();
@@ -380,9 +342,9 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
 
     private JPanel buildFriendRow(final String username, boolean isOnline)
     {
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(12, 16, 12, 16));
+        row.setBorder(new EmptyBorder(8, 12, 8, 12));
         row.setMaximumSize(new Dimension(2000, 54));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
@@ -404,8 +366,7 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         });
         left.add(pinLabel);
 
-        StatusDot dot = new StatusDot(ThemeManager.getColor(isOnline ? ThemeColor.SUCCESS : ThemeColor.TEXT_MUTED), 9);
-        left.add(dot);
+        left.add(new InitialBadge(username, 32).presence(isOnline));
 
         JLabel nameLabel = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
         nameLabel.setFont(UITheme.FONT_BODY);
@@ -416,14 +377,11 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         });
         left.add(nameLabel);
 
-        JLabel statusLabel = new ThemedLabel(isOnline ? "Online" : "Offline", ThemeColor.TEXT_MUTED);
-        statusLabel.setFont(UITheme.FONT_SMALL);
-        left.add(statusLabel);
 
         row.add(left, BorderLayout.WEST);
 
         ThemedButton message = new ThemedButton("Message", false);
-        message.setPreferredSize(new Dimension(96, 32));
+        message.setPreferredSize(new Dimension(110, 32));
         message.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
@@ -433,7 +391,7 @@ public class FriendsPanel extends RoundedPanel implements NetworkManager.PushLis
         });
 
         ThemedButton invite = new ThemedButton("Invite", false);
-        invite.setPreferredSize(new Dimension(80, 32));
+        invite.setPreferredSize(new Dimension(90, 32));
         invite.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e)

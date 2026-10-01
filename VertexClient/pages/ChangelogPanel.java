@@ -32,7 +32,7 @@ import java.util.List;
  * website's Changelog page reads, so the two can't disagree. Bundled into VertexClient.jar by
  * build.sh; when running from source it is read from the working directory or the folder above.
  */
-public class ChangelogPanel extends RoundedPanel
+public class ChangelogPanel extends PageScaffold
 {
     private static final String FILE_NAME = "CHANGELOG.md";
     /** Wrapped text needs an explicit table width - a body style width is ignored (see the UI notes in .cursor/rules). */
@@ -40,53 +40,32 @@ public class ChangelogPanel extends RoundedPanel
 
     public ChangelogPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
-        add(new PageHeader("CHANGELOG"), BorderLayout.NORTH);
-
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(8, 0, 24, 0));
+        super("CHANGELOG", "What changed in Vertex, newest first.");
 
         List<ChangelogParser.Entry> entries = ChangelogParser.parse(load());
         if (entries.isEmpty())
         {
-            PlaceholderPanel.show(content, "The changelog couldn't be loaded.");
+            JPanel empty = new JPanel();
+            empty.setOpaque(false);
+            empty.setLayout(new BoxLayout(empty, BoxLayout.Y_AXIS));
+            PlaceholderPanel.show(empty, "The changelog couldn't be loaded.");
+            row(empty);
         }
         else
         {
-            for (ChangelogParser.Entry entry : entries)
+            for (int i = 0; i < entries.size(); i++)
             {
-                content.add(card(entry));
-                content.add(Box.createVerticalStrut(16));
+                row(PageScaffold.fullWidth(card(entries.get(i), i == 0)));
+                gap(16);
             }
         }
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        add(scroll, BorderLayout.CENTER);
     }
 
-    private JPanel card(ChangelogParser.Entry entry)
+    private SectionCard card(ChangelogParser.Entry entry, boolean latest)
     {
-        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(16, 20, 16, 20));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(TEXT_WIDTH + 80, Integer.MAX_VALUE));
-
-        JLabel heading = new ThemedLabel(entry.heading, ThemeColor.ACCENT);
-        heading.setFont(UITheme.FONT_NAV_BOLD);
-        heading.setAlignmentX(Component.LEFT_ALIGNMENT);
-        heading.setBorder(new EmptyBorder(0, 0, 8, 0));
-        card.add(heading);
-
+        JPanel bullets = new JPanel();
+        bullets.setOpaque(false);
+        bullets.setLayout(new BoxLayout(bullets, BoxLayout.Y_AXIS));
         for (String bullet : entry.bullets)
         {
             JLabel line = new ThemedLabel("<html><table width='" + TEXT_WIDTH + "'><tr><td valign='top' width='14'>&bull;</td><td>"
@@ -94,9 +73,10 @@ public class ChangelogPanel extends RoundedPanel
             line.setFont(UITheme.FONT_BODY);
             line.setAlignmentX(Component.LEFT_ALIGNMENT);
             line.setBorder(new EmptyBorder(0, 0, 6, 0));
-            card.add(line);
+            bullets.add(line);
         }
-        return card;
+        SectionCard card = new SectionCard(entry.heading.toUpperCase() + (latest ? "   -   LATEST" : "")).content(bullets);
+        return latest ? card.withGlow() : card;
     }
 
     private static String escapeHtml(String text)
