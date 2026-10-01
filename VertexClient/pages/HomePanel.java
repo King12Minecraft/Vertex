@@ -90,7 +90,7 @@ public class HomePanel extends RoundedPanel
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(0, 32, 24, 32));
 
-        JPanel content = new WidthTrackingPanel();
+        JPanel content = new PageScaffold.WidthTrackingPanel();
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
@@ -198,48 +198,9 @@ public class HomePanel extends RoundedPanel
         }
     }
 
-    /**
-     * The scroll view: follows the viewport's width instead of its own preferred width. Without this a wide section (a
-     * row of game tiles, a long changelog line) would stretch the whole page past the window and add a horizontal
-     * scrollbar - sections have to fit the window, not the other way round.
-     */
-    private static class WidthTrackingPanel extends JPanel implements javax.swing.Scrollable
-    {
-        public Dimension getPreferredScrollableViewportSize() { return getPreferredSize(); }
-        public int getScrollableUnitIncrement(java.awt.Rectangle r, int orientation, int direction) { return 16; }
-        public int getScrollableBlockIncrement(java.awt.Rectangle r, int orientation, int direction) { return r.height - 32; }
-        public boolean getScrollableTracksViewportWidth() { return true; }
-        public boolean getScrollableTracksViewportHeight() { return false; }
-    }
+    private static JPanel fullWidth(HomeSectionPanel section) { return PageScaffold.fullWidth(section); }
 
-    /** One section spanning the full width. */
-    private JPanel fullWidth(HomeSectionPanel section)
-    {
-        JPanel row = new FitRow(new BorderLayout());
-        row.add(section, BorderLayout.CENTER);
-        return row;
-    }
-
-    /** Two sections side by side; widths in the ratio leftWeight:rightWeight, equal heights. */
-    private JPanel split(HomeSectionPanel left, HomeSectionPanel right, double leftWeight, double rightWeight)
-    {
-        JPanel row = new FitRow(new java.awt.GridBagLayout());
-        java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
-        c.fill = java.awt.GridBagConstraints.BOTH;
-        c.weighty = 1;
-        c.gridy = 0;
-        c.gridx = 0;
-        c.weightx = leftWeight;
-        c.insets = new java.awt.Insets(0, 0, 0, 8);
-        left.setMinimumSize(new Dimension(300, 0));
-        right.setMinimumSize(new Dimension(300, 0));
-        row.add(left, c);
-        c.gridx = 1;
-        c.weightx = rightWeight;
-        c.insets = new java.awt.Insets(0, 8, 0, 0);
-        row.add(right, c);
-        return row;
-    }
+    private static JPanel split(HomeSectionPanel l, HomeSectionPanel r, double lw, double rw) { return PageScaffold.split(l, r, lw, rw); }
 
     private void refreshAll()
     {

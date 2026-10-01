@@ -9,6 +9,8 @@ import theme.UITheme;
 import theme.ThemeColor;
 import ui.RoundedPanel;
 import ui.ThemedLabel;
+import ui.ThinProgressBar;
+import javax.swing.JComponent;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -46,32 +48,16 @@ import java.util.Set;
  * surfaced as things like the Games screen crashing with a
  * NullPointerException right after login.)
  */
-public class AchievementsPanel extends RoundedPanel
+public class AchievementsPanel extends PageScaffold
 {
-    private final JPanel list;
+    private final JPanel list = new JPanel();
 
     public AchievementsPanel()
     {
-        super(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(24, 24, 24, 24));
-
-        JLabel title = new ThemedLabel("Achievements", ThemeColor.TEXT_PRIMARY);
-        title.setFont(UITheme.FONT_HEADING);
-        title.setBorder(new EmptyBorder(0, 0, 16, 0));
-        add(title, BorderLayout.NORTH);
-
-        list = new JPanel();
+        super("ACHIEVEMENTS", "Unlock them by playing - locked ones show how far along you are.");
         list.setOpaque(false);
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
-
-        JScrollPane scroll = new JScrollPane(list);
-        scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        add(scroll, BorderLayout.CENTER);
+        row(list);
 
         renderLocked(new HashSet<String>(), new java.util.HashMap<String, Integer>());
         fetchInBackground();
@@ -135,32 +121,46 @@ public class AchievementsPanel extends RoundedPanel
             if (unlockedIds.contains(all.get(i).id)) unlockedCount++;
         }
 
-        JLabel progress = new ThemedLabel(unlockedCount + " of " + all.size() + " unlocked", ThemeColor.ACCENT);
-        progress.setFont(UITheme.FONT_NAV_BOLD);
-        progress.setAlignmentX(Component.LEFT_ALIGNMENT);
-        progress.setBorder(new EmptyBorder(0, 0, 16, 0));
-        list.add(progress);
+        JPanel summary = new JPanel();
+        summary.setOpaque(false);
+        summary.setLayout(new BoxLayout(summary, BoxLayout.Y_AXIS));
+        JLabel big = new ThemedLabel(unlockedCount + " of " + all.size() + " unlocked", ThemeColor.TEXT_PRIMARY);
+        big.setFont(UITheme.FONT_HEADING.deriveFont(22f));
+        big.setAlignmentX(Component.LEFT_ALIGNMENT);
+        summary.add(big);
+        summary.add(Box.createVerticalStrut(10));
+        ThinProgressBar bar = new ThinProgressBar(unlockedCount, Math.max(all.size(), 1)).height(10);
+        bar.setAlignmentX(Component.LEFT_ALIGNMENT);
+        summary.add(bar);
+        list.add(PageScaffold.fullWidth(new SectionCard("YOUR COLLECTION").withGlow().content(summary)));
+        list.add(Box.createVerticalStrut(16));
 
-        for (int i = 0; i < all.size(); i++)
+        // unlocked first, then the rest in definition order
+        java.util.List<JComponent> tiles = new java.util.ArrayList<JComponent>();
+        for (int pass = 0; pass < 2; pass++)
         {
-            AchievementDefinitions.Definition def = all.get(i);
-            boolean unlocked = unlockedIds.contains(def.id);
-            list.add(buildCard(def, unlocked, metrics));
-            list.add(Box.createVerticalStrut(8));
+            for (int i = 0; i < all.size(); i++)
+            {
+                AchievementDefinitions.Definition def = all.get(i);
+                boolean unlocked = unlockedIds.contains(def.id);
+                if (unlocked == (pass == 0))
+                {
+                    tiles.add(buildCard(def, unlocked, metrics));
+                }
+            }
         }
+        list.add(PageScaffold.columns(2, tiles.toArray(new JComponent[0])));
 
         list.revalidate();
         list.repaint();
     }
 
-    private JPanel buildCard(AchievementDefinitions.Definition def, boolean unlocked, java.util.Map<String, Integer> metrics)
+    private JComponent buildCard(AchievementDefinitions.Definition def, boolean unlocked, java.util.Map<String, Integer> metrics)
     {
         boolean showProgress = !unlocked && def.metricKey != null;
-        RoundedPanel card = new RoundedPanel(unlocked ? ThemeColor.BG_PANEL_HOVER : ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
+        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(12, 16, 12, 16));
-        card.setMaximumSize(new Dimension(2000, showProgress ? 78 : 64));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setBorder(new EmptyBorder(14, 16, 14, 16));
         if (unlocked)
         {
             card.enableTopAccent();
@@ -172,11 +172,13 @@ public class AchievementsPanel extends RoundedPanel
 
         JLabel nameLabel = new JLabel((unlocked ? "\u2605 " : "\u2606 ") + def.name);
         nameLabel.setFont(UITheme.FONT_NAV_BOLD);
-        nameLabel.setForeground(ThemeManager.getColor(unlocked ? ThemeColor.TEXT_PRIMARY : ThemeColor.TEXT_MUTED));
+        nameLabel.setForeground(ThemeManager.getColor(unlocked ? ThemeColor.ACCENT : ThemeColor.TEXT_SECONDARY));
+        nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel descLabel = new ThemedLabel(def.description, ThemeColor.TEXT_MUTED);
         descLabel.setFont(UITheme.FONT_SMALL);
         descLabel.setBorder(new EmptyBorder(3, 0, 0, 0));
+        descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         textCol.add(nameLabel);
         textCol.add(descLabel);
@@ -185,43 +187,24 @@ public class AchievementsPanel extends RoundedPanel
         {
             Integer current = metrics.get(def.metricKey);
             int currentValue = current != null ? Math.min(current, def.target) : 0;
-            textCol.add(buildProgressBar(currentValue, def.target));
+            JPanel progressRow = new JPanel(new BorderLayout(8, 0));
+            progressRow.setOpaque(false);
+            progressRow.setBorder(new EmptyBorder(8, 0, 0, 0));
+            progressRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JPanel barHolder = new JPanel(new java.awt.GridBagLayout());
+            barHolder.setOpaque(false);
+            java.awt.GridBagConstraints c = new java.awt.GridBagConstraints();
+            c.fill = java.awt.GridBagConstraints.HORIZONTAL;
+            c.weightx = 1;
+            barHolder.add(new ThinProgressBar(currentValue, def.target), c);
+            progressRow.add(barHolder, BorderLayout.CENTER);
+            JLabel fraction = new ThemedLabel(currentValue + "/" + def.target, ThemeColor.TEXT_MUTED);
+            fraction.setFont(UITheme.FONT_SMALL.deriveFont(10f));
+            progressRow.add(fraction, BorderLayout.EAST);
+            textCol.add(progressRow);
         }
 
         card.add(textCol, BorderLayout.CENTER);
-
         return card;
-    }
-
-    private JPanel buildProgressBar(final int current, final int target)
-    {
-        JPanel row = new JPanel(new BorderLayout(8, 0));
-        row.setOpaque(false);
-        row.setBorder(new EmptyBorder(6, 0, 0, 0));
-        row.setMaximumSize(new Dimension(2000, 14));
-
-        JPanel track = new JPanel(null)
-        {
-            protected void paintComponent(java.awt.Graphics g)
-            {
-                super.paintComponent(g);
-                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-                UITheme.applyAntialiasing(g2);
-                g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
-                int fillWidth = target > 0 ? (int) (getWidth() * (current / (double) target)) : 0;
-                g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
-                g2.fillRoundRect(0, 0, Math.max(fillWidth, current > 0 ? 6 : 0), getHeight(), 6, 6);
-                g2.dispose();
-            }
-        };
-        track.setOpaque(false);
-        row.add(track, BorderLayout.CENTER);
-
-        JLabel fraction = new ThemedLabel(current + "/" + target, ThemeColor.TEXT_MUTED);
-        fraction.setFont(UITheme.FONT_SMALL.deriveFont(10f));
-        row.add(fraction, BorderLayout.EAST);
-
-        return row;
     }
 }

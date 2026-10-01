@@ -26,6 +26,14 @@ import java.awt.LinearGradientPaint;
 public class PageHeader extends JPanel
 {
     private final JLabel titleLabel;
+    private JLabel subtitleLabel;
+    private final JPanel titleBox;
+
+    public PageHeader(String title, String subtitle)
+    {
+        this(title);
+        setSubtitle(subtitle);
+    }
 
     public PageHeader(String title)
     {
@@ -36,13 +44,21 @@ public class PageHeader extends JPanel
         titleLabel = new JLabel(title);
         titleLabel.setFont(UITheme.FONT_NAV_BOLD);
         titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
-        add(titleLabel, BorderLayout.WEST);
+        titleBox = new JPanel();
+        titleBox.setOpaque(false);
+        titleBox.setLayout(new javax.swing.BoxLayout(titleBox, javax.swing.BoxLayout.Y_AXIS));
+        titleBox.add(titleLabel);
+        add(titleBox, BorderLayout.WEST);
 
         ThemeManager.addListener(new Runnable()
         {
             public void run()
             {
                 titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+                if (subtitleLabel != null)
+                {
+                    subtitleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+                }
                 repaint();
             }
         });
@@ -51,6 +67,26 @@ public class PageHeader extends JPanel
     public void setTitle(String title)
     {
         titleLabel.setText(title);
+    }
+
+    /** A muted one-line description under the title; null or empty removes it. */
+    public void setSubtitle(String text)
+    {
+        if (subtitleLabel != null)
+        {
+            titleBox.remove(subtitleLabel);
+            subtitleLabel = null;
+        }
+        if (text != null && !text.isEmpty())
+        {
+            subtitleLabel = new JLabel(text);
+            subtitleLabel.setFont(UITheme.FONT_SMALL);
+            subtitleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+            subtitleLabel.setBorder(new EmptyBorder(4, 0, 0, 0));
+            titleBox.add(subtitleLabel);
+        }
+        titleBox.revalidate();
+        repaint();
     }
 
     /** Adds a right-aligned action area (e.g. a Refresh button) alongside the title. */
