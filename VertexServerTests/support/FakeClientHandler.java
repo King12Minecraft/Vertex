@@ -29,10 +29,22 @@ public class FakeClientHandler extends ClientHandler
             null, null, null, null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, null, null,
             null, null, null, null, null, null, null, null, null, null,
-            null, null, null, null, null, null, null);
+            null, null, null, null, null, null, null, null);
         this.username = username;
         this.accountId = accountId;
     }
+
+    private games.CaptionChaosMatch captionChaosMatch;
+
+    @Override
+    public void setCurrentCaptionChaosMatch(games.CaptionChaosMatch match)
+    {
+        super.setCurrentCaptionChaosMatch(match);
+        this.captionChaosMatch = match;
+    }
+
+    /** The Caption Chaos match this fake was put into (tests drive it directly, as ClientHandler would). */
+    public games.CaptionChaosMatch captionChaosForTest() { return captionChaosMatch; }
 
     @Override
     public String getLoggedInUsername() { return username; }

@@ -107,10 +107,40 @@ public class GameCardArt extends JPanel
         {
             drawSpaceIcon(g2, w, h);
         }
+        else if ("caption-chaos".equals(id))
+        {
+            drawCaptionIcon(g2, w, h);
+        }
         else
         {
             drawGenericIcon(g2, w, h);
         }
+    }
+
+    /** Two overlapping speech bubbles with a few "typed" lines - the prompt and the answers. */
+    private static void drawCaptionIcon(Graphics2D g2, int w, int h)
+    {
+        int cx = w / 2;
+        int cy = h / 2;
+        int u = Math.min(w, h) / 6;
+        g2.setStroke(new BasicStroke(Math.max(2f, u / 5f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+        // back bubble
+        g2.drawRoundRect(cx - u * 3, cy - u * 2, u * 3 + u / 2, u * 2 + u / 2, u / 2, u / 2);
+        // front bubble with a tail
+        int fx = cx - u / 2;
+        int fy = cy - u / 2;
+        int fw = u * 3 + u / 2;
+        int fh = u * 2 + u / 2;
+        g2.drawRoundRect(fx, fy, fw, fh, u / 2, u / 2);
+        GeneralPath tail = new GeneralPath();
+        tail.moveTo(fx + u, fy + fh);
+        tail.lineTo(fx + u / 2, fy + fh + u * 0.8);
+        tail.lineTo(fx + u * 1.8, fy + fh);
+        g2.draw(tail);
+        // text lines in the front bubble
+        g2.drawLine(fx + u / 2 + u / 4, fy + u * 3 / 4, fx + fw - u / 2, fy + u * 3 / 4);
+        g2.drawLine(fx + u / 2 + u / 4, fy + u * 3 / 2, fx + fw - u * 3 / 2, fy + u * 3 / 2);
     }
 
     /** A simple curled snake body with a dot for the head. */

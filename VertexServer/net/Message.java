@@ -844,6 +844,52 @@ public class Message implements Serializable
     public boolean isTelephoneRevealDone() { return telephoneRevealDone; }
     public void setTelephoneRevealDone(boolean telephoneRevealDone) { this.telephoneRevealDone = telephoneRevealDone; }
 
+    // ---- Caption Chaos (prompt-and-vote party game - see CaptionChaosMatch) ----
+    private int captionRound;
+    private int captionTotalRounds;
+    private int captionSeconds;
+    private String captionPrompt;
+    private String captionText;
+    private int captionIndex;
+    private java.util.List<String> captionOptions;
+    private java.util.List<String> captionResults;
+    private java.util.List<String> captionScores;
+    private java.util.List<String> captionWinners;
+    private boolean captionAborted;
+
+    /** 1-based round number and the total - CAPTIONCHAOS_WRITE_START / VOTE_START / ROUND_RESULT. */
+    public int getCaptionRound() { return captionRound; }
+    public void setCaptionRound(int captionRound) { this.captionRound = captionRound; }
+    public int getCaptionTotalRounds() { return captionTotalRounds; }
+    public void setCaptionTotalRounds(int captionTotalRounds) { this.captionTotalRounds = captionTotalRounds; }
+    /** How long this phase lasts, for the client's countdown. */
+    public int getCaptionSeconds() { return captionSeconds; }
+    public void setCaptionSeconds(int captionSeconds) { this.captionSeconds = captionSeconds; }
+    /** The prompt everyone answers this round. */
+    public String getCaptionPrompt() { return captionPrompt; }
+    public void setCaptionPrompt(String captionPrompt) { this.captionPrompt = captionPrompt; }
+    /** A player's own answer - CAPTIONCHAOS_SUBMIT_REQUEST (client to server). */
+    public String getCaptionText() { return captionText; }
+    public void setCaptionText(String captionText) { this.captionText = captionText; }
+    /** CAPTIONCHAOS_VOTE_REQUEST: the option being voted for. CAPTIONCHAOS_VOTE_START: which option is the receiver's own (-1 = none). */
+    public int getCaptionIndex() { return captionIndex; }
+    public void setCaptionIndex(int captionIndex) { this.captionIndex = captionIndex; }
+    /** The anonymous answers to vote between, in display order - CAPTIONCHAOS_VOTE_START. */
+    public java.util.List<String> getCaptionOptions() { return captionOptions; }
+    public void setCaptionOptions(java.util.List<String> captionOptions) { this.captionOptions = captionOptions; }
+    /** The revealed round, most votes first, "author|answer|votes" per entry - CAPTIONCHAOS_ROUND_RESULT. */
+    public java.util.List<String> getCaptionResults() { return captionResults; }
+    public void setCaptionResults(java.util.List<String> captionResults) { this.captionResults = captionResults; }
+    /** Running totals, best first, "name:points" per entry - ROUND_RESULT and MATCH_OVER. */
+    public java.util.List<String> getCaptionScores() { return captionScores; }
+    public void setCaptionScores(java.util.List<String> captionScores) { this.captionScores = captionScores; }
+    /** Usernames that finished top (ties included; empty if nobody scored) - CAPTIONCHAOS_MATCH_OVER. */
+    public java.util.List<String> getCaptionWinners() { return captionWinners; }
+    public void setCaptionWinners(java.util.List<String> captionWinners) { this.captionWinners = captionWinners; }
+    /** True when the match ended early because too few players were left (no win is awarded) - MATCH_OVER. */
+    public boolean isCaptionAborted() { return captionAborted; }
+    public void setCaptionAborted(boolean captionAborted) { this.captionAborted = captionAborted; }
+
     // ---- Vertex: Dominion (see dominion package, DOMINION_DESIGN.md) ----
     private String dominionNationName;
     private Integer dominionProvinceId;

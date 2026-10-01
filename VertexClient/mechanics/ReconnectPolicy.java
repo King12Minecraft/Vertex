@@ -38,6 +38,7 @@ public final class ReconnectPolicy
         exception("zombie-survival", group);
         exception("among-us", group);
         exception("telephone", group);
+        exception("caption-chaos", group);
         exception("trivia-blitz", group + " (their score stays locked in)");
         exception("fight-arena", group);
     }

@@ -7,7 +7,7 @@ lot of what's below and shouldn't be treated as current. This file is.
 
 ---
 
-## Games (53 playable)
+## Games (54 playable)
 
 ### Online multiplayer, ELO-rated
 - **Chess** — full rules including castling, en passant, checkmate/stalemate. Resign or offer a draw mid-game. Spectate live matches, replay finished ones move-by-move.
@@ -35,6 +35,7 @@ After any Chess, Battleship, or RPS match, challenge the same opponent again wit
 - **Square Wars**, **Dots and Boxes**, **Reversi/Othello**, **Memory Match**, **Air Hockey**, **Word Duel**, **Dice Duel**, **Snake Arena**, **Competitive Tetris**, **Fusion Grid**, **Typing Duel**, **Signal Grid**, **Card Rush** — original 1v1 implementations, each ELO-rated the same way Chess/Battleship/RPS are. See each game's in-app rules (or `GameRules.java`) for how it plays.
 
 ### Online multiplayer, for fun (no scoring, no winner)
+- **Caption Chaos** — 3–8 players, a prompt-and-vote party game. Each of 3 rounds shows a silly prompt ("A terrible name for a pet goldfish"); everyone writes an answer in 45 seconds, then all the answers appear anonymously and you vote for your favourite (never your own, one vote each) in 25 seconds. The authors are revealed with their votes, each vote is worth 100 points, and the highest total after round 3 wins a flat coin reward. A phase ends early once everyone has acted; a player who leaves never stalls the others (and if fewer than two remain the match ends with no winner). Match chat is locked until the end so nobody can give away who wrote what.
 - **Telephone** — 4–8 players, a Gartic-Phone-style draw/guess chain. Everyone writes a starting phrase, then the phrase gets passed player to player, alternating "draw what you were just handed" and "guess what this drawing shows" each round, until every chain has gone all the way around the table. Ends with a reveal - step through every chain from its original phrase to its final, usually-mangled result. Purely social - everyone gets a flat coin reward just for playing, no ranking involved.
 
 ### Single-player (no server required; wins/scores still tracked if logged in)
@@ -159,7 +160,7 @@ written down, not built yet - see the design doc's "Future depth" sections.
 - **Changelog page** — a "what's new" page in the app's sidebar, showing the same list as the website's Changelog page.
 - **Custom mouse cursors** — Settings > Appearance > Mouse cursor: Crystal, Ember, Neon, Mono, "Match my theme" (follows your colour theme), or your system's own. Applies everywhere in the app, including dialogs; crosshairs and resize arrows inside games are left as they are.
 - **`/calc`** — type `/calc 2+3*4` in a DM, group chat or match chat and the answer appears on your screen only (nothing is sent to anyone). Supports + - * / % ^, brackets, decimals, pi and e, and sqrt, abs, round, floor, ceil, ln, log, sin, cos, tan, min, max.
-- **Match chat** — in 14 online 1v1 games (Checkers, Connect Four, Reversi, Dots and Boxes, Word Duel, Dice Duel, Typing Duel, Air Hockey, Memory Match, Signal Grid, Fusion Grid, Card Rush, Snake Arena, Tetris Duel) and Telephone, a chat panel docks beside the game so you can talk to whoever you're playing. It can be collapsed to a thin strip (with an unread count) and stays open about a minute after the match for a "gg". Telephone's chat is locked while the draw/guess chain runs, so nobody can say the answer out loud, and opens when the reveal starts. Mutes and the chat flood limit apply as everywhere else.
+- **Match chat** — in 23 online games (every 1v1 game, Racing, Space Battle, Square Wars, Zombie Survival, Fight Arena - one room for everyone in the match - and the party games Telephone, Trivia Blitz and Caption Chaos) a chat panel docks beside the game so you can talk to whoever you're playing. It can be collapsed to a thin strip (with an unread count) and stays open about a minute after the match for a "gg". In Telephone, Trivia Blitz and Caption Chaos the chat is locked while the match runs (it would give away the answers) and opens when it ends. Among Us has no chat on purpose (hidden roles). Mutes and the chat flood limit apply as everywhere else.
 - **Game details is a page, not a popup** — clicking a game (or Play from anywhere) opens its details page inside the app; Back (or Escape) returns to wherever you came from.
 - **Mandatory screen break** — every 20 minutes of active screen time, a full-screen overlay forces a non-skippable 30-second look-away break before you can keep using the app; if you're mid-match it waits until the match ends rather than interrupting it. No way to dismiss or opt out early - it's a health nudge, not a suggestion.
 - **Low-end hardware support** — `-LowEnd` launcher scripts (smaller heap, serial GC) plus Performance Mode above.

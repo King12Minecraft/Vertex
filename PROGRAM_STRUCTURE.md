@@ -1116,6 +1116,8 @@ Home / Play / Progress / Social / Shop & Community / Account. Collapsed state is
 selecting a page inside a collapsed group re-opens it, and a collapsed group's header echoes a button's badge
 (`SidebarButton.isShowingBadge`). `ui/NavIcons` gained Home, Forums, Suggest-a-Game, Dominion and Changelog glyphs.
 
+**Caption Chaos (2026-10-01):** `games/CaptionChaosMatchManager` (3-8 player queue, starts at 3) -> `CaptionChaosMatch` (phases WRITING -> VOTING -> RESULT x3 -> OVER, server `Timer`s that also end early when every connected player has acted; `CaptionChaosPrompts` is the prompt pool), `net/ClientHandler` hooks (`CAPTIONCHAOS_*` requests, `currentCaptionChaosMatch`, leave/disconnect), client `games/CaptionChaosWindow`.
+
 **Obfuscated build (2026-10-01):** `build.sh --obfuscate` -> `VertexClient-release.jar` via ProGuard (`proguard/vertex-client.pro`); `proguard/WireCompatCheck.java`
 verifies every shared Serializable class still matches the plain jar (name, fields, serialVersionUID). Adding a new shared package means adding it to both
 the `.pro` keep rules and `WireCompatCheck.SHARED`. Shared data classes should declare `serialVersionUID` (an implicit one changes when methods are renamed).

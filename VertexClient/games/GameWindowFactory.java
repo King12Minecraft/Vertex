@@ -81,6 +81,7 @@ public final class GameWindowFactory
         FACTORIES.put("space-battle", new Supplier<JComponent>() { public JComponent get() { return new SpaceBattleWindow(); } });
         FACTORIES.put("hill-climb", new Supplier<JComponent>() { public JComponent get() { return new HillClimbWindow(); } });
         FACTORIES.put("telephone", new Supplier<JComponent>() { public JComponent get() { return new TelephoneWindow(); } });
+        FACTORIES.put("caption-chaos", new Supplier<JComponent>() { public JComponent get() { return new CaptionChaosWindow(); } });
         FACTORIES.put("sky-hopper", new Supplier<JComponent>() { public JComponent get() { return new SkyHopperWindow(); } });
     }
 

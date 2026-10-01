@@ -61,6 +61,8 @@ import games.SignalGridMatchManager;
 import games.SignalGridMatch;
 import games.CardRushMatchManager;
 import games.CardRushMatch;
+import games.CaptionChaosMatch;
+import games.CaptionChaosMatchManager;
 import games.TelephoneMatchManager;
 import games.TelephoneMatch;
 import games.SquareWarsMatchManager;
@@ -142,6 +144,8 @@ public class ClientHandler implements Runnable
     private CardRushMatchManager cardRushMatchManager;
     private TelephoneMatch currentTelephoneMatch;
     private TelephoneMatchManager telephoneMatchManager;
+    private CaptionChaosMatch currentCaptionChaosMatch;
+    private CaptionChaosMatchManager captionChaosMatchManager;
     /** The in-match chat room this player is currently in, or null - set/cleared by MatchChatRoom itself (see the chat package). volatile: read by this handler's request thread, written by whichever thread opens/closes the room. */
     private volatile MatchChatRoom matchChatRoom;
     private RacingMatch currentRacingMatch;
@@ -197,7 +201,7 @@ public class ClientHandler implements Runnable
                           DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
                           TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
                           TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager,
-                          CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager,
+                          CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager, CaptionChaosMatchManager captionChaosMatchManager,
                           dominion.DominionManager dominionManager, ForumService forumService)
     {
         this.socket = socket;
@@ -246,6 +250,7 @@ public class ClientHandler implements Runnable
         this.signalGridMatchManager = signalGridMatchManager;
         this.cardRushMatchManager = cardRushMatchManager;
         this.telephoneMatchManager = telephoneMatchManager;
+        this.captionChaosMatchManager = captionChaosMatchManager;
         this.dominionManager = dominionManager;
     }
 
@@ -269,6 +274,7 @@ public class ClientHandler implements Runnable
     public void setCurrentSignalGridMatch(SignalGridMatch match) { this.currentSignalGridMatch = match; }
     public void setCurrentCardRushMatch(CardRushMatch match) { this.currentCardRushMatch = match; }
     public void setCurrentTelephoneMatch(TelephoneMatch match) { this.currentTelephoneMatch = match; }
+    public void setCurrentCaptionChaosMatch(CaptionChaosMatch match) { this.currentCaptionChaosMatch = match; }
     public MatchChatRoom getMatchChatRoom() { return matchChatRoom; }
     public void setMatchChatRoom(MatchChatRoom room) { this.matchChatRoom = room; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
@@ -425,6 +431,7 @@ public class ClientHandler implements Runnable
             signalGridMatchManager.cancelWaiting(this);
             cardRushMatchManager.cancelWaiting(this);
             telephoneMatchManager.cancelWaiting(this);
+            captionChaosMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
@@ -438,6 +445,7 @@ public class ClientHandler implements Runnable
             if (currentSquareWarsMatch != null) currentSquareWarsMatch.handleDisconnect(this);
             if (currentTriviaMatch != null) currentTriviaMatch.handleDisconnect(this);
             if (currentTelephoneMatch != null) currentTelephoneMatch.handleDisconnect(this);
+            if (currentCaptionChaosMatch != null) currentCaptionChaosMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
             MatchChatRoom leavingChatRoom = matchChatRoom;
@@ -632,6 +640,10 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.TELEPHONE_FIND_MATCH_REQUEST) return handleTelephoneFindMatch();
         if (request.getType() == MessageType.TELEPHONE_LEAVE_QUEUE_REQUEST) return handleTelephoneLeaveQueue();
         if (request.getType() == MessageType.TELEPHONE_SUBMIT_REQUEST) return handleTelephoneSubmit(request);
+        if (request.getType() == MessageType.CAPTIONCHAOS_FIND_MATCH_REQUEST) return handleCaptionChaosFindMatch();
+        if (request.getType() == MessageType.CAPTIONCHAOS_LEAVE_QUEUE_REQUEST) return handleCaptionChaosLeave();
+        if (request.getType() == MessageType.CAPTIONCHAOS_SUBMIT_REQUEST) return handleCaptionChaosSubmit(request);
+        if (request.getType() == MessageType.CAPTIONCHAOS_VOTE_REQUEST) return handleCaptionChaosVote(request);
         if (request.getType() == MessageType.DOMINION_FOUND_NATION_REQUEST) return handleDominionFoundNation(request);
         if (request.getType() == MessageType.DOMINION_STATE_REQUEST) return handleDominionState();
         if (request.getType() == MessageType.DOMINION_RECRUIT_ARMY_REQUEST) return handleDominionRecruitArmy(request);
@@ -2443,6 +2455,46 @@ public class ClientHandler implements Runnable
         if (currentAmongMatch != null)
         {
             currentAmongMatch.castVote(this, request.getToUsername());
+        }
+        return null;
+    }
+
+    // ==================== Caption Chaos ====================
+
+    private Message handleCaptionChaosFindMatch()
+    {
+        if (loggedInUsername != null) captionChaosMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleCaptionChaosLeave()
+    {
+        captionChaosMatchManager.cancelWaiting(this);
+        if (currentCaptionChaosMatch != null)
+        {
+            leavingVoluntarily = true;
+            currentCaptionChaosMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
+            currentCaptionChaosMatch = null;
+        }
+        return null;
+    }
+
+    /** The match validates length/phase/duplicates; the client only ever sends text. */
+    private Message handleCaptionChaosSubmit(Message request)
+    {
+        if (currentCaptionChaosMatch != null)
+        {
+            currentCaptionChaosMatch.submitAnswer(this, request.getCaptionText());
+        }
+        return null;
+    }
+
+    private Message handleCaptionChaosVote(Message request)
+    {
+        if (currentCaptionChaosMatch != null)
+        {
+            currentCaptionChaosMatch.submitVote(this, request.getCaptionIndex());
         }
         return null;
     }

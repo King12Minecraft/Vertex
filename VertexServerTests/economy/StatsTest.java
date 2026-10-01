@@ -29,7 +29,7 @@ public class StatsTest
                 null, null, null, null, null, null, leaderboard, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
         }
     }
 

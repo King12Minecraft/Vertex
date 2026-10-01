@@ -57,13 +57,24 @@ Items he has said not to start ("None yet": TLS, signed updates, jars out of git
 | 2 | Stats from a leaderboard row (open a player's stats page) | Small, finishes the Stats feature | **done 2026-10-01** |
 | 3 | In-match chat for the group/real-time games (Trivia, Racing, Fight Arena, Square Wars...) | Same pattern, but each needs a deliberate hidden-info call | **done 2026-10-01** (defaults; question in BLOCKED_QUESTIONS.md) |
 | 4 | Obfuscated client jar (ProGuard) | Roadmap item 2(e): raises the cost of copying the client | **done 2026-10-01** (Mac/Linux build only) |
-| 5 | New games from the concept backlog | Player-visible content, each its own unit of work | planned |
+| 5 | New games from the concept backlog | Player-visible content, each its own unit of work | **in progress** - Caption Chaos done 2026-10-01; next: casino mini-games need the admin toggle first, so the queue moves on |
 | 6 | Reconnect for the group games (tier C) | Only matters for the longer group matches; design question first | planned |
 | 7 | Rest of the `MatchmakingKernel` rollout | Internal cleanup, no player-visible change | planned |
 | 8 | `save` package, procedural characters | Infrastructure for games that don't exist yet | planned |
 
 ## ✅ Done
 
+- **New game: Caption Chaos.** (2026-10-01) Priority-queue item 5, the first concrete concept in the games backlog. 3-8 players, 3 rounds of
+  prompt -> private answer (45s) -> anonymous vote (25s, never your own, one vote) -> reveal; 100 points per vote, the top total wins a flat
+  `EconomyConfig` reward (20). Original prompts (`CaptionChaosPrompts`, 59 of them, family-friendly). Server-authoritative (`CaptionChaosMatch`):
+  the vote message carries only the answers, shuffled, plus which is yours - authors appear only at the reveal; phases end early when everyone
+  has acted; a leaver is simply not counted and fewer than two players left ends the match with no award. Chat LOCKED until the end;
+  no reconnect (a group game, listed in `ReconnectPolicy` exceptions). New message types `CAPTIONCHAOS_*` and `caption*` fields on `Message`,
+  both trees byte-identical; client `CaptionChaosWindow` (embedded, built from `SectionCard`) and a speech-bubble card art. Tests
+  (`CaptionChaosMatchTest`): matchmaking at 3, same prompt to all, answers anonymous on the wire, early advance, own/duplicate/invalid votes
+  ignored, scoring and ordering, a full three-round match with winner and coin award, abort when too many leave. Also driven for real: the
+  actual window against a real server with two bot players, screenshotted write -> vote -> reveal. Not tested: a full 8-player game and the
+  45s/25s timers expiring (the timer path is the same `Timer` shape Trivia/Telephone use).
 - **Obfuscated client jar.** (2026-10-01) Priority-queue item 4 / source-protection item 2(e). `./build.sh --obfuscate` additionally writes
   `VertexClient-release.jar` (gitignored): ProGuard 7.6.1 (downloaded once into `.tools/`, SHA-256 pinned) in obfuscate-only mode - no
   shrinking or optimising - scrambles class/method/field names and drops line numbers and source file names. Rules in
@@ -2186,8 +2197,8 @@ even playable.
   guesses submitted as game moves, same pattern as every other game's move
   submission), not free-form chat, so that infrastructure piece this entry
   originally flagged was never actually needed.
-- **A Quiplash/Jackbox-style prompt-and-vote game (original concept, working title
-  "Caption Chaos")** — the server shows a silly prompt ("The worst thing to say on
+- ~~**A Quiplash/Jackbox-style prompt-and-vote game (original concept, working title
+  "Caption Chaos")**~~ **BUILT 2026-10-01, see "Done".** Original entry: — the server shows a silly prompt ("The worst thing to say on
   a first date"), everyone privately submits an answer, then everyone votes
   anonymously for their favorite (can't vote for your own); most votes wins the
   round. Cheap to build (no real-time sync, no physics, just request/response like

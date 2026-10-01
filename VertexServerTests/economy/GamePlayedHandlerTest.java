@@ -31,7 +31,7 @@ public class GamePlayedHandlerTest
                 null, null, null, null, null, null, leaderboard, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
         }
 
         /** No socket: swallow what would be sent (wallet updates, notices). */

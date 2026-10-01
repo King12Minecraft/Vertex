@@ -436,6 +436,16 @@ public enum MessageType
     TELEPHONE_SUBMIT_REQUEST,
     TELEPHONE_REVEAL_ENTRY,
 
+    // --- Caption Chaos (prompt-and-vote party game, 3-8 players - see CaptionChaosMatch) ---
+    CAPTIONCHAOS_FIND_MATCH_REQUEST,
+    CAPTIONCHAOS_LEAVE_QUEUE_REQUEST,
+    CAPTIONCHAOS_WRITE_START,
+    CAPTIONCHAOS_SUBMIT_REQUEST,
+    CAPTIONCHAOS_VOTE_START,
+    CAPTIONCHAOS_VOTE_REQUEST,
+    CAPTIONCHAOS_ROUND_RESULT,
+    CAPTIONCHAOS_MATCH_OVER,
+
     // --- Vertex: Dominion (persistent nation-building game - see dominion package, DOMINION_DESIGN.md) ---
     DOMINION_FOUND_NATION_REQUEST,
     DOMINION_FOUND_NATION_RESPONSE,

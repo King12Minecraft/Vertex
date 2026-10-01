@@ -35,7 +35,7 @@ public class ForumHandlerTest
                 null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, adminLog, null, null, null,
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, null, forum);
+                null, null, null, null, null, null, null, forum);
         }
     }
 

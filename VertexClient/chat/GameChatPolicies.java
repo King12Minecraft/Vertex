@@ -65,6 +65,9 @@ public class GameChatPolicies
         // Telephone: free chat during the draw/guess chain would let players say the
         // answer out loud, so it starts locked and TelephoneMatch unlocks it at the reveal.
         STARTING.put("telephone", ChatRestriction.LOCKED);
+
+        // Caption Chaos: answers are anonymous until the reveal, so chat stays locked until the match ends (CaptionChaosMatch unlocks it).
+        STARTING.put("caption-chaos", ChatRestriction.LOCKED);
     }
 
     private GameChatPolicies()

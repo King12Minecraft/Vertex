@@ -8,7 +8,8 @@
   build.sh / build.bat copy this file into VertexClient.jar.
 -->
 
-## 2026-10-02 - Chat in more games
+## 2026-10-02 - Caption Chaos and chat in more games
+- New game: Caption Chaos, a prompt-and-vote party game for 3-8 players. Write your funniest answer to a silly prompt, then vote anonymously for the best one; the most votes after three rounds wins.
 - On Leaderboards, click a player's name to see their stats.
 - You can now chat while you play Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors, Racing, Space Battle, Square Wars, Zombie Survival and Fight Arena, the same way as in the other online games. Trivia Blitz has chat too, but it only opens once the match is over (so nobody can call out answers).
 

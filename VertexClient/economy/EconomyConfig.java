@@ -36,6 +36,7 @@ public class EconomyConfig
         if ("card-rush".equals(gameId))        return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         if ("telephone".equals(gameId))        return 20;
+        if ("caption-chaos".equals(gameId))    return 20;
         // Found missing during an audit (2026-09-29): TriviaMatch.finishMatch() has
         // always called getWinReward("trivia-blitz") to compute the pot every winner
         // splits, but "trivia-blitz" was never added to this table - every Trivia
