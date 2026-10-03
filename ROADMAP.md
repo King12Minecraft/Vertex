@@ -64,6 +64,16 @@ Items he has said not to start ("None yet": TLS, signed updates, jars out of git
 
 ## ✅ Done
 
+- **UI fixes found by looking at the whole app, not just single pages.** (2026-10-03) Bipin: "the UI is baddddd, give all screens". The earlier
+  screenshots were of pages alone; capturing the real `MainMenu` (sidebar + top bar + page) showed what was actually wrong: (1) the sidebar was an
+  unlabeled icon rail that widened on hover, reflowing the whole page every time the mouse crossed it - it is now pinned open with labels by default
+  (a `<<` toggle returns to the hover rail; remembered per computer); (2) every page title appeared twice (top bar and page header) - the top bar
+  keeps a title only for pages without a header of their own (game host, game details, Dominion) and its left side is now the search box; (3) 47 of the
+  54 games shared one "+" placeholder tile - games without hand-drawn art now get their monogram over a per-game pattern and a slight per-game hue
+  shift of the theme gradient; (4) the top bar's Play dropdown and Party button were squeezed to "Pla". Client-only. Not done: the Sidebar's
+  in-progress quests list still shares the column with the nav on short windows, the Games-page Pin button placement, and hand-drawn icons for the
+  rest of the games.
+
 - **New game: Caption Chaos.** (2026-10-01) Priority-queue item 5, the first concrete concept in the games backlog. 3-8 players, 3 rounds of
   prompt -> private answer (45s) -> anonymous vote (25s, never your own, one vote) -> reveal; 100 points per vote, the top total wins a flat
   `EconomyConfig` reward (20). Original prompts (`CaptionChaosPrompts`, 59 of them, family-friendly). Server-authoritative (`CaptionChaosMatch`):

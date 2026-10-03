@@ -70,6 +70,9 @@ public class Sidebar extends RoundedPanel
     private ConnectionIndicator connectionIndicator;
 
     private boolean expanded = false;
+    /** Pinned open (the default): labels always visible and the page never reflows. Unpinned = the narrow icon rail that expands while hovered. Remembered per computer. */
+    private boolean pinned = PREFS.getBoolean("pinned", true);
+    private JLabel pinToggle;
     private Timer widthTimer;
 
     public Sidebar(NavigationListener listener)
@@ -138,15 +141,26 @@ public class Sidebar extends RoundedPanel
 
         addMouseListener(new MouseAdapter()
         {
-            public void mouseEntered(MouseEvent e) { setExpanded(true); }
+            public void mouseEntered(MouseEvent e) { if (!pinned) setExpanded(true); }
             public void mouseExited(MouseEvent e)
             {
-                if (!contains(e.getPoint()))
+                if (!pinned && !contains(e.getPoint()))
                 {
                     setExpanded(false);
                 }
             }
         });
+
+        if (pinned)
+        {
+            // Open from the start, without the slide-open animation.
+            setExpanded(true);
+            if (widthTimer != null)
+            {
+                widthTimer.stop();
+            }
+            setPreferredSize(new Dimension(EXPANDED_WIDTH, 0));
+        }
     }
 
     private void setExpanded(boolean newExpanded)
@@ -158,6 +172,9 @@ public class Sidebar extends RoundedPanel
         expanded = newExpanded;
 
         wordmark.setVisible(expanded);
+        pinToggle.setVisible(expanded);
+        pinToggle.setText(pinned ? "\u00AB" : "\u00BB");
+        pinToggle.setToolTipText(pinned ? "Collapse to icons" : "Keep the menu open");
         questSection.setVisible(expanded && questSection.getComponentCount() > 1);
         for (int i = 0; i < buttons.size(); i++)
         {
@@ -225,8 +242,30 @@ public class Sidebar extends RoundedPanel
             }
         });
 
+        pinToggle = new JLabel("\u00AB");
+        pinToggle.setFont(UITheme.FONT_NAV_BOLD);
+        pinToggle.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+        pinToggle.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+        pinToggle.setVisible(false);
+        pinToggle.addMouseListener(new MouseAdapter()
+        {
+            public void mouseClicked(MouseEvent e)
+            {
+                pinned = !pinned;
+                PREFS.putBoolean("pinned", pinned);
+                pinToggle.setText(pinned ? "\u00AB" : "\u00BB");
+                pinToggle.setToolTipText(pinned ? "Collapse to icons" : "Keep the menu open");
+                if (!pinned)
+                {
+                    setExpanded(false);
+                }
+            }
+        });
+
         row.add(mark);
         row.add(wordmark);
+        row.add(javax.swing.Box.createHorizontalGlue());
+        row.add(pinToggle);
         return row;
     }
 

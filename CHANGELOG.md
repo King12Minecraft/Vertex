@@ -8,6 +8,11 @@
   build.sh / build.bat copy this file into VertexClient.jar.
 -->
 
+## 2026-10-03 - Easier to find your way around
+- The menu on the left now stays open with its labels (use the << arrow at its top to shrink it to icons again).
+- Every game has its own look on its card instead of the same plus sign, and page titles no longer appear twice.
+- Fixed the Play and Party buttons in the top bar being squashed.
+
 ## 2026-10-02 - Caption Chaos and chat in more games
 - New game: Caption Chaos, a prompt-and-vote party game for 3-8 players. Write your funniest answer to a silly prompt, then vote anonymously for the best one; the most votes after three rounds wins.
 - On Leaderboards, click a player's name to see their stats.

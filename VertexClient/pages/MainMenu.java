@@ -494,7 +494,9 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         }
 
         currentPageKey = pageKey;
-        topBar.setPageTitle(titleFor(pageKey));
+        // Pages built on PageScaffold already show their title in their own header; repeating it up here was noise.
+        boolean ownHeader = !(Pages.GAME_HOST.equals(pageKey) || Pages.GAME_DETAIL.equals(pageKey) || Pages.DOMINION.equals(pageKey));
+        topBar.setPageTitle(ownHeader ? "" : titleFor(pageKey));
 
         if (snapshot != null)
         {

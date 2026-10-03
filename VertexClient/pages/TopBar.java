@@ -58,10 +58,17 @@ public class TopBar extends RoundedPanel
         setPreferredSize(new Dimension(0, UITheme.TOPBAR_HEIGHT));
         setBorder(new EmptyBorder(0, 28, 0, 28));
 
-        titleLabel = new JLabel("Home");
+        titleLabel = new JLabel("");
+        titleLabel.setVisible(false);
         titleLabel.setFont(UITheme.FONT_HEADING);
         titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
-        add(titleLabel, BorderLayout.WEST);
+        // Left side: the page title (only for pages that have no header of their own, see setPageTitle) and the search box.
+        JPanel leftPanel = new JPanel();
+        leftPanel.setOpaque(false);
+        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.X_AXIS));
+        leftPanel.add(titleLabel);
+        titleLabel.setBorder(new EmptyBorder(0, 0, 0, 24));
+        add(leftPanel, BorderLayout.WEST);
 
         JPanel rightPanel = new JPanel();
         rightPanel.setOpaque(false);
@@ -69,14 +76,15 @@ public class TopBar extends RoundedPanel
 
         GlobalSearchField searchField = new GlobalSearchField(navigationListener);
         this.searchField = searchField;
-        rightPanel.add(searchField);
-        rightPanel.add(javax.swing.Box.createHorizontalStrut(12));
+        leftPanel.add(searchField);
 
         rightPanel.add(new QuickPlayDropdown());
         rightPanel.add(javax.swing.Box.createHorizontalStrut(12));
 
         ThemedButton partyButton = new ThemedButton("Party", false);
-        partyButton.setPreferredSize(new Dimension(70, 30));
+        partyButton.setPreferredSize(new Dimension(84, 34));
+        partyButton.setMinimumSize(new Dimension(84, 34));
+        partyButton.setMaximumSize(new Dimension(84, 34));
         partyButton.addActionListener(new java.awt.event.ActionListener()
         {
             public void actionPerformed(java.awt.event.ActionEvent e)
@@ -242,6 +250,7 @@ public class TopBar extends RoundedPanel
     public void setPageTitle(String title)
     {
         titleLabel.setText(title);
+        titleLabel.setVisible(title != null && !title.isEmpty());
     }
 
     private String currentUsername()
