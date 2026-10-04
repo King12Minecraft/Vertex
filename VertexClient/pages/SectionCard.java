@@ -3,6 +3,7 @@ package pages;
 import theme.ThemeColor;
 import theme.ThemeManager;
 import theme.UITheme;
+import ui.TextCase;
 import ui.RoundedPanel;
 import ui.ThemedLabel;
 
@@ -60,8 +61,8 @@ public class SectionCard extends RoundedPanel
         header.setOpaque(false);
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
         header.setBorder(new EmptyBorder(0, 0, 12, 0));
-        heading = new ThemedLabel(title, ThemeColor.TEXT_SECONDARY);
-        heading.setFont(UITheme.FONT_NAV_BOLD);
+        heading = new ThemedLabel(TextCase.sentence(title), ThemeColor.TEXT_PRIMARY);
+        heading.setFont(UITheme.FONT_HEADING.deriveFont(18f));
         header.add(heading, BorderLayout.WEST);
         add(header);
 
@@ -76,7 +77,7 @@ public class SectionCard extends RoundedPanel
     /** Changes the card's title. */
     public void setTitle(String title)
     {
-        heading.setText(title);
+        heading.setText(TextCase.sentence(title));
     }
 
     /** A card with a title and no placeholder text (the body is filled by content(...)). */
@@ -126,7 +127,7 @@ public class SectionCard extends RoundedPanel
         if (text != null)
         {
             actionLink = new ThemedLabel(text, ThemeColor.ACCENT);
-            actionLink.setFont(UITheme.FONT_SMALL);
+            actionLink.setFont(UITheme.FONT_BODY);
             actionLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             actionLink.addMouseListener(new MouseAdapter()
             {
@@ -163,17 +164,11 @@ public class SectionCard extends RoundedPanel
         {
             return;
         }
+        // The "hero" emphasis is a faint tint of the accent over the card - no glow.
         Graphics2D g2 = (Graphics2D) g.create();
         UITheme.applyAntialiasing(g2);
-        int w = getWidth();
-        int h = getHeight();
-        g2.setClip(new RoundRectangle2D.Float(0, 0, w, h, UITheme.RADIUS_PANEL, UITheme.RADIUS_PANEL));
-        Color accent = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-        float radius = Math.max(Math.max(w, h) * 0.75f, 1f);
-        g2.setPaint(new RadialGradientPaint(w * 0.1f, h * 0.2f, radius, new float[] { 0f, 1f },
-            new Color[] { new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 60),
-                          new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 0) }));
-        g2.fillRect(0, 0, w, h);
+        g2.setColor(ThemeManager.mix(ThemeManager.getColor(ThemeColor.BG_PANEL), ThemeManager.getColor(ThemeColor.ACCENT), 0.07));
+        g2.fillRoundRect(0, 0, getWidth(), getHeight(), UITheme.RADIUS_PANEL, UITheme.RADIUS_PANEL);
         g2.dispose();
     }
 

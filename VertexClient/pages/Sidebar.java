@@ -11,6 +11,7 @@ import account.Session;
 import account.Account;
 import theme.ThemeColor;
 import net.ConnectionIndicator;
+import ui.TextCase;
 import ui.SidebarButton;
 import ui.ThemedScrollBarUI;
 import net.NavigationListener;
@@ -50,8 +51,8 @@ import java.util.List;
  */
 public class Sidebar extends RoundedPanel
 {
-    private static final int COLLAPSED_WIDTH = 64;
-    private static final int EXPANDED_WIDTH = 220;
+    private static final int COLLAPSED_WIDTH = 68;
+    private static final int EXPANDED_WIDTH = 248;
     private static final int ANIMATION_MS = 160;
 
     private final NavigationListener listener;
@@ -134,7 +135,7 @@ public class Sidebar extends RoundedPanel
         navScroll.getVerticalScrollBar().setPreferredSize(new Dimension(6, 0));
         add(navScroll);
 
-        add(createQuestMiniList());
+        createQuestMiniList();   // built (it holds state other code updates) but no longer shown in the sidebar
         add(createStatusRow());
 
         selectPage(Pages.HOME);
@@ -175,7 +176,7 @@ public class Sidebar extends RoundedPanel
         pinToggle.setVisible(expanded);
         pinToggle.setText(pinned ? "\u00AB" : "\u00BB");
         pinToggle.setToolTipText(pinned ? "Collapse to icons" : "Keep the menu open");
-        questSection.setVisible(expanded && questSection.getComponentCount() > 1);
+        questSection.setVisible(false);   // the quests list lived here; Home and Quests show it, and it crowded the menu
         for (int i = 0; i < buttons.size(); i++)
         {
             buttons.get(i).setExpanded(expanded);
@@ -228,7 +229,7 @@ public class Sidebar extends RoundedPanel
 
         GameLogo mark = new GameLogo(28);
 
-        wordmark = new JLabel("VERTEX");
+        wordmark = new JLabel("Vertex");
         wordmark.setFont(UITheme.FONT_LOGO);
         wordmark.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         wordmark.setBorder(new EmptyBorder(0, 10, 0, 0));
@@ -406,7 +407,7 @@ public class Sidebar extends RoundedPanel
             {
                 g2.setFont(UITheme.FONT_SMALL);
                 g2.setColor(muted);
-                g2.drawString(group.title, 20, h / 2 + 5);
+                g2.drawString(TextCase.sentence(group.title), 20, h / 2 + 5);
                 int chevronX = EXPANDED_WIDTH - 34;
                 java.awt.geom.Path2D chevron = new java.awt.geom.Path2D.Double();
                 if (group.collapsed)
@@ -587,19 +588,11 @@ public class Sidebar extends RoundedPanel
         int w = getWidth();
         int h = getHeight();
 
-        java.awt.Color top = ThemeManager.getColor(ThemeColor.BG_SIDEBAR);
-        java.awt.Color bottom = ThemeManager.getColor(ThemeColor.BG_APP);
-        java.awt.LinearGradientPaint depth = new java.awt.LinearGradientPaint(
-            0, 0, 0, Math.max(h, 1), new float[] {0f, 1f}, new java.awt.Color[] {top, bottom});
-        g2.setPaint(depth);
+        // Flat sidebar: one solid colour and a hairline on its right edge.
+        g2.setColor(ThemeManager.getColor(ThemeColor.BG_SIDEBAR));
         g2.fillRect(0, 0, w, h);
-
-        java.awt.Color accentStart = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-        java.awt.Color accentEnd = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END);
-        java.awt.LinearGradientPaint divider = new java.awt.LinearGradientPaint(
-            0, 0, 0, Math.max(h, 1), new float[] {0f, 1f}, new java.awt.Color[] {accentStart, accentEnd});
-        g2.setPaint(divider);
-        g2.fillRect(w - 2, 0, 2, h);
+        g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+        g2.fillRect(w - 1, 0, 1, h);
 
         g2.dispose();
     }

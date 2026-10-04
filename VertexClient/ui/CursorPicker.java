@@ -38,7 +38,7 @@ public class CursorPicker extends JPanel
     {
         super(new GridLayout(0, 3, 10, 10));
         setOpaque(false);
-        setMaximumSize(new Dimension(3 * CARD_W + 20, 2 * CARD_H + 10));
+        setMaximumSize(new Dimension(3 * CARD_W + 20, 3 * CARD_H + 20));
         for (CursorSet set : CursorSet.values())
         {
             add(new Card(set));

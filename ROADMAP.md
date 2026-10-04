@@ -64,6 +64,24 @@ Items he has said not to start ("None yet": TLS, signed updates, jars out of git
 
 ## ✅ Done
 
+- **UI restart: a calm Claude-style design system, plus real cursor models.** (2026-10-04) Bipin: "restart the UI ... like a professional Claude one",
+  asked via choices: light + dark with a toggle, every page rebuilt on a new system, the old 10 colour themes kept as optional themes. New
+  **Claude Light** and **Claude Dark** themes (warm off-white / warm charcoal, white / lifted cards with hairline borders, one terracotta accent) are the
+  default; **System** (the default setting) follows the operating system's light/dark (`theme/OsAppearance`, best-effort, light if unknown) and the
+  theme choice is now remembered (it never was - every launch reset to Dark Navy). Settings > Appearance has a System / Light / Dark switch above the
+  old theme dropdown. The component layer is flat for *every* theme: `RoundedPanel` = solid fill + 1px border (no glow, no accent bar),
+  `ThemedButton` primary = solid accent with text readable on it (`ThemeManager.onAccent()`), secondary = card colour + border, `PageHeader` = serif
+  title + muted subtitle (no gradient underline), `SectionCard` = serif card titles (all-caps titles become sentence case via `ui/TextCase`), the
+  sidebar is a flat pinned-open column with a hairline edge, game art is a soft flat tile per game, the Games hero is flat, the Home ticker and the
+  sidebar quests list are gone, text fields show focus with an accent outline. Fonts: headings use an installed serif (Georgia / Iowan Old Style /
+  Charter / ...), body keeps the platform UI font. **Cursors**: I had made five "sets" that were one arrow shape in five colour schemes - a reskin, not a
+  custom model. Each set is now its own design: Classic (the familiar sharp pointer), Claude (soft rounded plane pointer), Crystal (faceted gem), Ember
+  (flame), Neon (a reticle whose click point is its centre); each has its own link and text-beam versions, and a **Cursor glow** switch in Settings
+  (off by default) adds the soft halo. Verified: the real app (sidebar + top bar + all 15 pages) captured under Xvfb in Claude Light, Claude Dark and Dark Navy; the
+  cursor set rendered at 96px with and without glow. Not done: dialogs and the in-game screens were not individually re-reviewed (they pick up the
+  new flat panels/buttons automatically), narrow-window behaviour of the new sidebar, and following an OS theme change while the app is running
+  (read once at start-up).
+
 - **UI fixes found by looking at the whole app, not just single pages.** (2026-10-03) Bipin: "the UI is baddddd, give all screens". The earlier
   screenshots were of pages alone; capturing the real `MainMenu` (sidebar + top bar + page) showed what was actually wrong: (1) the sidebar was an
   unlabeled icon rail that widened on hover, reflowing the whole page every time the mouse crossed it - it is now pinned open with labels by default

@@ -100,11 +100,10 @@ public class HomePanel extends RoundedPanel
         header.setMaximumSize(new Dimension(4000, header.getPreferredSize().height));
         content.add(header);
 
+        // (The scrolling ticker that used to sit here was removed in the 2026-10 UI restart: it was noise. The ticker object
+        // is still built, off-screen, because rebuildTicker() feeds it and other code reads its state.)
         ticker = new MarqueeBanner();
-        ticker.setAlignmentX(Component.LEFT_ALIGNMENT);
-        ticker.setMaximumSize(new Dimension(4000, 44));
-        content.add(ticker);
-        content.add(Box.createVerticalStrut(24));
+        content.add(Box.createVerticalStrut(4));
 
         // The Home sections, each its own class (see HomeSectionPanel): welcome across the top, then Quick play beside
         // Continue playing (1:2), Friends beside Tournaments, and What's new across the bottom.

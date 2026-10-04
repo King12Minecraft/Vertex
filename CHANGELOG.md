@@ -8,6 +8,11 @@
   build.sh / build.bat copy this file into VertexClient.jar.
 -->
 
+## 2026-10-04 - A calmer new look
+- Vertex has a new look, inspired by Claude: soft light and dark modes, one warm accent colour, clean cards and serif headings. It follows your computer's light/dark setting by default - change it in Settings > Appearance (System, Light or Dark). The older colour themes are still there.
+- Cursors are now real designs, not just recoloured arrows: Classic, Claude, Crystal, Ember and Neon each have their own shape, plus an optional glow (Settings > Appearance).
+- Your theme choice is now remembered between launches.
+
 ## 2026-10-03 - Easier to find your way around
 - The menu on the left now stays open with its labels (use the << arrow at its top to shrink it to icons again).
 - Every game has its own look on its card instead of the same plus sign, and page titles no longer appear twice.

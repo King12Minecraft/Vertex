@@ -19,18 +19,16 @@ import java.awt.LinearGradientPaint;
  * Pass radius 0 for a plain square-edged themed panel (e.g. a sidebar or
  * top bar spanning the full width/height of its container).
  *
- * Two opt-in reskin extras, used by interactive/content cards:
- *   - glow() exposes a HoverGlowAnimator - wire it to a mouse or focus
- *     listener to get a soft animated accent glow around the panel.
- *   - enableTopAccent() adds a thin gradient bar along the top edge,
- *     an Opera GX-style card accent.
+ Flat by design (the Claude-style restart, 2026-10): a solid themed fill and a one-pixel
+ * border - no glow, no gradient bar. glow() and enableTopAccent() are kept so existing callers
+ * still compile, but they no longer draw anything.
  */
 public class RoundedPanel extends JPanel
 {
     private ThemeColor backgroundRole;
     private final int radius;
     private HoverGlowAnimator glowAnimator;
-    private boolean topAccentEnabled = false;
+    private boolean borderVisible = true;
 
     public RoundedPanel(ThemeColor backgroundRole, int radius)
     {
@@ -42,6 +40,13 @@ public class RoundedPanel extends JPanel
         {
             public void run() { repaint(); }
         });
+    }
+
+    /** Turn the hairline border off for panels that sit inside other chrome (sidebar items, pills). */
+    public void setBorderVisible(boolean visible)
+    {
+        this.borderVisible = visible;
+        repaint();
     }
 
     /** Changes which theme color role this panel paints, e.g. for hover states. */
@@ -61,11 +66,9 @@ public class RoundedPanel extends JPanel
         return glowAnimator;
     }
 
-    /** Adds a thin gradient accent bar along the top edge. */
+    /** No longer draws anything (the flat redesign has no accent bars); kept so callers still compile. */
     public void enableTopAccent()
     {
-        topAccentEnabled = true;
-        repaint();
     }
 
     @Override
@@ -74,25 +77,14 @@ public class RoundedPanel extends JPanel
         Graphics2D g2 = (Graphics2D) g.create();
         UITheme.applyAntialiasing(g2);
 
-        if (glowAnimator != null && glowAnimator.getIntensity() > 0f)
-        {
-            Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
-            int alpha = (int) (70 * glowAnimator.getIntensity());
-            g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), alpha));
-            g2.fillRoundRect(-3, -3, getWidth() + 6, getHeight() + 6, radius + 4, radius + 4);
-        }
-
         g2.setColor(ThemeManager.getColor(backgroundRole));
         g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
 
-        if (topAccentEnabled && getWidth() > 0)
+        // A hairline border in the theme's border colour is what makes cards read as cards on the flat page.
+        if (borderVisible && radius > 0 && getWidth() > 1 && getHeight() > 1)
         {
-            Color start = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-            Color end = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END);
-            LinearGradientPaint gradient = new LinearGradientPaint(
-                0, 0, getWidth(), 0, new float[] {0f, 1f}, new Color[] {start, end});
-            g2.setPaint(gradient);
-            g2.fillRoundRect(0, 0, getWidth(), 4, radius, radius);
+            g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
         }
 
         g2.dispose();

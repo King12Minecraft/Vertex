@@ -1126,6 +1126,12 @@ the `.pro` keep rules and `WireCompatCheck.SHARED`. Shared data classes should d
 `close(matchId)` from `endMatch`, 60s grace) is what `MatchManager` (Tic-Tac-Toe), `ChessMatchManager`, `BattleshipMatchManager` and
 `RockPaperScissorsMatchManager` use; `MatchmakingKernel` still does the same inline. `GameChatPolicies` stays the one place that says which games get chat.
 
+**Design system (2026-10-04 restart):** themes `ClaudeLightTheme` / `ClaudeDarkTheme` (+ the old ones) behind `ThemeManager` (now persists the choice under the `theme` pref; `SYSTEM` = follow
+`theme/OsAppearance`; helpers `onAccent()`, `mix()`, `isDarkTheme()`); `UITheme` picks the installed serif for headings and the platform UI font for body, radii 14/9. All chrome is flat for every theme:
+`RoundedPanel` (fill + hairline border; `setBorderVisible(false)` for items inside other chrome; `glow()`/`enableTopAccent()` are no-ops kept for callers), `ThemedButton`, `PageHeader`, `SectionCard`,
+`SidebarButton`, `HeroBanner`, `GameCardArt` (flat tinted tile, hue from the game id, handcrafted icon or monogram in a deeper shade). `ui/TextCase.sentence` turns ALL-CAPS titles into sentence case.
+Cursors: `ui/CursorArtwork` has one silhouette per set (Classic, Claude, Crystal, Ember, Neon reticle with a centre hotspot) and `CursorManager.isGlow()` for the optional halo.
+
 **Page kit (2026-10-01):** every top-level page extends `pages/PageScaffold` (a `PageHeader` with title/subtitle/right-hand action, side
 margins, a scroll body that tracks the viewport width so nothing adds a horizontal scrollbar; row helpers `fullWidth`/`split` (min 300px per
 side)/`columns` over `FitRow`s whose height follows their content; `setBody` for pages that scroll themselves) and is built from

@@ -55,7 +55,12 @@ public final class CursorManager
     {
         try
         {
-            return CursorSet.valueOf(PREFS.get(KEY, CursorSet.SYSTEM.name()));
+            String saved = PREFS.get(KEY, CursorSet.SYSTEM.name());
+            if ("MONO".equals(saved))
+            {
+                saved = "CLASSIC";   // renamed when each set became its own design
+            }
+            return CursorSet.valueOf(saved);
         }
         catch (IllegalArgumentException e)
         {
@@ -64,6 +69,19 @@ public final class CursorManager
     }
 
     public static CursorSet getSet() { return current; }
+
+    private static final String GLOW_KEY = "cursorGlow";
+    private static boolean glow = PREFS.getBoolean(GLOW_KEY, false);
+
+    /** Whether the cursors get a soft coloured glow (off by default). */
+    public static boolean isGlow() { return glow; }
+
+    public static void setGlow(boolean on)
+    {
+        glow = on;
+        PREFS.putBoolean(GLOW_KEY, on);
+        rebuild();
+    }
 
     /** Call once at startup: begins watching the mouse, and follows theme changes for the "Match my theme" set. */
     public static synchronized void install()
@@ -174,10 +192,10 @@ public final class CursorManager
                 return null;
             }
             BufferedImage image = CursorArtwork.draw(current, role, size);
-            Point spot = CursorArtwork.hotspot(role);
+            Point spot = CursorArtwork.hotspot(current, role);
             double scale = size / 32.0;
             Point scaled = new Point((int) Math.round(spot.x * scale), (int) Math.round(spot.y * scale));
-            return toolkit.createCustomCursor(image, scaled, NAME_PREFIX + current.name() + ":" + role.name());
+            return toolkit.createCustomCursor(image, scaled, NAME_PREFIX + current.name() + (glow ? "+glow" : "") + ":" + role.name());
         }
         catch (Exception e)
         {

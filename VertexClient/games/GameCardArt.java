@@ -38,6 +38,11 @@ public class GameCardArt extends JPanel
         });
     }
 
+    /**
+     * A soft, flat tile in a colour of its own (a muted tint of a hue picked from the game id) with the icon or
+     * monogram in a deeper shade of the same hue - Claude-style: calm blocks of colour rather than glowing gradients.
+     * Light and dark themes get light and dark variants of each tint.
+     */
     @Override
     protected void paintComponent(Graphics g)
     {
@@ -46,23 +51,18 @@ public class GameCardArt extends JPanel
 
         int w = getWidth();
         int h = getHeight();
-        int cut = Math.min(16, h / 4);
+        boolean dark = ThemeManager.isDarkTheme();
+        float hue = (Math.abs(gameId.hashCode() * 31) % 12) / 12f;
+        Color fill = new Color(Color.HSBtoRGB(hue, dark ? 0.30f : 0.20f, dark ? 0.34f : 0.95f));
+        Color ink = new Color(Color.HSBtoRGB(hue, dark ? 0.40f : 0.50f, dark ? 0.92f : 0.40f));
 
-        GeneralPath shape = ChamferShape.build(0, 0, w, h, cut);
-
-        // each game gets its own slight hue shift of the theme gradient, so neighbouring cards are not one flat colour
-        int shift = (Math.abs(gameId.hashCode() / 7) % 7 - 3) * 6;
-        Color start = shiftHue(ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START), shift);
-        Color end = shiftHue(ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END), shift);
-        LinearGradientPaint gradient = new LinearGradientPaint(
-            0, 0, Math.max(w, 1), Math.max(h, 1), new float[] {0f, 1f}, new Color[] {start, end});
-        g2.setPaint(gradient);
+        java.awt.geom.RoundRectangle2D.Float shape = new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, 12, 12);
+        g2.setColor(fill);
         g2.fill(shape);
 
-        g2.setColor(new Color(255, 255, 255, 210));
-        g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-        g2.clip(shape);   // patterns must not spill past the chamfered corners
+        g2.clip(shape);   // patterns must not spill past the rounded corners
+        g2.setColor(ink);
+        g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         drawIcon(g2, w, h);
 
         g2.dispose();
@@ -314,8 +314,9 @@ public class GameCardArt extends JPanel
     private static void drawMonogramIcon(Graphics2D g2, int w, int h, String id)
     {
         int seed = Math.abs(id.hashCode());
+        Color ink = g2.getColor();
         java.awt.Stroke oldStroke = g2.getStroke();
-        g2.setColor(new Color(255, 255, 255, 38));
+        g2.setColor(new Color(ink.getRed(), ink.getGreen(), ink.getBlue(), 22));
         g2.setStroke(new BasicStroke(Math.max(1.5f, h / 60f)));
         int step = Math.max(12, h / 7);
         switch (seed % 6)
@@ -355,13 +356,11 @@ public class GameCardArt extends JPanel
 
         String text = monogram(id);
         float size = Math.min(h * 0.46f, w * 0.78f / Math.max(1, text.length()) * 1.3f);
-        g2.setFont(UITheme.FONT_HEADING.deriveFont(java.awt.Font.BOLD, Math.max(10f, size)));
+        g2.setFont(UITheme.FONT_HEADING.deriveFont(java.awt.Font.PLAIN, Math.max(10f, size)));
         java.awt.FontMetrics fm = g2.getFontMetrics();
         int tx = (w - fm.stringWidth(text)) / 2;
         int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
-        g2.setColor(new Color(0, 0, 0, 40));
-        g2.drawString(text, tx + 2, ty + 2);
-        g2.setColor(new Color(255, 255, 255, 235));
+        g2.setColor(ink);
         g2.drawString(text, tx, ty);
     }
 

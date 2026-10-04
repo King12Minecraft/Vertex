@@ -11,6 +11,7 @@ import account.PermissionManager;
 import admin.FeedbackDialog;
 import net.NetworkConfig;
 import games.ServerBrowserDialog;
+import ui.CursorManager;
 import ui.ThemedButton;
 import ui.ThemedLabel;
 import net.NetworkManager;
@@ -241,10 +242,17 @@ public class SettingsPanel extends PageScaffold
         col.setOpaque(false);
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
 
-        JLabel label = new ThemedLabel("Theme", ThemeColor.TEXT_SECONDARY);
+        JLabel modeLabel = new ThemedLabel("Mode", ThemeColor.TEXT_SECONDARY);
+        modeLabel.setFont(UITheme.FONT_BODY);
+        modeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        modeLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        col.add(modeLabel);
+        col.add(createModeSwitch());
+
+        JLabel label = new ThemedLabel("Colour theme", ThemeColor.TEXT_SECONDARY);
         label.setFont(UITheme.FONT_BODY);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(new EmptyBorder(0, 0, 10, 0));
+        label.setBorder(new EmptyBorder(18, 0, 10, 0));
         col.add(label);
 
         ThemeDropdown dropdown = new ThemeDropdown();
@@ -257,11 +265,75 @@ public class SettingsPanel extends PageScaffold
         cursorLabel.setBorder(new EmptyBorder(18, 0, 4, 0));
         col.add(cursorLabel);
 
-        ui.CursorPicker cursorPicker = new ui.CursorPicker();
+        final ui.CursorPicker cursorPicker = new ui.CursorPicker();
         cursorPicker.setAlignmentX(Component.LEFT_ALIGNMENT);
         col.add(cursorPicker);
 
+        JPanel glowRow = new JPanel(new BorderLayout());
+        glowRow.setOpaque(false);
+        glowRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        glowRow.setBorder(new EmptyBorder(14, 0, 0, 0));
+        JLabel glowLabel = new ThemedLabel("Cursor glow", ThemeColor.TEXT_PRIMARY);
+        glowLabel.setFont(UITheme.FONT_BODY);
+        glowRow.add(glowLabel, BorderLayout.WEST);
+        final ToggleSwitch glowToggle = new ToggleSwitch(CursorManager.isGlow());
+        glowToggle.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { CursorManager.setGlow(glowToggle.isOn()); cursorPicker.repaint(); }
+        });
+        JPanel glowWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        glowWrap.setOpaque(false);
+        glowWrap.add(glowToggle);
+        glowRow.add(glowWrap, BorderLayout.EAST);
+        col.add(glowRow);
+
         return col;
+    }
+
+    /** System / Light / Dark: the calm Claude-style looks. "System" follows the operating system and is the default; the other colour themes below remain available. */
+    private JPanel createModeSwitch()
+    {
+        final ThemedButton system = new ThemedButton("System", false);
+        final ThemedButton light = new ThemedButton("Light", false);
+        final ThemedButton dark = new ThemedButton("Dark", false);
+        final Runnable refresh = new Runnable()
+        {
+            public void run()
+            {
+                String name = theme.ThemeManager.getCurrentTheme().getName();
+                boolean following = theme.ThemeManager.isFollowingSystem();
+                system.setPrimary(following);
+                light.setPrimary(!following && "Claude Light".equals(name));
+                dark.setPrimary(!following && "Claude Dark".equals(name));
+            }
+        };
+        system.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { theme.ThemeManager.useSystem(); }
+        });
+        light.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { theme.ThemeManager.setTheme(new theme.ClaudeLightTheme()); }
+        });
+        dark.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { theme.ThemeManager.setTheme(new theme.ClaudeDarkTheme()); }
+        });
+        theme.ThemeManager.addListener(refresh);
+        refresh.run();
+
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setBorder(new EmptyBorder(0, -8, 0, 0));
+        for (ThemedButton b : new ThemedButton[] { system, light, dark })
+        {
+            b.setPreferredSize(new Dimension(96, 36));
+            row.add(b);
+        }
+        // keep a strong reference: ThemeManager only holds its listeners weakly
+        row.putClientProperty("modeRefresh", refresh);
+        return row;
     }
 
     private JPanel createConnectionSection()

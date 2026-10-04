@@ -84,6 +84,7 @@ public class ThemedButton extends JButton
         super.paintComponent(g);
     }
 
+    /** Primary: a solid accent fill with text that is readable on it. No glow, no outline - the colour does the work. */
     private void paintPrimary(Graphics2D g2)
     {
         int w = getWidth();
@@ -92,59 +93,44 @@ public class ThemedButton extends JButton
 
         if (!isEnabled())
         {
-            g2.setColor(ThemeManager.getColor(ThemeColor.BG_PANEL));
+            g2.setColor(ThemeManager.getColor(ThemeColor.BG_PANEL_HOVER));
             g2.fillRoundRect(0, 0, w, h, radius, radius);
-            g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
-            g2.setStroke(new BasicStroke(1.4f));
-            g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
             setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
             return;
         }
 
-        Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
-        Color accentHoverColor = ThemeManager.getColor(ThemeColor.ACCENT_HOVER);
-
-        // Ambient glow: a soft halo that's always present at rest, brightening further on hover.
-        int glowAlpha = Math.min(255, 40 + (int) (75 * glow.getIntensity()));
-        g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), glowAlpha));
-        g2.fillRoundRect(-6, -6, w + 12, h + 12, radius + 8, radius + 8);
-
-        g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT_DIM));
+        Color fill = ThemeManager.getColor(ThemeColor.ACCENT);
+        if (pressed)
+        {
+            fill = fill.darker();
+        }
+        else if (hover)
+        {
+            fill = ThemeManager.getColor(ThemeColor.ACCENT_HOVER);
+        }
+        g2.setColor(fill);
         g2.fillRoundRect(0, 0, w, h, radius, radius);
-
-        Color borderColor = pressed ? accent.darker() : (hover ? accentHoverColor : accent);
-        g2.setColor(borderColor);
-        g2.setStroke(new BasicStroke(1.6f));
-        g2.drawRoundRect(0, 0, w - 1, h - 1, radius, radius);
-
-        setForeground(borderColor);
+        setForeground(ThemeManager.onAccent());
     }
 
+    /** Secondary: the card colour with a hairline border; hover tints it. */
     private void paintSecondary(Graphics2D g2)
     {
         int w = getWidth();
         int h = getHeight();
 
-        Color base;
-        if (!isEnabled())
-        {
-            base = ThemeManager.getColor(ThemeColor.BG_PANEL);
-        }
-        else
-        {
-            base = (hover || pressed)
-                ? ThemeManager.getColor(ThemeColor.BG_PANEL_HOVER)
-                : ThemeManager.getColor(ThemeColor.BG_SIDEBAR);
-        }
+        Color base = (isEnabled() && (hover || pressed))
+            ? ThemeManager.getColor(ThemeColor.BG_PANEL_HOVER)
+            : ThemeManager.getColor(ThemeColor.BG_PANEL);
 
         g2.setColor(base);
         g2.fillRoundRect(0, 0, w, h, UITheme.RADIUS_BUTTON, UITheme.RADIUS_BUTTON);
 
         g2.setColor(ThemeManager.getColor(ThemeColor.BORDER));
-        g2.setStroke(new BasicStroke(1.2f));
+        g2.setStroke(new BasicStroke(1f));
         g2.drawRoundRect(0, 0, w - 1, h - 1, UITheme.RADIUS_BUTTON, UITheme.RADIUS_BUTTON);
 
-        setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        setForeground(ThemeManager.getColor(isEnabled() ? ThemeColor.TEXT_PRIMARY : ThemeColor.TEXT_MUTED));
     }
 
     /**

@@ -76,6 +76,8 @@ public class TopBar extends RoundedPanel
 
         GlobalSearchField searchField = new GlobalSearchField(navigationListener);
         this.searchField = searchField;
+        searchField.setMaximumSize(new Dimension(320, 38));
+        searchField.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
         leftPanel.add(searchField);
 
         rightPanel.add(new QuickPlayDropdown());
