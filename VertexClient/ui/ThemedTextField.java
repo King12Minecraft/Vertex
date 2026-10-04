@@ -23,6 +23,7 @@ public class ThemedTextField extends RoundedPanel
 {
     private final JTextField field;
     private final String placeholder;
+    private boolean focused = false;
 
     public ThemedTextField(String placeholder)
     {
@@ -65,8 +66,8 @@ public class ThemedTextField extends RoundedPanel
 
         field.addFocusListener(new FocusAdapter()
         {
-            public void focusGained(FocusEvent e) { glow().animateIn(); }
-            public void focusLost(FocusEvent e)  { glow().animateOut(); }
+            public void focusGained(FocusEvent e) { focused = true; repaint(); }
+            public void focusLost(FocusEvent e)  { focused = false; repaint(); }
         });
 
         ThemeManager.addListener(new Runnable()
@@ -108,6 +109,12 @@ public class ThemedTextField extends RoundedPanel
         });
     }
 
+    /** Turns typing on/off. setEnabled() on this component only affects the wrapper panel, not the JTextField inside it, so it can't be used for this. */
+    public void setInputEnabled(boolean enabled)
+    {
+        field.setEnabled(enabled);
+    }
+
     public void clear()
     {
         field.setText(placeholder);
@@ -119,5 +126,21 @@ public class ThemedTextField extends RoundedPanel
     {
         field.setText(value);
         field.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+    }
+
+    /** The focus indicator: an accent outline (the flat redesign has no glow to show focus with). */
+    @Override
+    protected void paintComponent(java.awt.Graphics g)
+    {
+        super.paintComponent(g);
+        if (focused)
+        {
+            java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+            UITheme.applyAntialiasing(g2);
+            g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
+            g2.setStroke(new java.awt.BasicStroke(1.6f));
+            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, UITheme.RADIUS_BUTTON, UITheme.RADIUS_BUTTON);
+            g2.dispose();
+        }
     }
 }

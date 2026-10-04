@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -451,7 +452,7 @@ public class DotsAndBoxesWindow extends JPanel implements NetworkManager.PushLis
             // why (a short reconnect grace window, not an immediate forfeit).
             awaitingReconnect = true;
             applyBoardState(message.getBoardState());
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.DOTS_RESULT)
         {

@@ -1,5 +1,7 @@
 package games;
 
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 import net.ClientHandler;
 import net.Message;
 import net.MessageType;
@@ -37,12 +39,14 @@ public class SnakeArenaMatch
     public static final int GRID_SIZE = 20;
     private static final long TICK_MS = 150;
     private static final String GAME_ID = "snake-arena";
+    /** After a reconnect the arena stays frozen this long so the returning player's window is up before the snakes move. */
+    private static final long RESUME_DELAY_MS = 3000;
 
     private static final int UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3;
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final SnakeArenaMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -56,6 +60,38 @@ public class SnakeArenaMatch
     private boolean aliveA = true, aliveB = true;
     private boolean over = false;
     private Timer tickTimer;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. Real-time, so the tick and inputs hold while paused and for a short beat after a return. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return SnakeArenaMatch.this.stateString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentSnakeArenaMatch(SnakeArenaMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            if (tickTimer != null) tickTimer.cancel();
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.SNAKEARENA_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdateTo(opponent);
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, slot == 0 ? "A" : "B",
+                opponent.getLoggedInUsername(), stateString(), "-");
+        }
+    }, RESUME_DELAY_MS);
 
     public SnakeArenaMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                             SnakeArenaMatchManager matchManager, EconomyManager economyManager,
@@ -99,7 +135,7 @@ public class SnakeArenaMatch
     /** Queues a direction change for the next tick - can't reverse directly into your own neck (e.g. going RIGHT then immediately queuing LEFT), the same restriction every real Snake game has, since that would just be an instant, uninteresting self-collision. */
     public synchronized void turn(ClientHandler requester, int direction)
     {
-        if (over || direction < 0 || direction > 3) return;
+        if (over || reconnect.isHeld() || direction < 0 || direction > 3) return;
         if (requester == playerA && !isOpposite(directionA, direction)) pendingDirectionA = direction;
         else if (requester == playerB && !isOpposite(directionB, direction)) pendingDirectionB = direction;
     }
@@ -112,7 +148,7 @@ public class SnakeArenaMatch
 
     private synchronized void tick()
     {
-        if (over) return;
+        if (over || reconnect.isHeld()) return;
 
         directionA = pendingDirectionA;
         directionB = pendingDirectionB;
@@ -211,15 +247,17 @@ public class SnakeArenaMatch
 
     private void broadcastUpdate()
     {
-        String state = stateString();
-        for (ClientHandler player : new ClientHandler[] { playerA, playerB })
-        {
-            Message msg = new Message();
-            msg.setType(MessageType.SNAKEARENA_UPDATE);
-            msg.setMatchId(matchId);
-            msg.setBoardState(state);
-            player.sendMessage(msg);
-        }
+        sendUpdateTo(playerA);
+        sendUpdateTo(playerB);
+    }
+
+    private void sendUpdateTo(ClientHandler player)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.SNAKEARENA_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(stateString());
+        player.sendMessage(msg);
     }
 
     /** "food_x,food_y|Ax1,Ay1;Ax2,Ay2;...|Bx1,By1;Bx2,By2;..." */
@@ -283,20 +321,8 @@ public class SnakeArenaMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        if (tickTimer != null) tickTimer.cancel();
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.SNAKEARENA_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }

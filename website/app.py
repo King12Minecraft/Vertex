@@ -1,7 +1,7 @@
 """
 Vertex public website - Flask app.
 
-Pages: Home/Changelog, Download (default landing page), Credits, a
+Pages: Home, Download (default landing page), Changelog, Roadmap, Credits, a
 simplified public "how it's built" overview, and Features. Reads the
 same VERSION file the jars are stamped with, so the version number
 never drifts between the app and the site (see the root README's
@@ -53,28 +53,40 @@ def render_markdown_file(filename):
     return markdown.markdown(text, extensions=["fenced_code", "tables"])
 
 
-# A short, curated, human-readable list of highlights - deliberately NOT a
-# dump of ROADMAP.md's "Done" section (that's a developer changelog, written
-# for someone reading the source; this is a public one). Update this list by
-# hand when something worth telling players about ships - it's meant to stay
-# short, not track every commit.
-CHANGELOG_HIGHLIGHTS = [
-    {
-        "version": "1.0.0",
-        # Named "points", not "items" - a dict already has a real .items()
-        # method, so Jinja2's dot-access would silently resolve release.items
-        # to that method instead of this key (a well-known Jinja2 gotcha).
-        "points": [
-            "51 original games, from quick single-player rounds to full online-ranked matches.",
-            "Telephone - a new Gartic-Phone-style draw-and-guess party game for 4-8 players.",
-            "Every game now opens inside the main window instead of a separate popup.",
-            "A real economy: coins, a shop, daily login rewards, and achievements.",
-            "Friends, chat, parties, and moderation tools built in.",
-            "Security hardening: a filtered network protocol and an integrity-checked auto-updater.",
-            "11 visual themes, including a low-end performance mode for older computers.",
-        ],
-    },
-]
+def parse_changelog(text):
+    """Entries of CHANGELOG.md (repo root), newest first: [{"heading": str, "points": [str]}].
+
+    The same hand-written file the app's own Changelog page reads (see the format note at the top
+    of the file itself), so the website and the app can never disagree. A "## " line starts an
+    entry, a "- " line is a bullet, and a line indented by two spaces continues the bullet above.
+    Anything else - the "# " title and the header comment - is ignored.
+    """
+    entries = []
+    current = None
+    in_comment = False
+    for line in (text or "").splitlines():
+        if in_comment:
+            if "-->" in line:
+                in_comment = False
+            continue
+        if line.strip().startswith("<!--"):
+            if "-->" not in line:
+                in_comment = True
+            continue
+        if line.startswith("## "):
+            # "points", not "items" - a dict already has a real .items() method, so Jinja2's
+            # dot-access would silently resolve entry.items to that method instead of this key.
+            current = {"heading": line[3:].strip(), "points": []}
+            entries.append(current)
+        elif current is not None and line.startswith("- "):
+            current["points"].append(line[2:].strip())
+        elif current is not None and current["points"] and line.startswith("  ") and line.strip():
+            current["points"][-1] += " " + line.strip()
+    return entries
+
+
+def get_changelog():
+    return parse_changelog(read_repo_file("CHANGELOG.md"))
 
 
 @app.route("/")
@@ -84,10 +96,27 @@ def download():
 
 
 @app.route("/home")
-@app.route("/changelog")
 def home():
     version = get_version()
-    return render_template("home.html", version=version, highlights=CHANGELOG_HIGHLIGHTS)
+    entries = get_changelog()
+    return render_template("home.html", version=version, latest=entries[0] if entries else None)
+
+
+@app.route("/changelog")
+def changelog():
+    return render_template("changelog.html", entries=get_changelog())
+
+
+@app.route("/roadmap")
+def roadmap():
+    # Hand-written and public: possibilities, no dates, and none of the internal notes that live in
+    # the repo's own ROADMAP.md. Lives with the site rather than being read from the repo root.
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "content", "roadmap.md")
+    if not os.path.isfile(path):
+        abort(404)
+    with open(path, "r", encoding="utf-8") as f:
+        content = markdown.markdown(f.read(), extensions=["fenced_code", "tables"])
+    return render_template("markdown_page.html", title="Roadmap", content=content)
 
 
 @app.route("/credits")

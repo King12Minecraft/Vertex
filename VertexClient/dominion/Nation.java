@@ -20,6 +20,8 @@ import java.io.Serializable;
  */
 public class Nation implements Serializable
 {
+    private static final long serialVersionUID = 1L;
+
     private static final int STARTING_HONOR = 100;
     private static final int MIN_NAME_LENGTH = 2;
     private static final int MAX_NAME_LENGTH = 30;

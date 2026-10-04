@@ -99,43 +99,31 @@ public class HeroBanner extends JPanel
         Shape shape = new RoundRectangle2D.Float(0, 0, w, h, radius, radius);
         g2.setClip(shape);
 
-        Color start = ThemeManager.getColor(ThemeColor.BG_PANEL);
-        Color end = ThemeManager.getColor(ThemeColor.BG_APP);
-        LinearGradientPaint base = new LinearGradientPaint(
-            0, 0, Math.max(w, 1), Math.max(h, 1), new float[] {0f, 1f}, new Color[] {start, end});
-        g2.setPaint(base);
+        // Flat: the card colour, and the game's own tile (same art as its catalogue card) on the right.
+        g2.setColor(ThemeManager.getColor(ThemeColor.BG_PANEL));
         g2.fillRect(0, 0, w, h);
 
-        Color accent = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-        RadialGradientPaint glow = new RadialGradientPaint(
-            w * 0.78f, h * 0.42f, Math.max(Math.max(w, h) * 0.5f, 1f),
-            new float[] {0f, 1f},
-            new Color[] {
-                new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 70),
-                new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 0)
-            });
-        g2.setPaint(glow);
-        g2.fillRect(0, 0, w, h);
-
-        Graphics2D iconG2 = (Graphics2D) g2.create();
-        iconG2.translate(w - h * 0.85, h * 0.06);
-        iconG2.setColor(new Color(255, 255, 255, 20));
-        iconG2.setStroke(new BasicStroke(6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-        GameCardArt.paintIconOnly(iconG2, (int) (h * 0.8), (int) (h * 0.8), game.getGameId());
-        iconG2.dispose();
+        int tileH = h - 48;
+        int tileW = Math.min((int) (tileH * 1.5), w / 2 - 24);
+        Graphics2D tileG2 = (Graphics2D) g2.create();
+        tileG2.translate(w - tileW - 24, 24);
+        games.GameCardArt art = new games.GameCardArt(game.getGameId());
+        art.setSize(tileW, tileH);
+        art.print(tileG2);
+        tileG2.dispose();
 
         int buttonY = h - PAD_BOTTOM - BUTTON_HEIGHT;
         int titleY = buttonY - 22;
         int kickerY = titleY - 46;
 
         g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT));
-        g2.setFont(UITheme.FONT_SMALL.deriveFont(Font.BOLD, 12f));
-        String kicker = game.isOnline() ? "FEATURED NOW - MULTIPLAYER" : "FEATURED NOW - PRACTICE MODE";
-        g2.drawString(trackedCaps(kicker), PAD_X, kickerY);
+        g2.setFont(UITheme.FONT_NAV_BOLD);
+        String kicker = game.isOnline() ? "Featured - multiplayer" : "Featured - practice mode";
+        g2.drawString(kicker, PAD_X, kickerY);
 
-        g2.setColor(Color.WHITE);
-        g2.setFont(UITheme.FONT_HEADING.deriveFont(Font.BOLD, 42f));
-        g2.drawString(game.getName().toUpperCase(), PAD_X, titleY);
+        g2.setColor(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+        g2.setFont(UITheme.FONT_HEADING.deriveFont(Font.PLAIN, 40f));
+        g2.drawString(game.getName(), PAD_X, titleY);
 
         paintCtaButton(g2, PAD_X, buttonY);
 
@@ -162,34 +150,22 @@ public class HeroBanner extends JPanel
         return sb.toString();
     }
 
-    /** A rounded outlined-glow pill under the title, sized to its own label - the Aurora Glass CTA treatment (see ThemedButton's primary style). */
+    /** The Play button under the title: solid accent, label readable on it, no glow. */
     private void paintCtaButton(Graphics2D g2, int x, int y)
     {
-        String label = "\u25B6  PLAY NOW";
-        g2.setFont(UITheme.FONT_NAV_BOLD.deriveFont(Font.BOLD, 14f));
+        String label = "Play now";
+        g2.setFont(UITheme.FONT_NAV_BOLD);
         FontMetrics fm = g2.getFontMetrics();
-        int buttonW = fm.stringWidth(label) + 56;
+        int buttonW = fm.stringWidth(label) + 48;
         int radius = UITheme.RADIUS_BUTTON;
 
         playButtonBounds = new Rectangle(x, y, buttonW, BUTTON_HEIGHT);
 
-        Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
-        Color accentHoverColor = ThemeManager.getColor(ThemeColor.ACCENT_HOVER);
-
-        int glowAlpha = playHover ? 110 : 60;
-        g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), glowAlpha));
-        g2.fillRoundRect(x - 6, y - 6, buttonW + 12, BUTTON_HEIGHT + 12, radius + 8, radius + 8);
-
-        g2.setColor(ThemeManager.getColor(ThemeColor.ACCENT_DIM));
+        g2.setColor(ThemeManager.getColor(playHover ? ThemeColor.ACCENT_HOVER : ThemeColor.ACCENT));
         g2.fillRoundRect(x, y, buttonW, BUTTON_HEIGHT, radius, radius);
 
-        Color borderColor = playHover ? accentHoverColor : accent;
-        g2.setColor(borderColor);
-        g2.setStroke(new BasicStroke(1.6f));
-        g2.drawRoundRect(x, y, buttonW - 1, BUTTON_HEIGHT - 1, radius, radius);
-
-        g2.setColor(borderColor);
+        g2.setColor(ThemeManager.onAccent());
         int textW = fm.stringWidth(label);
-        g2.drawString(label, x + (buttonW - textW) / 2, y + BUTTON_HEIGHT / 2 + fm.getAscent() / 2 - 4);
+        g2.drawString(label, x + (buttonW - textW) / 2, y + (BUTTON_HEIGHT + fm.getAscent() - fm.getDescent()) / 2);
     }
 }

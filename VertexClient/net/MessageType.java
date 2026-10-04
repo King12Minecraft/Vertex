@@ -8,6 +8,9 @@ package net;
  */
 public enum MessageType
 {
+    /** Keep-alive from the client every few seconds; the server answers PONG. Silence on either side past its timeout means the connection is dead (see ClientHandler / NetworkManager). */
+    PING_REQUEST,
+    PONG,
     LOGIN_REQUEST,
     LOGIN_RESPONSE,
     CREATE_ACCOUNT_REQUEST,
@@ -310,6 +313,9 @@ public enum MessageType
 
     // --- Viewing another player's profile (read-only) ---
     PLAYER_PROFILE_REQUEST,
+    /** A player's stats page: plays per game, ratings and win/loss records, best scores. username empty = the requester's own. */
+    STATS_REQUEST,
+    STATS_RESPONSE,
     PLAYER_PROFILE_RESPONSE,
 
     // --- Chess (1v1 turn-based, standard rules minus castling/en passant) ---
@@ -430,6 +436,16 @@ public enum MessageType
     TELEPHONE_SUBMIT_REQUEST,
     TELEPHONE_REVEAL_ENTRY,
 
+    // --- Caption Chaos (prompt-and-vote party game, 3-8 players - see CaptionChaosMatch) ---
+    CAPTIONCHAOS_FIND_MATCH_REQUEST,
+    CAPTIONCHAOS_LEAVE_QUEUE_REQUEST,
+    CAPTIONCHAOS_WRITE_START,
+    CAPTIONCHAOS_SUBMIT_REQUEST,
+    CAPTIONCHAOS_VOTE_START,
+    CAPTIONCHAOS_VOTE_REQUEST,
+    CAPTIONCHAOS_ROUND_RESULT,
+    CAPTIONCHAOS_MATCH_OVER,
+
     // --- Vertex: Dominion (persistent nation-building game - see dominion package, DOMINION_DESIGN.md) ---
     DOMINION_FOUND_NATION_REQUEST,
     DOMINION_FOUND_NATION_RESPONSE,
@@ -444,5 +460,31 @@ public enum MessageType
     DOMINION_PROPOSE_RELATION_REQUEST,
     DOMINION_PROPOSE_RELATION_RESPONSE,
     DOMINION_RESPOND_PROPOSAL_REQUEST,
-    DOMINION_RESPOND_PROPOSAL_RESPONSE
+    DOMINION_RESPOND_PROPOSAL_RESPONSE,
+
+    // In-match chat (see the chat package) - a small room shared by everyone in one
+    // live match, separate from DMs/group chats.
+    /** Client -> server: send getChatText() to the sender's current match chat room. */
+    MATCH_CHAT_SEND_REQUEST,
+    /** A client that just resumed a match asks the server to re-announce the match's chat room to it. */
+    MATCH_CHAT_SYNC_REQUEST,
+    /** Server -> every member of the room: getUsername() said getChatText(), for getMatchId(). */
+    MATCH_CHAT_MESSAGE,
+    /** Server -> room members: getMatchChatState() ("OPEN", "LOCKED" or "CLOSED") for getMatchId()/getGameId(). Also the message that tells a client a chat room exists for its match at all. */
+    MATCH_CHAT_STATE,
+
+    // Forums (see the forum package). Every request is answered with FORUM_RESPONSE.
+    /** getForumBoardId() -> the board's threads as getForumEntries() (ForumCodec.threadSummaryLine each). */
+    FORUM_THREAD_LIST_REQUEST,
+    /** getForumThreadId() -> the thread's header fields plus its posts as getForumEntries() (ForumCodec.postLine each). */
+    FORUM_THREAD_VIEW_REQUEST,
+    /** getForumBoardId(), getForumTitle(), getChatText() as the opening post. */
+    FORUM_NEW_THREAD_REQUEST,
+    /** getForumThreadId(), getChatText() as the reply. */
+    FORUM_REPLY_REQUEST,
+    /** Moderator/admin only. getForumThreadId(), and getForumPostId() for a single reply (empty = the whole thread). */
+    FORUM_DELETE_REQUEST,
+    /** Moderator/admin only. getForumThreadId() and isForumLocked() (the state to set). */
+    FORUM_LOCK_REQUEST,
+    FORUM_RESPONSE
 }

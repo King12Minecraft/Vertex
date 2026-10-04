@@ -34,8 +34,10 @@ import java.awt.event.MouseEvent;
  * left, and account info on the right - a live online-player count
  * (reuses the existing ONLINE_USERS_REQUEST, no new protocol needed),
  * the notification bell, and the username, which now doubles as an
- * account menu (Profile/Settings) - both were moved out of the Sidebar
- * to declutter it down to game-related navigation only.
+ * account menu (Profile/Settings). Profile and Settings are also in the
+ * Sidebar's Account group (2026-09-30 - the earlier move out of the Sidebar
+ * was reversed when the Sidebar became grouped and scrollable, so the menu
+ * here is now a shortcut to the same two pages).
  */
 public class TopBar extends RoundedPanel
 {
@@ -56,10 +58,17 @@ public class TopBar extends RoundedPanel
         setPreferredSize(new Dimension(0, UITheme.TOPBAR_HEIGHT));
         setBorder(new EmptyBorder(0, 28, 0, 28));
 
-        titleLabel = new JLabel("Home");
+        titleLabel = new JLabel("");
+        titleLabel.setVisible(false);
         titleLabel.setFont(UITheme.FONT_HEADING);
         titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
-        add(titleLabel, BorderLayout.WEST);
+        // Left side: the page title (only for pages that have no header of their own, see setPageTitle) and the search box.
+        JPanel leftPanel = new JPanel();
+        leftPanel.setOpaque(false);
+        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.X_AXIS));
+        leftPanel.add(titleLabel);
+        titleLabel.setBorder(new EmptyBorder(0, 0, 0, 24));
+        add(leftPanel, BorderLayout.WEST);
 
         JPanel rightPanel = new JPanel();
         rightPanel.setOpaque(false);
@@ -67,14 +76,17 @@ public class TopBar extends RoundedPanel
 
         GlobalSearchField searchField = new GlobalSearchField(navigationListener);
         this.searchField = searchField;
-        rightPanel.add(searchField);
-        rightPanel.add(javax.swing.Box.createHorizontalStrut(12));
+        searchField.setMaximumSize(new Dimension(320, 38));
+        searchField.setAlignmentY(java.awt.Component.CENTER_ALIGNMENT);
+        leftPanel.add(searchField);
 
         rightPanel.add(new QuickPlayDropdown());
         rightPanel.add(javax.swing.Box.createHorizontalStrut(12));
 
         ThemedButton partyButton = new ThemedButton("Party", false);
-        partyButton.setPreferredSize(new Dimension(70, 30));
+        partyButton.setPreferredSize(new Dimension(84, 34));
+        partyButton.setMinimumSize(new Dimension(84, 34));
+        partyButton.setMaximumSize(new Dimension(84, 34));
         partyButton.addActionListener(new java.awt.event.ActionListener()
         {
             public void actionPerformed(java.awt.event.ActionEvent e)
@@ -240,6 +252,7 @@ public class TopBar extends RoundedPanel
     public void setPageTitle(String title)
     {
         titleLabel.setText(title);
+        titleLabel.setVisible(title != null && !title.isEmpty());
     }
 
     private String currentUsername()

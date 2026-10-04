@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -68,6 +69,8 @@ public class CardRushWindow extends JPanel implements NetworkManager.PushListene
     private int opponentHandCount, myStockCount, opponentStockCount;
     private Integer selectedCard;
     private boolean gameOver;
+    /** True while the opponent is inside their reconnect window - plays aren't sent, and the next update (their return) clears it. */
+    private boolean awaitingReconnect;
 
     public CardRushWindow()
     {
@@ -256,7 +259,7 @@ public class CardRushWindow extends JPanel implements NetworkManager.PushListene
 
     private void tryPlaySelected(int pileNumber)
     {
-        if (gameOver || selectedCard == null) return;
+        if (gameOver || awaitingReconnect || selectedCard == null) return;
         Message request = new Message();
         request.setType(MessageType.CARDRUSH_PLAY_REQUEST);
         request.setMatchId(matchId);
@@ -271,7 +274,7 @@ public class CardRushWindow extends JPanel implements NetworkManager.PushListene
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.CARDRUSH_MATCH_FOUND || type == MessageType.CARDRUSH_UPDATE
-            || type == MessageType.CARDRUSH_RESULT;
+            || type == MessageType.CARDRUSH_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -302,7 +305,20 @@ public class CardRushWindow extends JPanel implements NetworkManager.PushListene
         }
         else if (type == MessageType.CARDRUSH_UPDATE)
         {
+            if (awaitingReconnect)
+            {
+                awaitingReconnect = false;
+                statusLabel.setText("vs " + opponentUsername + " - no turns, play anytime!");
+            }
             applyState(message.getBoardState());
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
+            awaitingReconnect = true;
+            selectedCard = null;
+            applyState(message.getBoardState());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.CARDRUSH_RESULT)
         {

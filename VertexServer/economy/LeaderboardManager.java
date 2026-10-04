@@ -152,6 +152,39 @@ public class LeaderboardManager
         return result;
     }
 
+    /**
+     * Everything competitive this account has on record, one row per game: "gameId|rating|wins|losses|draws|bestScore".
+     * rating is empty for a game with no rating (score-only games); bestScore is 0 when there is none. Games with
+     * nothing on record at all are left out. Feeds the Stats page. Losses and draws exist only for the rated games -
+     * a score game has no loss to count.
+     */
+    public synchronized java.util.List<String> getStatsRowsForAccount(int accountId)
+    {
+        java.util.Set<String> gameIds = new java.util.TreeSet<String>();
+        for (Map.Entry<String, Map<Integer, Integer>> e : ratings.entrySet())
+        {
+            if (e.getValue().containsKey(accountId)) gameIds.add(e.getKey());
+        }
+        for (Map.Entry<String, Map<Integer, int[]>> e : records.entrySet())
+        {
+            if (e.getValue().containsKey(accountId)) gameIds.add(e.getKey());
+        }
+        for (Map.Entry<String, Map<Integer, Integer>> e : bestScores.entrySet())
+        {
+            if (e.getValue().containsKey(accountId)) gameIds.add(e.getKey());
+        }
+        java.util.List<String> rows = new java.util.ArrayList<String>();
+        for (String gameId : gameIds)
+        {
+            Map<Integer, Integer> gameRatings = ratings.get(gameId);
+            Integer rating = gameRatings == null ? null : gameRatings.get(accountId);
+            int[] record = getRecord(gameId, accountId);
+            rows.add(gameId + "|" + (rating == null ? "" : String.valueOf(rating)) + "|" + record[0] + "|" + record[1]
+                + "|" + record[2] + "|" + getBestScore(gameId, accountId));
+        }
+        return rows;
+    }
+
     private void setRating(String gameId, int accountId, int newRating)
     {
         Map<Integer, Integer> gameRatings = ratings.get(gameId);

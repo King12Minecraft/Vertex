@@ -52,7 +52,7 @@ public class GameRulesDialog
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(title);
 
-        JLabel rulesLabel = new JLabel("<html><body style='width:300px'>" + escapeHtml(GameRules.get(gameId)) + "</body></html>");
+        JLabel rulesLabel = new JLabel("<html><table width='300' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(GameRules.get(gameId)) + "</td></tr></table></html>");
         rulesLabel.setFont(UITheme.FONT_BODY);
         rulesLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         rulesLabel.setAlignmentX(Component.LEFT_ALIGNMENT);

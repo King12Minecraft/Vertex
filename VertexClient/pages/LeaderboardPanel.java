@@ -4,6 +4,13 @@ import net.MessageType;
 import games.GameManager;
 import games.GameInfo;
 import ui.ThemedScrollBarUI;
+import theme.ThemeManager;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import games.ReplayBrowserDialog;
 import games.SpectateDialog;
 import theme.UITheme;
@@ -12,6 +19,7 @@ import net.Message;
 import ui.ThemedButton;
 import ui.ThemedLabel;
 import ui.RoundedPanel;
+import ui.PlaceholderPanel;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -32,8 +40,8 @@ import java.util.Set;
 /**
  * LeaderboardPanel
  * ----------------
- * One page, all games - a row of game-picker chips across the top,
- * and a ranked table below. Rated games (Tic-Tac-Toe, Chess,
+ * One page, all games - a scrolling game list on the left (the selected game is highlighted)
+ * and the ranked table for it on the right, top three marked in the accent colour. Rated games (Tic-Tac-Toe, Chess,
  * Battleship, Rock Paper Scissors, Fight Arena) show ELO + win/loss/
  * draw record; score-based games (Racing, Snake, Tetris, etc.) show
  * best score instead - the server decides which via
@@ -47,108 +55,137 @@ import java.util.Set;
  * NetworkManager's response queue has no per-request correlation -
  * see AchievementsPanel's note for the full explanation.)
  */
-public class LeaderboardPanel extends RoundedPanel
+public class LeaderboardPanel extends PageScaffold
 {
     private static final Set<String> RATED_GAMES = new HashSet<String>(java.util.Arrays.asList(
         "tictactoe-online", "chess", "battleship", "rock-paper-scissors", "fight-arena"));
 
-    private final JPanel chipRow;
-    private final JPanel entriesList;
+    private final JPanel gameList = new JPanel();
+    private final JPanel entriesList = new JPanel();
     private final JLabel myRankLabel;
+    private final SectionCard resultsCard;
+    private final java.util.Map<String, PickerItem> items = new java.util.LinkedHashMap<String, PickerItem>();
     private ThemedButton spectateButton;
     private ThemedButton replaysButton;
     private String selectedGameId;
 
     public LeaderboardPanel()
     {
-        super(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(24, 24, 24, 24));
+        super("LEADERBOARDS", "Pick a game to see its top players (click a name for their stats). Rated games show an ELO rating, the rest show best scores.");
 
-        JLabel title = new ThemedLabel("Leaderboards", ThemeColor.TEXT_PRIMARY);
-        title.setFont(UITheme.FONT_HEADING);
-        title.setBorder(new EmptyBorder(0, 0, 16, 0));
-        add(title, BorderLayout.NORTH);
+        // ---- left: the game list ----
+        gameList.setOpaque(false);
+        gameList.setLayout(new BoxLayout(gameList, BoxLayout.Y_AXIS));
+        JScrollPane gameScroll = new JScrollPane(gameList);
+        gameScroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        gameScroll.setOpaque(false);
+        gameScroll.getViewport().setOpaque(false);
+        gameScroll.getVerticalScrollBar().setUnitIncrement(16);
+        ThemedScrollBarUI.apply(gameScroll);
+        SectionCard gamesCard = new SectionCard("GAMES").content(gameScroll);
+        gamesCard.setPreferredSize(new Dimension(240, 100));
 
-        JPanel body = new JPanel();
-        body.setOpaque(false);
-        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        // ---- right: the table ----
+        JPanel right = new JPanel(new BorderLayout());
+        right.setOpaque(false);
 
-        chipRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
-        chipRow.setOpaque(false);
-        chipRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        body.add(chipRow);
-        body.add(Box.createVerticalStrut(16));
-
-        myRankLabel = new ThemedLabel(" ", ThemeColor.ACCENT);
+        JPanel top = new JPanel();
+        top.setOpaque(false);
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        myRankLabel = new ThemedLabel("Choose a game on the left.", ThemeColor.ACCENT);
         myRankLabel.setFont(UITheme.FONT_NAV_BOLD);
         myRankLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        myRankLabel.setBorder(new EmptyBorder(0, 0, 12, 0));
-        body.add(myRankLabel);
+        myRankLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        top.add(myRankLabel);
 
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        buttons.setOpaque(false);
+        buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        buttons.setBorder(new EmptyBorder(0, -8, 10, 0));
         spectateButton = new ThemedButton("Spectate Live Matches", false);
-        spectateButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        spectateButton.setMaximumSize(new Dimension(220, 34));
+        spectateButton.setPreferredSize(new Dimension(210, 34));
         spectateButton.setVisible(false);
         spectateButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { SpectateDialog.show(LeaderboardPanel.this, selectedGameId); }
         });
-        body.add(spectateButton);
-        body.add(Box.createVerticalStrut(8));
-
+        buttons.add(spectateButton);
         replaysButton = new ThemedButton("My Replays", false);
-        replaysButton.setAlignmentX(Component.LEFT_ALIGNMENT);
-        replaysButton.setMaximumSize(new Dimension(220, 34));
+        replaysButton.setPreferredSize(new Dimension(140, 34));
         replaysButton.setVisible(false);
         replaysButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { ReplayBrowserDialog.show(LeaderboardPanel.this); }
         });
-        body.add(replaysButton);
-        body.add(Box.createVerticalStrut(12));
+        buttons.add(replaysButton);
+        top.add(buttons);
+        right.add(top, BorderLayout.NORTH);
 
-        entriesList = new JPanel();
         entriesList.setOpaque(false);
         entriesList.setLayout(new BoxLayout(entriesList, BoxLayout.Y_AXIS));
-        entriesList.setAlignmentX(Component.LEFT_ALIGNMENT);
-
         JScrollPane scroll = new JScrollPane(entriesList);
         scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
         ThemedScrollBarUI.apply(scroll);
-        body.add(scroll);
+        right.add(scroll, BorderLayout.CENTER);
+        resultsCard = new SectionCard("TOP PLAYERS").content(right);
 
-        add(body, BorderLayout.CENTER);
+        JPanel layout = new JPanel(new BorderLayout(16, 0));
+        layout.setOpaque(false);
+        layout.add(gamesCard, BorderLayout.WEST);
+        layout.add(resultsCard, BorderLayout.CENTER);
+        setBody(layout);
 
-        populateChips();
+        populateGames();
     }
 
-    private void populateChips()
+    private void populateGames()
     {
         List<GameInfo> games = GameManager.getCachedGames();
-        for (int i = 0; i < games.size(); i++)
+        String first = null;
+        String firstName = null;
+        // rated games first - they're the ones with a real ladder
+        for (int pass = 0; pass < 2; pass++)
         {
-            final GameInfo game = games.get(i);
-            if (game.isComingSoon())
+            for (int i = 0; i < games.size(); i++)
             {
-                continue;
+                GameInfo game = games.get(i);
+                boolean rated = RATED_GAMES.contains(game.getGameId());
+                if (game.isComingSoon() || rated != (pass == 0))
+                {
+                    continue;
+                }
+                final String id = game.getGameId();
+                final String name = game.getName();
+                PickerItem item = new PickerItem(name, rated ? "ELO" : null, new Runnable()
+                {
+                    public void run() { selectGame(id, name); }
+                });
+                items.put(id, item);
+                gameList.add(item);
+                if (first == null)
+                {
+                    first = game.getGameId();
+                    firstName = game.getName();
+                }
             }
-            ThemedButton chip = new ThemedButton(game.getName(), false);
-            chip.setPreferredSize(new Dimension(chip.getPreferredSize().width + 20, 32));
-            chip.addActionListener(new ActionListener()
-            {
-                public void actionPerformed(ActionEvent e) { selectGame(game.getGameId(), game.getName()); }
-            });
-            chipRow.add(chip);
+        }
+        if (first != null)
+        {
+            selectGame(first, firstName);
         }
     }
 
-    private void selectGame(String gameId, String gameName)
+    private void selectGame(final String gameId, String gameName)
     {
         selectedGameId = gameId;
+        for (java.util.Map.Entry<String, PickerItem> item : items.entrySet())
+        {
+            item.getValue().setSelected(item.getKey().equals(gameId));
+        }
+        resultsCard.setTitle(gameName.toUpperCase() + " - TOP PLAYERS");
         myRankLabel.setText("Loading " + gameName + " leaderboard...");
         boolean spectatableGame = "chess".equals(gameId) || "rock-paper-scissors".equals(gameId) || "battleship".equals(gameId);
         boolean replayableGame = "chess".equals(gameId) || "rock-paper-scissors".equals(gameId) || "battleship".equals(gameId);
@@ -218,38 +255,56 @@ public class LeaderboardPanel extends RoundedPanel
         entriesList.removeAll();
         if (entries == null || entries.isEmpty())
         {
-            JLabel empty = new ThemedLabel("No one has played this yet - be the first!", ThemeColor.TEXT_MUTED);
-            empty.setFont(UITheme.FONT_SMALL);
-            entriesList.add(empty);
+            entriesList.add(PlaceholderPanel.mutedLabel("No one has played this yet - be the first!"));
         }
         else
         {
             for (int i = 0; i < entries.size(); i++)
             {
-                entriesList.add(buildRow(entries.get(i), rated));
-                entriesList.add(Box.createVerticalStrut(4));
+                entriesList.add(buildRow(entries.get(i), rated, i));
+                entriesList.add(Box.createVerticalStrut(6));
             }
         }
         entriesList.revalidate();
         entriesList.repaint();
     }
 
-    private JPanel buildRow(String entry, boolean rated)
+    private JPanel buildRow(String entry, boolean rated, int index)
     {
         String[] parts = entry.split("\\|", -1);
         String rank = parts.length > 0 ? parts[0] : "?";
         String username = parts.length > 1 ? parts[1] : "?";
         String value = parts.length > 2 ? parts[2] : "0";
+        boolean podium = index < 3;
 
         RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
-        row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(10, 14, 10, 14));
-        row.setMaximumSize(new Dimension(2000, 44));
+        row.setLayout(new BorderLayout(14, 0));
+        row.setBorder(new EmptyBorder(9, 14, 9, 14));
+        row.setMaximumSize(new Dimension(4000, 44));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel left = new ThemedLabel("#" + rank + "   " + username, ThemeColor.TEXT_PRIMARY);
-        left.setFont(UITheme.FONT_BODY);
-        row.add(left, BorderLayout.WEST);
+        JLabel rankLabel = new ThemedLabel("#" + rank, podium ? ThemeColor.ACCENT : ThemeColor.TEXT_MUTED);
+        rankLabel.setFont(podium ? UITheme.FONT_NAV_BOLD : UITheme.FONT_BODY);
+        rankLabel.setPreferredSize(new Dimension(40, 20));
+        row.add(rankLabel, BorderLayout.WEST);
+
+        final String playerName = username;
+        JLabel name = new ThemedLabel(username, ThemeColor.TEXT_PRIMARY);
+        name.setFont(podium ? UITheme.FONT_NAV_BOLD : UITheme.FONT_BODY);
+        name.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        name.setToolTipText("View " + username + "'s stats");
+        name.addMouseListener(new MouseAdapter()
+        {
+            public void mouseClicked(MouseEvent e)
+            {
+                MainMenu menu = MainMenu.getInstance();
+                if (menu != null)
+                {
+                    menu.showStats(playerName);
+                }
+            }
+        });
+        row.add(name, BorderLayout.CENTER);
 
         String rightText;
         if (rated && parts.length >= 6)
@@ -261,7 +316,7 @@ public class LeaderboardPanel extends RoundedPanel
             rightText = rated ? value + " rating" : value + " pts";
         }
 
-        JLabel right = new ThemedLabel(rightText, ThemeColor.TEXT_MUTED);
+        JLabel right = new ThemedLabel(rightText, podium ? ThemeColor.TEXT_PRIMARY : ThemeColor.TEXT_MUTED);
         right.setFont(UITheme.FONT_SMALL);
         row.add(right, BorderLayout.EAST);
 

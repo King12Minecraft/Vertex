@@ -34,6 +34,7 @@ import games.ChessMatchManager;
 import games.ReplayManager;
 import games.FightArenaMatchManager;
 import games.AmongUsMatchManager;
+import games.CaptionChaosMatchManager;
 import games.TelephoneMatchManager;
 import games.RacingMatchManager;
 import admin.FeedbackManager;
@@ -58,6 +59,9 @@ import java.net.Socket;
 public class GameServer
 {
     private final ServerAccountStore accountStore = new ServerAccountStore();
+
+    /** For the entry point's first-run admin setup (account.AdminBootstrap), which must run before the server starts accepting players. */
+    public ServerAccountStore getAccountStore() { return accountStore; }
     private final GameRegistry gameRegistry = new GameRegistry();
     private final TransactionManager transactionManager = new TransactionManager();
     private final EconomyManager economyManager = new EconomyManager(accountStore, transactionManager);
@@ -74,6 +78,7 @@ public class GameServer
     private final RacingMatchManager racingMatchManager = new RacingMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager);
     private final AmongUsMatchManager amongUsMatchManager = new AmongUsMatchManager(gameHistoryManager, chatManager, economyManager);
     private final TelephoneMatchManager telephoneMatchManager = new TelephoneMatchManager(gameHistoryManager, chatManager, economyManager);
+    private final CaptionChaosMatchManager captionChaosMatchManager = new CaptionChaosMatchManager(gameHistoryManager, chatManager, economyManager);
     private final FightArenaMatchManager fightArenaMatchManager = new FightArenaMatchManager(gameHistoryManager, chatManager, leaderboardManager, partyManager, economyManager);
     private final ReplayManager replayManager = new ReplayManager();
     private final ChessMatchManager chessMatchManager = new ChessMatchManager(gameHistoryManager, chatManager, leaderboardManager, replayManager, economyManager);
@@ -138,6 +143,7 @@ public class GameServer
     private final SpaceBattleMatchManager spaceBattleMatchManager = new SpaceBattleMatchManager(gameHistoryManager, chatManager, economyManager, achievementManager, leaderboardManager);
     private final AdminLog adminLog = new AdminLog();
     private final dominion.DominionManager dominionManager = new dominion.DominionManager();
+    private final forum.ForumService forumService = new forum.ForumService(new forum.ForumStore(), gameIds(gameRegistry));
 
     {
         // Wires AchievementManager into the managers that trigger its checks -
@@ -150,6 +156,18 @@ public class GameServer
     }
 
     private ServerSocket serverSocket;
+
+    /** Every registered game's id - the forum gets one board per game (plus its General board). */
+    private static java.util.List<String> gameIds(GameRegistry registry)
+    {
+        java.util.List<String> ids = new java.util.ArrayList<String>();
+        java.util.List<games.GameInfo> all = registry.getAllGames();
+        for (int i = 0; i < all.size(); i++)
+        {
+            ids.add(all.get(i).getGameId());
+        }
+        return ids;
+    }
 
     public boolean start()
     {
@@ -194,7 +212,7 @@ public class GameServer
                     triviaMatchManager, dotsAndBoxesMatchManager, reversiMatchManager, memoryMatchMatchManager,
                     airHockeyMatchManager, wordDuelMatchManager, diceDuelMatchManager, snakeArenaMatchManager,
                     tetrisDuelMatchManager, fusionGridMatchManager, typingDuelMatchManager, signalGridMatchManager,
-                    cardRushMatchManager, telephoneMatchManager, dominionManager);
+                    cardRushMatchManager, telephoneMatchManager, captionChaosMatchManager, dominionManager, forumService);
                 Thread thread = new Thread(handler);
                 thread.start();
             }

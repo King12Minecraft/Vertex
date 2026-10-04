@@ -48,10 +48,16 @@ import java.util.List;
  *   - "Top Players": a compact leaderboard snapshot for a few
  *     spotlighted rated games (LEADERBOARD_REQUEST, same protocol
  *     LeaderboardPanel already uses).
- *   - "Recently Played": your own recent games (GAME_HISTORY_REQUEST,
- *     same as GamesPanel's Home view) with a Play button right here,
- *     so re-launching something doesn't require a detour through the
- *     Games page at all.
+ *
+ * (2026-10-01) Above those sit the six sections of the Home redesign -
+ * welcome/daily reward/quests, quick play, continue playing, friends online,
+ * tournaments and what's new - each its own HomeSectionPanel subclass with real
+ * data (see each class). They are laid out by fullWidth(...) / split(...) rows
+ * (FitRow: height follows content) inside a width-tracking scroll view, so a
+ * wide section can never push the page past the window. The old "Recently
+ * Played" and "Explore Games" rows are gone (Continue playing and Quick play
+ * cover them); the history fetch now just feeds those two sections and the
+ * ticker. Top Players stays below.
  *
  * Refreshes on a timer (like TopBar's online-count) and immediately
  * whenever a new NotificationCenter item arrives, so the ticker stays
@@ -65,11 +71,15 @@ public class HomePanel extends RoundedPanel
     private static final String[] SPOTLIGHT_GAME_IDS =
         { "chess", "tictactoe-online", "battleship", "rock-paper-scissors" };
 
+    private final List<HomeSectionPanel> homeSections = new ArrayList<HomeSectionPanel>();
     private final MarqueeBanner ticker;
     private final JPanel topPlayersRow;
-    private final JPanel recentRow;
-    private final JPanel recentSection;
-    private JPanel exploreRow;
+    private final HomeWelcomeSection welcome;
+    private final HomeContinueSection continuePlaying;
+    private final HomeQuickPlaySection quickPlay;
+    private final HomeFriendsSection friends;
+    private final HomeTournamentsSection tournaments;
+    private final HomeWhatsNewSection whatsNew;
 
     private List<String> lastRecentNames = new ArrayList<String>();
     private List<String> lastTopPlayerLines = new ArrayList<String>();
@@ -80,43 +90,49 @@ public class HomePanel extends RoundedPanel
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(0, 32, 24, 32));
 
-        JPanel content = new JPanel();
+        JPanel content = new PageScaffold.WidthTrackingPanel();
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
-        content.add(new PageHeader("HOME"));
+        // Left-aligned like everything else in this column - a centre-aligned header among left-aligned rows shifts them all sideways.
+        PageHeader header = new PageHeader("HOME");
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.setMaximumSize(new Dimension(4000, header.getPreferredSize().height));
+        content.add(header);
 
+        // (The scrolling ticker that used to sit here was removed in the 2026-10 UI restart: it was noise. The ticker object
+        // is still built, off-screen, because rebuildTicker() feeds it and other code reads its state.)
         ticker = new MarqueeBanner();
-        ticker.setAlignmentX(Component.LEFT_ALIGNMENT);
-        ticker.setMaximumSize(new Dimension(4000, 44));
-        content.add(ticker);
-        content.add(Box.createVerticalStrut(24));
+        content.add(Box.createVerticalStrut(4));
+
+        // The Home sections, each its own class (see HomeSectionPanel): welcome across the top, then Quick play beside
+        // Continue playing (1:2), Friends beside Tournaments, and What's new across the bottom.
+        welcome = new HomeWelcomeSection();
+        continuePlaying = new HomeContinueSection();
+        quickPlay = new HomeQuickPlaySection();
+        friends = new HomeFriendsSection();
+        tournaments = new HomeTournamentsSection();
+        whatsNew = new HomeWhatsNewSection();
+        homeSections.add(welcome);
+        homeSections.add(continuePlaying);
+        homeSections.add(quickPlay);
+        homeSections.add(friends);
+        homeSections.add(tournaments);
+        homeSections.add(whatsNew);
+        content.add(fullWidth(welcome));
+        content.add(Box.createVerticalStrut(16));
+        content.add(split(quickPlay, continuePlaying, 1, 2));
+        content.add(Box.createVerticalStrut(16));
+        content.add(split(friends, tournaments, 1, 1));
+        content.add(Box.createVerticalStrut(16));
+        content.add(fullWidth(whatsNew));
+        content.add(Box.createVerticalStrut(32));
 
         content.add(sectionLabel("TOP PLAYERS"));
         topPlayersRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
         topPlayersRow.setOpaque(false);
         topPlayersRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(topPlayersRow);
-        content.add(Box.createVerticalStrut(24));
-
-        recentSection = new JPanel();
-        recentSection.setOpaque(false);
-        recentSection.setLayout(new BoxLayout(recentSection, BoxLayout.Y_AXIS));
-        recentSection.setAlignmentX(Component.LEFT_ALIGNMENT);
-        recentSection.setVisible(false);
-        recentSection.add(sectionLabel("RECENTLY PLAYED"));
-        recentRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
-        recentRow.setOpaque(false);
-        recentRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        recentSection.add(recentRow);
-        content.add(recentSection);
-        content.add(Box.createVerticalStrut(24));
-
-        content.add(sectionLabel("EXPLORE GAMES"));
-        exploreRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
-        exploreRow.setOpaque(false);
-        exploreRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(exploreRow);
 
         JScrollPane scroll = new JScrollPane(content);
         scroll.setBorder(BorderFactory.createEmptyBorder());
@@ -160,33 +176,39 @@ public class HomePanel extends RoundedPanel
         return label;
     }
 
-    private void refreshAll()
+    /**
+     * A row whose maximum height always equals its current preferred height. A BoxLayout column otherwise hands spare
+     * height to any child that allows it, which would stretch the cards - and a fixed maximum set at construction would
+     * go stale the moment a section's content changes (a list gains a row). Asking at layout time avoids both.
+     */
+    private static class FitRow extends JPanel
     {
-        fetchHistoryInBackground();
-        fetchTopPlayersInBackground();
-        rebuildExplore();
-    }
-
-    /** A handful of playable games as a quick jump-in point, so Home has something to look at even for a brand new account with no recent/leaderboard activity yet - skips anything still "Coming Soon" and anything already shown in Recently Played, capped at 6 so this stays a preview, not a second copy of the full Games page. */
-    private void rebuildExplore()
-    {
-        exploreRow.removeAll();
-
-        List<GameInfo> all = GameManager.getCachedGames();
-        int shown = 0;
-        for (int i = 0; i < all.size() && shown < 6; i++)
+        FitRow(java.awt.LayoutManager layout)
         {
-            GameInfo game = all.get(i);
-            if (game.isComingSoon() || lastRecentNames.contains(game.getName()))
-            {
-                continue;
-            }
-            exploreRow.add(buildRecentCard(game));
-            shown++;
+            super(layout);
+            setOpaque(false);
+            setAlignmentX(Component.LEFT_ALIGNMENT);
         }
 
-        exploreRow.revalidate();
-        exploreRow.repaint();
+        @Override
+        public Dimension getMaximumSize()
+        {
+            return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+        }
+    }
+
+    private static JPanel fullWidth(HomeSectionPanel section) { return PageScaffold.fullWidth(section); }
+
+    private static JPanel split(HomeSectionPanel l, HomeSectionPanel r, double lw, double rw) { return PageScaffold.split(l, r, lw, rw); }
+
+    private void refreshAll()
+    {
+        for (int i = 0; i < homeSections.size(); i++)
+        {
+            homeSections.get(i).refresh();
+        }
+        fetchHistoryInBackground();
+        fetchTopPlayersInBackground();
     }
 
     // ==================== Recently played ====================
@@ -219,10 +241,11 @@ public class HomePanel extends RoundedPanel
 
     private void renderRecent(List<String> gameIds)
     {
-        recentRow.removeAll();
-        lastRecentNames = new ArrayList<String>();
+        // Recently played now lives in the Continue playing section (and informs Quick play): hand the ids over.
+        continuePlaying.setRecentGameIds(gameIds);
+        quickPlay.setRecentGameIds(gameIds);
 
-        List<GameInfo> matched = new ArrayList<GameInfo>();
+        lastRecentNames = new ArrayList<String>();
         if (gameIds != null)
         {
             for (int i = 0; i < gameIds.size(); i++)
@@ -230,59 +253,10 @@ public class HomePanel extends RoundedPanel
                 GameInfo info = findCachedGame(gameIds.get(i));
                 if (info != null)
                 {
-                    matched.add(info);
                     lastRecentNames.add(info.getName());
                 }
             }
         }
-
-        recentSection.setVisible(!matched.isEmpty());
-        for (int i = 0; i < matched.size(); i++)
-        {
-            recentRow.add(buildRecentCard(matched.get(i)));
-        }
-        recentRow.revalidate();
-        recentRow.repaint();
-        rebuildExplore();
-    }
-
-    private JPanel buildRecentCard(final GameInfo game)
-    {
-        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(14, 16, 14, 16));
-        card.setPreferredSize(new Dimension(220, 92));
-        card.enableTopAccent();
-
-        JPanel info = new JPanel();
-        info.setOpaque(false);
-        info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
-
-        JLabel name = new ThemedLabel(game.getName(), ThemeColor.TEXT_PRIMARY);
-        name.setFont(UITheme.FONT_NAV_BOLD);
-        name.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel type = new ThemedLabel(game.getType(), ThemeColor.TEXT_MUTED);
-        type.setFont(UITheme.FONT_SMALL);
-        type.setAlignmentX(Component.LEFT_ALIGNMENT);
-        type.setBorder(new EmptyBorder(2, 0, 10, 0));
-
-        info.add(name);
-        info.add(type);
-        info.add(Box.createVerticalGlue());
-
-        final ThemedButton play = new ThemedButton("Play", true);
-        play.setAlignmentX(Component.LEFT_ALIGNMENT);
-        play.setPreferredSize(new Dimension(188, 32));
-        play.setMaximumSize(new Dimension(188, 32));
-        play.addActionListener(new ActionListener()
-        {
-            public void actionPerformed(ActionEvent e) { GameLauncher.launch(play, game); }
-        });
-        info.add(play);
-
-        card.add(info, BorderLayout.CENTER);
-        return card;
     }
 
     // ==================== Top players ====================

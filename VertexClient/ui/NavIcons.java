@@ -80,12 +80,109 @@ public class NavIcons
         {
             drawBracket(g, size);
         }
+        else if (Pages.CHANGELOG.equals(pageKey))
+        {
+            drawChangelog(g, size);
+        }
+        else if (Pages.HOME.equals(pageKey))
+        {
+            drawHome(g, size);
+        }
+        else if (Pages.FORUMS.equals(pageKey))
+        {
+            drawForums(g, size);
+        }
+        else if (Pages.GAME_SUGGESTIONS.equals(pageKey))
+        {
+            drawBulb(g, size);
+        }
+        else if (Pages.DOMINION.equals(pageKey))
+        {
+            drawCrown(g, size);
+        }
         else
         {
             drawGamepad(g, size);
         }
 
         g.dispose();
+    }
+
+    /** A house - the landing page. */
+    private static void drawHome(Graphics2D g, int s)
+    {
+        GeneralPath house = new GeneralPath();
+        house.moveTo(s * 0.12f, s * 0.48f);
+        house.lineTo(s * 0.5f, s * 0.14f);
+        house.lineTo(s * 0.88f, s * 0.48f);
+        g.draw(house);
+        GeneralPath walls = new GeneralPath();
+        walls.moveTo(s * 0.24f, s * 0.42f);
+        walls.lineTo(s * 0.24f, s * 0.84f);
+        walls.lineTo(s * 0.76f, s * 0.84f);
+        walls.lineTo(s * 0.76f, s * 0.42f);
+        g.draw(walls);
+        g.draw(new java.awt.geom.Rectangle2D.Float(s * 0.42f, s * 0.58f, s * 0.16f, s * 0.26f));
+    }
+
+    /** Two stacked speech bubbles - a discussion board. */
+    private static void drawForums(Graphics2D g, int s)
+    {
+        g.draw(new java.awt.geom.RoundRectangle2D.Float(s * 0.14f, s * 0.16f, s * 0.5f, s * 0.36f, s * 0.12f, s * 0.12f));
+        g.draw(new Line2D.Float(s * 0.26f, s * 0.52f, s * 0.22f, s * 0.66f));
+        g.draw(new Line2D.Float(s * 0.22f, s * 0.66f, s * 0.38f, s * 0.52f));
+        g.draw(new java.awt.geom.RoundRectangle2D.Float(s * 0.4f, s * 0.42f, s * 0.46f, s * 0.32f, s * 0.12f, s * 0.12f));
+        g.draw(new Line2D.Float(s * 0.72f, s * 0.74f, s * 0.78f, s * 0.86f));
+        g.draw(new Line2D.Float(s * 0.78f, s * 0.86f, s * 0.6f, s * 0.74f));
+    }
+
+    /** A light bulb - an idea, "suggest a game". */
+    private static void drawBulb(Graphics2D g, int s)
+    {
+        g.draw(new Arc2D.Float(s * 0.26f, s * 0.12f, s * 0.48f, s * 0.48f, -40, 260, Arc2D.OPEN));
+        g.draw(new Line2D.Float(s * 0.34f, s * 0.5f, s * 0.4f, s * 0.68f));
+        g.draw(new Line2D.Float(s * 0.66f, s * 0.5f, s * 0.6f, s * 0.68f));
+        g.draw(new Line2D.Float(s * 0.4f, s * 0.68f, s * 0.6f, s * 0.68f));
+        g.draw(new Line2D.Float(s * 0.42f, s * 0.78f, s * 0.58f, s * 0.78f));
+        g.draw(new Line2D.Float(s * 0.45f, s * 0.87f, s * 0.55f, s * 0.87f));
+    }
+
+    /** A crown - Dominion, the nation game. */
+    private static void drawCrown(Graphics2D g, int s)
+    {
+        GeneralPath crown = new GeneralPath();
+        crown.moveTo(s * 0.14f, s * 0.72f);
+        crown.lineTo(s * 0.18f, s * 0.3f);
+        crown.lineTo(s * 0.36f, s * 0.5f);
+        crown.lineTo(s * 0.5f, s * 0.22f);
+        crown.lineTo(s * 0.64f, s * 0.5f);
+        crown.lineTo(s * 0.82f, s * 0.3f);
+        crown.lineTo(s * 0.86f, s * 0.72f);
+        crown.closePath();
+        g.draw(crown);
+        g.draw(new Line2D.Float(s * 0.14f, s * 0.84f, s * 0.86f, s * 0.84f));
+    }
+
+    /** A page with a folded corner and three text lines - "what's new". */
+    private static void drawChangelog(Graphics2D g, int s)
+    {
+        double m = s * 0.18;
+        double fold = s * 0.24;
+        java.awt.geom.Path2D page = new java.awt.geom.Path2D.Double();
+        page.moveTo(m, m);
+        page.lineTo(s - m - fold, m);
+        page.lineTo(s - m, m + fold);
+        page.lineTo(s - m, s - m);
+        page.lineTo(m, s - m);
+        page.closePath();
+        g.draw(page);
+        g.draw(new java.awt.geom.Line2D.Double(s - m - fold, m, s - m - fold, m + fold));
+        g.draw(new java.awt.geom.Line2D.Double(s - m - fold, m + fold, s - m, m + fold));
+        for (int i = 0; i < 3; i++)
+        {
+            double y = s * (0.46 + i * 0.14);
+            g.draw(new java.awt.geom.Line2D.Double(s * 0.32, y, s * 0.68, y));
+        }
     }
 
     /** A simple 2x2 grid of squares - distinct from the single gamepad glyph used for the curated "Games" home entry. */

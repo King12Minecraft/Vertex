@@ -88,6 +88,18 @@ public class PlayerProfileDialog
         {
             public void actionPerformed(java.awt.event.ActionEvent e) { dialog.dispose(); }
         });
+        final String statsFor = username;
+        ThemedButton stats = new ThemedButton("Full stats", false);
+        stats.setPreferredSize(new Dimension(110, 36));
+        stats.addActionListener(new java.awt.event.ActionListener()
+        {
+            public void actionPerformed(java.awt.event.ActionEvent e)
+            {
+                dialog.dispose();
+                pages.MainMenu.getInstance().showStats(statsFor);
+            }
+        });
+        buttonRow.add(stats);
         buttonRow.add(close);
         root.add(buttonRow, BorderLayout.SOUTH);
 

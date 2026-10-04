@@ -37,27 +37,25 @@ import java.util.List;
  * normal MATCH_FOUND push the moment the player opens that game -
  * this page only handles registration and status, not gameplay itself.
  */
-public class TournamentsPanel extends RoundedPanel implements NetworkManager.PushListener
+public class TournamentsPanel extends PageScaffold implements NetworkManager.PushListener
 {
     private final JPanel list;
     private JPanel teamList;
 
     public TournamentsPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("TOURNAMENTS", "Four-player knockout brackets. Create one, or join an open one.");
 
-        add(new PageHeader("TOURNAMENTS"), BorderLayout.NORTH);
+        // ---- start one ----
+        JPanel start = new JPanel();
+        start.setOpaque(false);
+        start.setLayout(new BoxLayout(start, BoxLayout.Y_AXIS));
 
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(24, 0, 24, 0));
-
+        start.add(caption("Solo brackets - 4 players, single elimination."));
         JPanel createRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         createRow.setOpaque(false);
         createRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        createRow.setBorder(new EmptyBorder(0, -10, 14, 0));
 
         ThemedButton createBattleship = new ThemedButton("New Battleship Tournament", true);
         createBattleship.addActionListener(new ActionListener()
@@ -72,33 +70,13 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
             public void actionPerformed(ActionEvent e) { createTournament("rock-paper-scissors"); }
         });
         createRow.add(createRps);
+        start.add(createRow);
 
-        content.add(createRow);
-        content.add(Box.createVerticalStrut(20));
-
-        JLabel sectionLabel = new ThemedLabel("OPEN & IN-PROGRESS TOURNAMENTS", ThemeColor.TEXT_PRIMARY);
-        sectionLabel.setFont(UITheme.FONT_NAV_BOLD);
-        sectionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sectionLabel.setBorder(new EmptyBorder(0, 0, 14, 0));
-        content.add(sectionLabel);
-
-        list = new JPanel();
-        list.setOpaque(false);
-        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
-        list.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(list);
-
-        content.add(Box.createVerticalStrut(28));
-
-        JLabel teamCreateHint = new ThemedLabel("Requires your whole party to be the exact right size for the mode.", ThemeColor.TEXT_MUTED);
-        teamCreateHint.setFont(UITheme.FONT_SMALL);
-        teamCreateHint.setAlignmentX(Component.LEFT_ALIGNMENT);
-        teamCreateHint.setBorder(new EmptyBorder(0, 0, 8, 0));
-        content.add(teamCreateHint);
-
+        start.add(caption("Team brackets - your whole party must be exactly the right size for the mode."));
         JPanel teamCreateRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         teamCreateRow.setOpaque(false);
         teamCreateRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        teamCreateRow.setBorder(new EmptyBorder(0, -10, 0, 0));
 
         ThemedButton create2v2 = new ThemedButton("New 2v2 Fight Arena Tournament", true);
         create2v2.addActionListener(new ActionListener()
@@ -113,33 +91,33 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
             public void actionPerformed(ActionEvent e) { createTeamTournament("3V3"); }
         });
         teamCreateRow.add(create3v3);
+        start.add(teamCreateRow);
 
-        content.add(teamCreateRow);
-        content.add(Box.createVerticalStrut(20));
+        row(PageScaffold.fullWidth(new SectionCard("START A TOURNAMENT").withGlow().content(start)));
+        gap(16);
 
-        JLabel teamSectionLabel = new ThemedLabel("OPEN & IN-PROGRESS TEAM TOURNAMENTS", ThemeColor.TEXT_PRIMARY);
-        teamSectionLabel.setFont(UITheme.FONT_NAV_BOLD);
-        teamSectionLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        teamSectionLabel.setBorder(new EmptyBorder(0, 0, 14, 0));
-        content.add(teamSectionLabel);
-
+        // ---- what's open ----
+        list = new JPanel();
+        list.setOpaque(false);
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         teamList = new JPanel();
         teamList.setOpaque(false);
         teamList.setLayout(new BoxLayout(teamList, BoxLayout.Y_AXIS));
-        teamList.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(teamList);
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(javax.swing.BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        add(scroll, BorderLayout.CENTER);
+        row(PageScaffold.split(new SectionCard("OPEN & IN-PROGRESS").content(list),
+            new SectionCard("TEAM TOURNAMENTS").content(teamList), 1, 1));
 
         NetworkManager.addPushListener(this);
         refreshList();
         refreshTeamList();
+    }
+
+    private JLabel caption(String text)
+    {
+        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_MUTED);
+        label.setFont(UITheme.FONT_SMALL);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setBorder(new EmptyBorder(0, 0, 8, 0));
+        return label;
     }
 
     private void createTournament(String gameId)
@@ -264,10 +242,10 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
         else if ("FINAL".equals(status)) statusText = "Final in progress";
         else statusText = "Complete - " + champion + " won";
 
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_BUTTON);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(12, 16, 12, 16));
-        row.setMaximumSize(new Dimension(2000, 56));
+        row.setBorder(new EmptyBorder(9, 16, 9, 16));
+        row.setMaximumSize(new Dimension(2000, 64));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel textCol = new JPanel();
@@ -342,10 +320,10 @@ public class TournamentsPanel extends RoundedPanel implements NetworkManager.Pus
         else if ("IN_PROGRESS".equals(status)) statusText = "Decider match in progress";
         else statusText = "Complete - " + champions + " won";
 
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_BUTTON);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(12, 16, 12, 16));
-        row.setMaximumSize(new Dimension(2000, 56));
+        row.setBorder(new EmptyBorder(9, 16, 9, 16));
+        row.setMaximumSize(new Dimension(2000, 64));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel textCol = new JPanel();

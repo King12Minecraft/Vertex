@@ -1,4 +1,5 @@
 package games;
+import mechanics.ReconnectRegistry;
 import economy.LeaderboardManager;
 import social.ChatManager;
 import economy.GameHistoryManager;

@@ -44,8 +44,682 @@ recorded below as they're confirmed.
 
 ---
 
+## 🎯 Priority queue (the order work gets done in)
+
+Bipin (2026-10-01): "there is too much backlog, do it by priority; if I give new items, rank them." This list is the single
+ordering - work starts at the top and moves down; anything new from Bipin is ranked into it (his stated priority wins, otherwise by
+player impact, then size) and noted with the date. Everything below it in this file is the detailed backlog, not a to-do order.
+Items he has said not to start ("None yet": TLS, signed updates, jars out of git, LICENSE; Dominion deferred) are not on the list.
+
+| # | Item | Why this rank | Status |
+|---|---|---|---|
+| 1 | In-match chat for Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors | The most-played games were the ones without it; the room/dock already exist, small per game | **done 2026-10-01** |
+| 2 | Stats from a leaderboard row (open a player's stats page) | Small, finishes the Stats feature | **done 2026-10-01** |
+| 3 | In-match chat for the group/real-time games (Trivia, Racing, Fight Arena, Square Wars...) | Same pattern, but each needs a deliberate hidden-info call | **done 2026-10-01** (defaults; question in BLOCKED_QUESTIONS.md) |
+| 4 | Obfuscated client jar (ProGuard) | Roadmap item 2(e): raises the cost of copying the client | **done 2026-10-01** (Mac/Linux build only) |
+| 5 | New games from the concept backlog | Player-visible content, each its own unit of work | **in progress** - Caption Chaos done 2026-10-01; next: casino mini-games need the admin toggle first, so the queue moves on |
+| 6 | Reconnect for the group games (tier C) | Only matters for the longer group matches; design question first | planned |
+| 7 | Rest of the `MatchmakingKernel` rollout | Internal cleanup, no player-visible change | planned |
+| 8 | `save` package, procedural characters | Infrastructure for games that don't exist yet | planned |
+
 ## ✅ Done
 
+- **UI restart: a calm Claude-style design system, plus real cursor models.** (2026-10-04) Bipin: "restart the UI ... like a professional Claude one",
+  asked via choices: light + dark with a toggle, every page rebuilt on a new system, the old 10 colour themes kept as optional themes. New
+  **Claude Light** and **Claude Dark** themes (warm off-white / warm charcoal, white / lifted cards with hairline borders, one terracotta accent) are the
+  default; **System** (the default setting) follows the operating system's light/dark (`theme/OsAppearance`, best-effort, light if unknown) and the
+  theme choice is now remembered (it never was - every launch reset to Dark Navy). Settings > Appearance has a System / Light / Dark switch above the
+  old theme dropdown. The component layer is flat for *every* theme: `RoundedPanel` = solid fill + 1px border (no glow, no accent bar),
+  `ThemedButton` primary = solid accent with text readable on it (`ThemeManager.onAccent()`), secondary = card colour + border, `PageHeader` = serif
+  title + muted subtitle (no gradient underline), `SectionCard` = serif card titles (all-caps titles become sentence case via `ui/TextCase`), the
+  sidebar is a flat pinned-open column with a hairline edge, game art is a soft flat tile per game, the Games hero is flat, the Home ticker and the
+  sidebar quests list are gone, text fields show focus with an accent outline. Fonts: headings use an installed serif (Georgia / Iowan Old Style /
+  Charter / ...), body keeps the platform UI font. **Cursors**: I had made five "sets" that were one arrow shape in five colour schemes - a reskin, not a
+  custom model. Each set is now its own design: Classic (the familiar sharp pointer), Claude (soft rounded plane pointer), Crystal (faceted gem), Ember
+  (flame), Neon (a reticle whose click point is its centre); each has its own link and text-beam versions, and a **Cursor glow** switch in Settings
+  (off by default) adds the soft halo. Verified: the real app (sidebar + top bar + all 15 pages) captured under Xvfb in Claude Light, Claude Dark and Dark Navy; the
+  cursor set rendered at 96px with and without glow. Not done: dialogs and the in-game screens were not individually re-reviewed (they pick up the
+  new flat panels/buttons automatically), narrow-window behaviour of the new sidebar, and following an OS theme change while the app is running
+  (read once at start-up).
+
+- **UI fixes found by looking at the whole app, not just single pages.** (2026-10-03) Bipin: "the UI is baddddd, give all screens". The earlier
+  screenshots were of pages alone; capturing the real `MainMenu` (sidebar + top bar + page) showed what was actually wrong: (1) the sidebar was an
+  unlabeled icon rail that widened on hover, reflowing the whole page every time the mouse crossed it - it is now pinned open with labels by default
+  (a `<<` toggle returns to the hover rail; remembered per computer); (2) every page title appeared twice (top bar and page header) - the top bar
+  keeps a title only for pages without a header of their own (game host, game details, Dominion) and its left side is now the search box; (3) 47 of the
+  54 games shared one "+" placeholder tile - games without hand-drawn art now get their monogram over a per-game pattern and a slight per-game hue
+  shift of the theme gradient; (4) the top bar's Play dropdown and Party button were squeezed to "Pla". Client-only. Not done: the Sidebar's
+  in-progress quests list still shares the column with the nav on short windows, the Games-page Pin button placement, and hand-drawn icons for the
+  rest of the games.
+
+- **New game: Caption Chaos.** (2026-10-01) Priority-queue item 5, the first concrete concept in the games backlog. 3-8 players, 3 rounds of
+  prompt -> private answer (45s) -> anonymous vote (25s, never your own, one vote) -> reveal; 100 points per vote, the top total wins a flat
+  `EconomyConfig` reward (20). Original prompts (`CaptionChaosPrompts`, 59 of them, family-friendly). Server-authoritative (`CaptionChaosMatch`):
+  the vote message carries only the answers, shuffled, plus which is yours - authors appear only at the reveal; phases end early when everyone
+  has acted; a leaver is simply not counted and fewer than two players left ends the match with no award. Chat LOCKED until the end;
+  no reconnect (a group game, listed in `ReconnectPolicy` exceptions). New message types `CAPTIONCHAOS_*` and `caption*` fields on `Message`,
+  both trees byte-identical; client `CaptionChaosWindow` (embedded, built from `SectionCard`) and a speech-bubble card art. Tests
+  (`CaptionChaosMatchTest`): matchmaking at 3, same prompt to all, answers anonymous on the wire, early advance, own/duplicate/invalid votes
+  ignored, scoring and ordering, a full three-round match with winner and coin award, abort when too many leave. Also driven for real: the
+  actual window against a real server with two bot players, screenshotted write -> vote -> reveal. Not tested: a full 8-player game and the
+  45s/25s timers expiring (the timer path is the same `Timer` shape Trivia/Telephone use).
+- **Obfuscated client jar.** (2026-10-01) Priority-queue item 4 / source-protection item 2(e). `./build.sh --obfuscate` additionally writes
+  `VertexClient-release.jar` (gitignored): ProGuard 7.6.1 (downloaded once into `.tools/`, SHA-256 pinned) in obfuscate-only mode - no
+  shrinking or optimising - scrambles class/method/field names and drops line numbers and source file names. Rules in
+  `proguard/vertex-client.pro`. What it must not break, and how that is guarded: **(1) the wire** - Java serialization matches class and field
+  names and serial versions, so every Serializable class in the shared packages keeps its name and fields, and the build runs
+  `proguard/WireCompatCheck` against the plain jar and fails on any difference (66 classes checked; it caught six Dominion data classes with no
+  explicit `serialVersionUID`, whose implicit one depends on method names - they now declare `serialVersionUID = 1L`, in both trees); **(2) saved
+  settings** - `-keeppackagenames`, because `java.util.prefs` nodes are named after the package; **(3) enums** (used by name) are kept.
+  `pages`, `ui`, `theme`, `engine` (client-only) are renamed completely; Window/Dialog classes inside shared packages stay readable because they
+  are Serializable (a limitation, noted here rather than hidden). Verified end to end: the obfuscated jar was run under Xvfb against the real
+  server jar, a Robot logged in as an admin, the daily-reward dialog came back over the wire and the whole Home page rendered. Not done:
+  `build.bat` (Windows) and wiring the release jar into the download page / auto-update (still "None yet" territory).
+
+- **In-match chat for the group and real-time games.** (2026-10-01) Priority-queue item 3. `MatchChatRooms.open(matchId, List)` for any size;
+  Racing, Space Battle, Square Wars, Zombie Survival and Fight Arena open an OPEN room; Trivia Blitz opens it LOCKED and `TriviaMatch.finishMatch`
+  unlocks it so players can say "gg"; Among Us stays chat-less. These are my defaults for a real design question and are recorded in
+  `BLOCKED_QUESTIONS.md` for Bipin to confirm or change (each is one line in `GameChatPolicies`). Tested: policies, and that Square Wars, Racing
+  and Zombie Survival pairings put everyone in one room. Not directly tested: Trivia's unlock-at-end and the Fight Arena / Space Battle start
+  paths (their match classes need a full economy/leaderboard to run), so those are checked by reading the three-line change only.
+
+- **Leaderboard names open that player's Stats page.** (2026-10-01) Priority-queue item 2. A name on a leaderboard row is now a link (hand
+  cursor, tooltip) to `MainMenu.showStats(name)`; Back returns to Leaderboards. Client-only (`STATS_REQUEST` for another player was
+  already public by name). Verified: compiles, page renders; the click path is the same call the profile window's Stats button uses.
+
+- **In-match chat for Tic-Tac-Toe, Chess, Battleship and Rock Paper Scissors.** (2026-10-01) Priority-queue item 1. These four have
+  their own hand-written managers (not the kernel), so they never opened a chat room. New `chat/MatchChatRooms` holds the open/close
+  bookkeeping each manager needs (a room when a match - queue pairing, rematch or tournament bracket - starts, closed 60s after it ends);
+  `GameChatPolicies` lists the four as OPEN. No client change: the dock appears from the server's `MATCH_CHAT_STATE` like for the other
+  14. Hidden information: nothing in these four's server messages is secret from the opponent beyond what a player could type, so OPEN
+  (not LOCKED) matches the kernel games. Tests: each manager pairs two fake players and both end up in one room, announced OPEN for the
+  right game (and `GameChatPolicies` tests now use Among Us - deliberately chat-less - as the "not in the table" example).
+
+- **UI upgrade: every page on the Home look, driven by the theme.** (2026-10-01) Bipin: "upgrade ui ... like the claude css that u do, but
+  according to theme", scope "every page, one by one". Built a small kit first - `PageScaffold` (header + subtitle + width-tracking scroll body
+  + row helpers), `SectionCard` (the Home card, generalised), `ThinProgressBar`, `InitialBadge`, `PickerItem`, `WrapLayout` - then rebuilt
+  Quests (summary + per-period cards), Leaderboards (game list + ranked table), Achievements (summary + tile grid), Friends (add/requests
+  beside the list, avatar badges with presence dots), Shop, Tournaments, Changelog, Suggest a Game, Settings (two-column cards), Profile, Stats,
+  Forums, Games, Moderation and Admin on it; Chat got a subtitle and wider sidebar; the login window's glow no longer shows a hard-edged box.
+  Found and fixed along the way: `ThemedButton` labels truncating ("Report a Pl...", "+ Gr...", "Mess...") - a button is now never narrower
+  than its label; settings rows stretching when a neighbouring card was taller; **a duplicate pinned-games store** - the Games page already had
+  Pin buttons (`economy.PinnedGamesStore`) and the Home work had added a second list without auditing; they are now one list. Dominion was
+  deliberately left alone (deferred). Verified page by page with the real server under Xvfb (seeded friends, tournament, history) on three themes;
+  `./test.sh` and the Home data checks pass. Not done: the in-game screens (each game keeps its own palette by design), the Sidebar/TopBar
+  chrome (already themed), and a pass on very narrow windows (the app minimum is 1000px).
+
+- **Home: Explore Games row removed, Top Players kept.** (2026-10-01) Bipin left the call on the older Home rows to me. Explore
+  Games (six game cards, there so a brand-new account had something to click) now duplicates Quick play and Continue playing's
+  "Browse games" empty state, so it is gone along with its card builder; Top Players is the one thing nothing else on Home
+  shows, so it stays. Verified by re-rendering Home under Xvfb.
+
+- **Home page: all six sections built with real data.** (2026-10-01) Bipin asked me to build the Home UI myself rather than
+  hand it to Cursor ("can u upgrade to the best ui?" - scope: Home only; style left to me), so the placeholders are now real:
+  *Welcome* (time-of-day greeting, login-streak and coin chips, up to three unfinished quests with progress bars from
+  `CHALLENGES_REQUEST`), *Quick play* (one suggested game + Play now), *Continue playing* (pinned games, then recent ones, as
+  clickable tiles; the count adapts to the width), *Friends online* (live: `FRIEND_LIST_REQUEST` + the friend-status push,
+  Message button), *Tournaments* (open/running ones with Join, via `TOURNAMENT_LIST_RESPONSE` as a push - deliberately not a
+  blocking `send`, see the note on `HomeTournamentsSection`) and *What's new* (newest changelog entry, now with a Full
+  changelog link). Two decisions the placeholders had flagged are now reversible defaults, **not** confirmed by Bipin: Quick
+  play picks the online game with the most players waiting, else your most recent online game, else the first online game
+  (`HomeQuickPlaySection.pick()`); pinned games are stored per computer in `Preferences` (`pages/PinnedGames`, max 8, never sent
+  to the server) and pinned from the game detail page ("Pin to Home") or the star on a tile. Layout fixes found while
+  verifying: the page's scroll view now tracks the viewport width (a wide section used to stretch the page and add a
+  horizontal scrollbar), split rows keep each card at least 300px, the Explore cards' Play button was clipped. Verified with a
+  real in-process server and the real client under Xvfb (seeded friends, a live friend arriving, a tournament, history, pins):
+  all data assertions pass and the page was screenshotted at 800/1000/1300px on three themes plus an empty account. `.cursor/
+  prompts/home-redesign.md` is kept but superseded.
+
+- **Home page: structure and placeholders built; the design goes to Cursor.** (2026-09-30) Bipin approved the proposed layout
+  ("whatever you recommend") and asked for placeholders he'll give to Cursor, plus a prompt. `HomePanel` now has the six agreed
+  sections above its older content, each its own `pages/HomeSectionPanel` subclass so they can be designed independently:
+  `HomeWelcomeSection` (greeting, daily reward, quests), `HomeContinueSection` (recent + pinned games), `HomeQuickPlaySection`,
+  `HomeFriendsSection`, `HomeTournamentsSection`, `HomeWhatsNewSection`. All but What's New (which already shows the newest
+  changelog entry, real data) are friendly "coming soon" placeholders; **each class's javadoc lists the data that already exists
+  for it** (message types, panels to reuse) and what is genuinely missing - pinned-games storage and a rule for what Quick play
+  picks (both flagged as decisions, not guessed). Also fixed the page's alignment (a centre-aligned header among left-aligned
+  rows shifted the whole column ~30px). The old ticker/Top Players/Recently Played/Explore sections stay until the design places
+  them. The prompt for Cursor is `.cursor/prompts/home-redesign.md`. Verified by rendering the page under Xvfb.
+
+- **Wrapped-text clipping fixed at every remaining site.** (2026-09-30) The earlier finding (a `JLabel` HTML `<body style='width:..'>`
+  is ignored on the JDKs in use, so wrapped text comes out one line wide and gets cut off - fixed on the game detail page and Forums)
+  was audited across the client: 23 more labels used the ignored form (Settings' five descriptions, `GameHubDialog` - the
+  themed dialog used everywhere, the chat page, notifications, moderator/admin/feedback panels, game rules and mode cards, the
+  server browser, score sharing, Typing Duel's sentence, Trivia's question, the offline hub). All now use the table-width form.
+  Verified by rendering the Settings page: the descriptions wrap at their intended width. The convention is in `.cursor/rules`.
+
+- **Source-protection audits: a hidden-information leak and unlimited offline coins, both fixed.** (2026-09-30)
+  Two of the concrete items from planned item 2, done as safe non-architectural mitigations.
+  **(d) Hidden information:** audited every message the server sends for something a client shouldn't have.
+  Trivia (the answer only comes with the round result), Memory Match (only matched/flipped faces), Among Us (each
+  player gets only their own role and tasks), Battleship (own fleet only) and RPS (moves only at the round result)
+  are clean. **Card Rush was not:** its state string carried *both* hands to *both* players, though the window only
+  shows the opponent's card count - a modified client could read the opponent's hand in real time. Now each player
+  gets their own cards and zeros (right count) for the other's, in every message that carries state (match found,
+  updates, the waiting notice, the resume result, the final result); `PairReconnect.Host` gained an optional
+  `stateStringFor(viewer)` for exactly this. `CardRushHiddenInfoTest` (8 checks). **(c) Offline-game coins:**
+  `GAME_PLAYED_REQUEST` let a logged-in client claim the maximum score for any offline game as often as it liked
+  (only each submission was capped). New `economy/PracticeRewardLimiter`: a game pays at most once per 15 s per
+  account and an account earns at most **300 coins a day** from offline games in total (in memory; the last payout
+  of the day is trimmed to fit, not refused). Covers the score-scaled games and the flat Minesweeper/Puzzle Quest
+  rewards (`EconomyManager.awardPracticeFlat`); online matches are untouched. `PracticeRewardLimiterTest` (12 checks) and `GamePlayedHandlerTest` (8 checks, the real handler: hostile ids dropped, repeated claims pay once).
+  Also: `handleGamePlayed` now drops any game id that isn't `[a-z0-9-]{1,40}` - the id is written into the
+  `account|game|time` history file, so a `|` or newline in it could have forged or broken a record (the same bug
+  class already fixed in the suggestion, admin-log and forum stores). **Reversible defaults - Bipin may retune:**
+  the 15 s interval and 300-coin daily cap live as constants in `PracticeRewardLimiter`; an honest player who quits
+  a very short round within 15 s of the last payout for that game earns nothing for it. Still open from item 2:
+  the offline scores themselves are still self-reported (only their payout is bounded), which only real server-side
+  simulation of those games could change.
+
+- **Sidebar: scrollable and regrouped.** (2026-09-30) The navigation is now a scroll pane (thin scrollbar) between
+  the pinned logo row above and the pinned quest list and connection status below, so a short window no longer
+  loses entries. Regrouped as proposed: Home (ungrouped) / **Play** (Games, All Games, Tournaments, Dominion) /
+  **Progress** (Quests, Achievements, Leaderboards) / **Social** (Friends, Chat, Forums) / **Shop & Community**
+  (Shop, Suggest a Game, Changelog) / **Account** (Profile, Settings, Moderation for moderators). Each group name
+  collapses it (state remembered per computer); on the narrow icon rail a header is a thin divider; a collapsed
+  group shows a dot when something inside has a badge (a friend coming online); selecting a page inside a
+  collapsed group re-opens it, so the page you're on is never hidden. Profile is back in the sidebar (reversing the
+  earlier move to the account menu, which stays as a shortcut - the `TopBar` javadoc is corrected). Forums, Suggest
+  a Game, Dominion and Home no longer share Games' gamepad icon. Verified under Xvfb: scrolling in a short window,
+  collapse + remembered + badge dot, re-open on select, the icon rail, and screenshots of each state. Room for
+  Dominion is its slot in Play. **Not done / to look at:** a sidebar hover-expand still animates the width as before;
+  group collapse doesn't animate.
+
+- **Stats page inside Profile, a Profile sidebar entry, and a fix for a 10-second startup stall.** (2026-09-30)
+  **Audit first (as the item asked):** the server records plays per game (with timestamps), a rating and win/
+  loss/draw record per *ranked* game, a best score per score game, achievements, coins and login streak; it does
+  **not** record time played, nor losses in games without a rating - the page says so instead of showing zeros.
+  Built: `STATS_REQUEST`/`STATS_RESPONSE` (public by player name like a profile; "yourself" needs a login; numbers
+  only from server records), `GameHistoryManager.getPlayCountsByGame`, `LeaderboardManager.getStatsRowsForAccount`,
+  and a full-page `pages/StatsPanel` with a Back button (same pattern as the game detail page: `Pages.STATS`,
+  `MainMenu.showStats/leaveStats`) - summary tiles, a per-game table with a play-share bar, rating, W-L-D, best
+  score. Reached from a new "Stats" card on the Profile page and a "Full stats" button on another player's profile
+  window. The Profile page's **Games Played and Achievements were permanent placeholders ("0")** - now real. Profile
+  also has its own sidebar entry (it was only in the account menu). `StatsTest` (17 checks) plus a real server +
+  real client + real page run with seeded data. **Found while verifying, and fixed:** the Dominion page's startup
+  request never got its answer because none of `DOMINION_*_RESPONSE` (nor `SELECT_FRAME_RESPONSE`) were in
+  `NetworkManager.RESPONSE_TYPES`, so it waited its full 10 seconds *holding the global send lock* - stalling
+  Friends, Chat, Shop and every other panel's first load on each start (and equipping a frame always timed out).
+  New permanent guard `net.ResponseTypesTest` (54 checks; `test.sh` now compiles `NetworkManager` for it) reads the
+  server's source for every response type it sends and requires each to be registered - this bug class has now
+  happened four times (Forums, Dominion, frames, and Stats before it shipped). Remaining structural weakness: `send()`
+  holding a global lock while it waits means any one slow/unanswered request still stalls the rest for up to 10s.
+
+- **Changelog in the app and on the website, from one file; a separate public Roadmap on the site.** (2026-09-30)
+  New root `CHANGELOG.md` - hand-written, player-facing, newest first - is the single source: the app's new
+  **Changelog** page (sidebar; `pages/ChangelogPanel` + `ChangelogParser`) and the website's Changelog page both
+  read it, and `build.sh`/`build.bat` copy it into `VertexClient.jar` (from source it's read from the working
+  directory or the folder above). The website's old combined Home/Changelog page is split: Home now shows the
+  latest entry, `/changelog` shows everything, and `/roadmap` is a new page rendered from
+  `website/content/roadmap.md` - *possible* additions, no dates, and none of the internal items (security gaps,
+  unresolved decisions). The website's hard-coded highlights list is gone. Verified: the real page rendered under
+  Xvfb from the real file, the parser (comment skipped, continuation lines joined), and every website route via
+  Flask's test client. **To review:** the wording of `website/content/roadmap.md` is mine - it names Vertex:
+  Dominion and "servers you can join from anywhere" as possibilities; delete anything Bipin would rather not
+  publicly hint at. New convention: player-visible changes get a line in `CHANGELOG.md` (added to `CLAUDE.md`).
+
+- **Themed custom cursors, chosen in Settings.** (2026-09-30) Settings > Appearance has a "Mouse cursor" picker of
+  six cards - System default, **Crystal** (faceted cyan, echoing the logo), **Ember**, **Neon**, **Mono** and
+  **Match my theme** (follows the app theme's accent colours live) - each previewing its arrow, link pointer and
+  text cursor. Drawn entirely in code (`ui/CursorArtwork`, original shapes, nothing copied or shipped), created at
+  the platform's best cursor size. `ui/CursorManager` applies the choice app-wide, dialogs and the screen-break
+  overlay included: Swing components pick their own cursors, so it listens at the AWT level and swaps only the
+  three Swing uses (default, hand, text) for whatever is under the pointer, remembering each original - so
+  "System default" restores everything exactly and a game's crosshair, resize arrows or hidden cursor are left
+  alone. Stored per computer like the other display settings. Verified under Xvfb: the swap, the restore, "other
+  cursors untouched", set-to-set switching, plus renders of the art on light and dark and of the picker. **Not
+  verified:** scaled/high-DPI displays and Windows/macOS (only Linux/Xvfb was available) - worth a look by Bipin
+  on a scaled display; if the platform can't make a custom cursor it silently keeps its own.
+
+- **`/calc` slash command.** (2026-09-30) The one slash command, as agreed (the earlier chatbot/slash-command
+  removal stands). `/calc 2+3*4` in a DM, a group chat or the match-chat dock is answered on the sender's own
+  screen and **never sent** - no server change, nothing anyone else sees. New `chat/CalcParser`: a small
+  hand-written recursive-descent parser (`+ - * / % ^`, brackets, decimals, `pi`/`e`, `sqrt abs round floor
+  ceil ln log sin cos tan min max`; `^` right-associative, `-2^2 = -4`), no script engine. Bad input gives a
+  one-line message (divide by zero, negative root, overflow, unknown name, over 200 characters, 60 levels of
+  brackets - a 5000-deep nest is refused instead of overflowing the stack). `CalcParserTest` (38 checks) and a
+  live check that the dock answers it locally.
+
+- **First-run admin setup replaces "first signup becomes admin."** (2026-09-30, the item added when
+  Bipin delegated the decision.) New shared `account/AdminBootstrap`, called by `ServerMain` before the
+  server accepts anyone: if no admin exists it asks for a username and password at the server console
+  (password typed twice, not echoed, three tries), or reads `VERTEX_ADMIN_USER`/`VERTEX_ADMIN_PASSWORD`
+  for an unattended start; with neither it starts with no admin and a loud warning - never handing admin
+  to whoever connects first. `ClientHandler.handleCreateAccount` now always creates a `PLAYER`. Also
+  corrects `VertexServer/README.md`, which described a "loopback connection" rule the code never had.
+  Answers Bipin's question: yes, he chooses the admin's name and password - typed into the server
+  console, never into chat. `AdminBootstrapTest` (14 checks: console, bad input re-asked, closed input,
+  environment, no-console warning, an ordinary signup never yields an admin) plus a real `ServerMain`
+  run in a clean directory. **Behaviour change to note:** an existing server that already has an admin
+  is untouched; a fresh server started without a console and without the variables has no admin until
+  restarted with one.
+
+- **Reconnect gaps closed: heartbeat, live countdown, chat dock on resume, Chess on the shared helper.**
+  Follow-up to the entry below, at Bipin's "fix gaps" (2026-09-30). (1) **Heartbeat:** the client
+  pings every 8s (`PING_REQUEST`/`PONG`); the server drops a connection silent for 25s
+  (`SO_TIMEOUT`) and the client treats a server silent for 30s as gone, so a link that died without
+  a close now starts the opponent's grace period after ~25s instead of never. Verified with a real
+  server: a raw client that goes silent is dropped at ~24s and its opponent told to wait, while an
+  idle real client stays connected past the window. Side effect worth knowing: any client that does
+  not ping is dropped after 25s idle (the shipped client pings). (2) **Live countdown:**
+  `ui/ReconnectCountdown` turns "up to 30s" into a ticking "27s left" on all 18 game windows; it
+  stops by itself when anything else writes to the label. (3) **Chat dock on resume:**
+  `MatchChatRoom` keeps a registry of open rooms, login puts the returning player back in theirs
+  (replacing a stale handler for the same player), and the client asks `MATCH_CHAT_SYNC_REQUEST`
+  once its window is up (a push during login would arrive before the client is ready). (4) **Chess
+  now runs on `PairReconnect`** (new `onPaused` hook clears its draw offer). The eight earliest
+  adopters keep their hand-written version on purpose: it works, has no behavior to gain, and
+  converting them would risk regressions for no player-visible benefit. Still open: the group games.
+  New checks: `MatchChatRoomTest` rejoin cases; the countdown and the heartbeat were verified live.
+
+- **Shared `mechanics` package + 30-second reconnect for 18 games, including Chess; and the
+  reconnect now actually happens.** Built as directed (2026-09-30). New shared `mechanics`
+  package: `ReconnectPolicy` (30s window and the per-game exception table), `ReconnectRegistry`
+  (moved from `games/`, now one server-wide instance so login needs no per-game code), and
+  `PairReconnect` (the two-player disconnect/timeout/resume state machine, written once - each
+  game supplies a small adapter). Adopted: Chess, Dice Duel, Signal Grid, Fusion Grid, Memory
+  Match, Typing Duel, Card Rush and the real-time Air Hockey, Snake Arena, Tetris Duel (which
+  freeze while a player is away and for 3s after they return), on top of the eight games that
+  already had it (now on the 30s window). Group games stay as exceptions. Chess specifics:
+  no clocks so nothing else to pause; a pending draw offer is cleared on a drop; abandonment
+  keeps today's outcome (no rating/coins/replay). **Found while verifying end to end, and
+  fixed:** the client re-opened its socket after a drop but never logged back in, so the held
+  match was only handed back if the player logged in by hand - the feature could not have worked
+  in practice. Now `NetworkManager` notices a drop as soon as its listener ends (not only on a
+  later send), `SessionRestorer` logs in again with the in-memory credentials, `MatchResume`
+  (extracted from `AuthWindow`) rebuilds the window, and the server's login takes over an older
+  session's reconnect-eligible matches (covers a dead connection the server hasn't noticed).
+  Also fixed a flaw the new window would have created: a deliberate Leave goes through the same
+  path as a drop, so it would have kept the opponent waiting - `leavingVoluntarily` now makes it
+  forfeit at once. Verified: 3 new test files (`ReconnectRegistryTest`, `PairReconnectGamesTest`
+  - 149 checks across 9 games, `ChessReconnectTest`), Xvfb screenshots of the resumed/paused
+  windows (Chess, Typing Duel, Memory Match, Tetris Duel, Air Hockey), and a real in-process
+  server + real client whose socket is closed mid-Chess-match - the opponent is told to wait, the
+  client re-logs in and shows the board by itself, its next move reaches the opponent.
+  **Known gaps at the time (since closed - see the entry above):** heartbeat, live countdown, chat
+  dock on resume, Chess on the helper. Still true: the group games remain exceptions - holding a
+  seat in a match that carries on without you is a different design.
+
+- **Forums, as a new sidebar tab.** Built as agreed with Bipin (2026-09-29): a board per
+  game plus General, threads with flat replies, moderators/admins can delete posts and lock
+  threads, first version without votes/editing/images/notifications. New shared `forum`
+  package (`ForumCodec`, `ForumStore`, `ForumService`) and a client-only `ForumsPanel`.
+  Server-authoritative: posting needs a login and respects mutes and a 3-posts-per-30s flood
+  limit; **delete/lock are decided from the account's stored role on the server** and logged
+  in `AdminLog`; too-long text is rejected with a message rather than cut. The flat file is
+  hardened against the newline-forgery bug already fixed in the suggestion store (every field
+  escaped, one record per line, atomic rewrite). Verified three ways: `ForumServiceTest`
+  (43 checks), `ForumHandlerTest` (21 checks, driving the real `ClientHandler`), and
+  end-to-end runs of a **real in-process server + real client** through the actual page
+  (post from the composer, reply, moderator Lock/Delete, error display) with Xvfb
+  screenshots - which caught a real bug the unit tests could not: `FORUM_RESPONSE` was
+  missing from `NetworkManager.RESPONSE_TYPES`, so every forum request would have timed out
+  after 10s as "could not reach the server". Also caught truncated button labels (fixed).
+  `./test.sh` is now 10 tests / 206 checks. Shared files mirrored byte-identical.
+  Live-server caveat: not yet tried against a deployed server on another machine.
+- **In-match chat beside the game, with a `chat` package that makes restricting it a
+  one-line change.** Approved by Bipin (2026-09-29): "pop out chat is good" and "make a
+  package to restrict easier". Server-authoritative room per live match
+  (`chat/MatchChatRoom`): a client asks to send (`MATCH_CHAT_SEND_REQUEST`), the room
+  relays only if it's open and the sender is a member; mute and flood limits apply
+  exactly as for DMs. **`chat/GameChatPolicies` is the restriction package** - one opt-in
+  table of which games have chat and whether it starts `OPEN` or `LOCKED`; restricting a
+  game is one line plus a `room.unlock()` call from the game when it stops mattering, and
+  a game not listed has no chat at all. Wired into every game on `MatchmakingKernel` (14
+  games; the room opens on pairing and stays 60s after the match for a "gg") and Telephone
+  (starts `LOCKED` so nobody can say the answer out loud, unlocks when the reveal starts,
+  stays open 10 minutes). Client: `MatchChatDock` docks beside the game inside `MainMenu`'s
+  game-host slot, mirrors locked/closed state, collapses to a strip with an unread count,
+  and is dropped when the game is left. Verified by a new committed test
+  (`chat/MatchChatRoomTest`, 32 checks; `./test.sh` now 8 tests / 142 checks) and a
+  live-`MainMenu` test with Xvfb screenshots (open, locked, collapsed) - which caught a
+  real bug (a new match's dock left the old one behind as a stray child) and truncated
+  button labels, both fixed. Shared files mirrored byte-identical; `MatchChatDock` is
+  client-only. **Not yet covered:** Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors and
+  the group/real-time games - each needs its `Match` to open/close a room itself (see
+  `PROGRAM_STRUCTURE.md`'s `chat` section). Also: `ThemedTextField.setInputEnabled(...)`
+  added, because `setEnabled` on it only affected the wrapper, not the text field inside.
+- **The game-detail page is now a real in-app step, not a popup.** `GameDetailDialog`
+  (a full-window modal `JDialog`) is replaced by `games/GameDetailPanel`, a page in
+  `MainMenu`'s `CardLayout` (`Pages.GAME_DETAIL`), reached through the new
+  `MainMenu.showGameDetails(GameInfo)`. All 3 call sites moved over (`GameLauncher.launch`
+  - which covers Play buttons, quick-play, search results and invites - plus `GamesPanel`'s
+  art and name clicks). Back (or Escape) returns to **whichever page opened it**, per
+  Bipin's choice - not a fixed destination; opened from inside a running game (e.g.
+  accepting an invite mid-match) it falls back to the Games page, and it runs the same
+  "leave this match?" guard sidebar navigation does, now shared as
+  `confirmLeaveGameHost()`. Also fixed a real bug that predated the move: the rules
+  text was clipped at the card's right edge, because `<body style='width:520px'>` is
+  ignored on newer JDKs (the label reports ~676px and wraps too late) - the new panel
+  uses an HTML table width, which is honored everywhere. Verified with an Xvfb+Swing
+  screenshot (old dialog reproduced the clipping, new panel wraps inside the card) and
+  a live-`MainMenu` navigation test (open from All Games/Friends/Home/Shop and Back
+  returns to each; double-open keeps the original return page; leaving via the sidebar
+  works - 14 checks). All client-only, no `VertexServer` copy. **Not fixed, flagged:**
+  24 other labels across the client use the same `style='width:...'` pattern (e.g.
+  `GameRulesDialog`, `GameSuggestionsPanel`) and may clip the same way on a newer JDK.
+- **Real bug found and fixed: Trivia Blitz has been paying its winner(s) zero
+  coins since the game shipped.** `TriviaMatch.finishMatch()` computes a pot via
+  `EconomyConfig.getWinReward("trivia-blitz")` and splits it across everyone tied
+  for the top score - but `"trivia-blitz"` was never added to `getWinReward()`'s
+  table, so the lookup silently fell through to the `return 0` default and the
+  `perWinnerReward > 0` guard meant `awardMatchWinCoins()` never even got called.
+  Found by extending the same "diff the real ids against what a per-game table
+  actually covers" audit technique from the `GameRules`/`GameMetadata` fix above
+  to `EconomyConfig` - grepped every `Match` class for a call to
+  `EconomyManager.awardWin(...)` or `EconomyConfig.getWinReward(...)` directly
+  (the two real call paths) to get the complete list of 24 games that actually
+  need a `getWinReward()` entry, confirmed all 24 were now covered after adding
+  trivia-blitz (worth 20, matching Among Us's small-multiplayer-group tier - a
+  reasonable, retunable default, not a guessed balance number), and found no
+  other gaps. New committed regression test
+  (`VertexServerTests/economy/EconomyConfigTest.java`, 25 checks) locks in the
+  full set so a future game that calls either award path without a matching
+  table entry fails a test instead of silently paying nothing forever.
+  Mirrored byte-identical across both trees; `./test.sh` green (7 tests, 110
+  checks total).
+- **Audit + fix: 3 games had no `GameRules` entry, 2 had no `GameMetadata` entry.**
+  Found by actually diffing `GameRegistry`'s 53 real game IDs against both maps'
+  keys rather than assuming per-game setup was complete - `GameRules.get()`'s own
+  fallback ("No rules written for this game yet.") meant Hill Climb, Number Nest,
+  and Telephone were silently showing that placeholder to any player who clicked
+  their Rules button, and Hill Climb/Telephone were silently defaulting to
+  "Medium" difficulty with no tags at all in `GameDetailDialog`. Wrote real rules
+  text for all three (verified against each game's actual mechanics/controls in
+  code - `HillClimbWindow`'s real key bindings, `NumberNestGame`'s own javadoc,
+  `TelephoneWindow`'s real round-alternation flow - not guessed from the name) and
+  metadata tags for Hill Climb/Telephone. Verified via a scratch harness calling
+  `GameRules.get()`/`GameMetadata.getDifficulty()`/`getTags()` for all three ids
+  directly, and reran the diff to confirm zero gaps remain across all 53 games.
+  Both files are client-only presentation data (no `VertexServer` copy exists),
+  so no mirroring needed.
+- **`MatchmakingKernel` rollout continues: Card Rush, Snake Arena, and Tetris
+  Duel adopt it (11th, 12th, and 13th adopters).** Same textbook shape as every
+  round before this one - plain 2-player FIFO managers, no rematch/spectate/
+  tournament glue, none of the three `Match` classes take a `ReconnectRegistry`
+  so none of the three managers expose `kernel.getReconnectRegistry()`. Original
+  matchId prefixes ("cardrush-"/"snakearena-"/"tetrisduel-") checked and
+  hardcoded via the kernel's 5-arg constructor before writing any code, the same
+  as every round since the Dice Duel/Typing Duel bug taught this lesson - they
+  diverge from `GAME_ID` ("card-rush"/"snake-arena"/"tetris-duel") the same way
+  every hyphenated-GAME_ID adopter so far has. Also screened out three managers
+  that look similar but aren't 1v1 fits for this kernel: `RacingMatchManager`/
+  `SpaceBattleMatchManager` (3-6 player group races, not pairs) and
+  `SquareWarsMatchManager` (2-4 player groups) - the kernel only pairs exactly
+  two waiting players, so a group-formation manager isn't a drop-in conversion
+  without kernel changes it doesn't need yet. Also confirmed `ChessMatchManager`
+  isn't a "textbook" candidate either - it has `createDirectMatch`/
+  `addSpectator`/`listSpectatableMatches` the kernel doesn't support, same
+  reasoning that excluded other spectate-capable managers from earlier rounds.
+  `MatchmakingKernelAdoptersTest.java` extended with three more test methods
+  (49 checks in that file now, 85 across the whole suite). Mirrored
+  byte-identical across both trees; `./test.sh` green. ~13
+  `<Name>MatchManager` classes remain as this optional cleanup's backlog
+  (multiplayer/spectate-shaped ones excluded, since the kernel doesn't fit them
+  as it stands today).
+- **`MatchmakingKernel` rollout continues: Signal Grid and Fusion Grid adopt it
+  (9th and 10th adopters).** Same textbook shape as every round before this one -
+  plain 2-player FIFO managers, no rematch/spectate/tournament glue, neither
+  `Match` class takes a `ReconnectRegistry` so neither manager exposes
+  `kernel.getReconnectRegistry()`. Original matchId prefixes ("signalgrid-"/
+  "fusiongrid-") checked and hardcoded via the kernel's 5-arg constructor before
+  writing any code, same as the last two rounds - they diverge from `GAME_ID`
+  ("signal-grid"/"fusion-grid") the same way every hyphenated-GAME_ID adopter so
+  far has. `MatchmakingKernelAdoptersTest.java` extended with
+  `testSignalGridMatchIdPrefixAndPairing`/`testFusionGridMatchIdPrefixAndPairing`
+  (34 checks in that file now, 70 across the whole suite). Mirrored
+  byte-identical across both trees; `./test.sh` green. ~16 `<Name>MatchManager`
+  classes remain as this optional cleanup's backlog, adopted a couple at a time
+  whenever convenient.
+- **`MatchmakingKernel` rollout continues: Air Hockey and Memory Match adopt it
+  (7th and 8th adopters).** Same shape as the Dice Duel/Typing Duel round just
+  before this one - plain 2-player FIFO managers, no rematch/spectate/tournament
+  glue, neither `Match` class takes a `ReconnectRegistry` so neither manager
+  exposes `kernel.getReconnectRegistry()`. Applied the matchId-prefix lesson from
+  that prior round proactively this time: checked and hardcoded the real original
+  prefixes ("airhockey-"/"memory-", diverging from `GAME_ID` "air-hockey"/
+  "memory-match" the same way Connect Four/Dots and Boxes/Dice Duel/Typing Duel
+  all did) before writing any code, via the kernel's 5-arg constructor from the
+  start - no buggy first pass this round. `MatchmakingKernelAdoptersTest.java`
+  extended with `testAirHockeyMatchIdPrefixAndPairing`/
+  `testMemoryMatchMatchIdPrefixAndPairing` (24 checks total in that file now,
+  60 across the whole suite). Mirrored byte-identical across both trees;
+  `./test.sh` green. `SignalGridMatchManager`/`FusionGridMatchManager` remain
+  named as good next candidates for whenever this optional cleanup continues.
+- **`MatchmakingKernel` rollout: Dice Duel and Typing Duel adopt it (5th and 6th
+  adopters), and a real bug caught before it shipped.** Both were textbook
+  candidates - plain 2-player FIFO managers with no rematch/spectate/tournament
+  glue to preserve, identical in shape to `CheckersMatchManager` before its own
+  conversion. Converting them surfaced the exact matchId-prefix-vs-gameId
+  divergence `MatchmakingKernel`'s own javadoc already warns about (Connect Four
+  hit it first): each game's original hand-rolled matchId format has no hyphen
+  ("diceduel-1"/"typingduel-1") while its `GAME_ID` (used for `QUEUE_UPDATE`/game
+  history) does ("dice-duel"/"typing-duel") - a first-pass conversion using the
+  kernel's short 4-arg constructor would have silently changed the matchId format
+  server-wide (defaults `matchIdPrefix` to `gameId`). Caught and fixed before
+  landing by explicitly passing a `MATCH_ID_PREFIX` constant via the kernel's 5-arg
+  constructor, and a new committed regression test
+  (`VertexServerTests/games/MatchmakingKernelAdoptersTest.java`, 14 checks) now
+  locks this in permanently - it would have failed against the buggy first pass.
+  Neither game's own `Match` class takes a `ReconnectRegistry` (neither has adopted
+  reconnect support), so unlike `CheckersMatchManager` these two don't expose
+  `kernel.getReconnectRegistry()` - not a capability either game actually has, so
+  not pretending it does. Mirrored byte-identical across both trees; `./test.sh`
+  green (6 tests, 50 checks total now).
+- **`ui/PlaceholderPanel.java`** - the shared "clear this container and drop in a
+  muted label" primitive FriendsPanel/LeaderboardPanel/ShopPanel each independently
+  hand-rolled for their own loading-failed/empty-list states, per this file's own
+  earlier note that three real call sites was enough repetition to justify one. A
+  static helper (`show(container, text)` clears and shows a placeholder with its own
+  revalidate()/repaint(); `mutedLabel(text)` for a caller mid-way through building a
+  container's other children that just wants the one label, not a full replace) -
+  the same "static helper, not a base class" shape `GameWindowKernel`'s
+  `centered()`/`center()` already established, not a new stateful widget every panel
+  must be built from. All three original call sites refactored onto it (each
+  panel's own private `mutedLabel()` copy removed): `FriendsPanel`'s connection-error
+  case and both its "no pending requests"/"no friends yet"/"no friends match" empty
+  states, `ShopPanel`'s connection-error case, and `LeaderboardPanel`'s "no one has
+  played this yet" empty state. `LeaderboardPanel`'s own connection-error case
+  deliberately left untouched - it already uses a different, correct shape (a
+  persistent status label's `setText()`, not a container placeholder), and forcing
+  it onto `PlaceholderPanel` would have been the wrong abstraction, not a
+  simplification. Verified visually via an Xvfb+Swing screenshot of `show()` in a
+  real `RoundedPanel` host, plus a full-tree `VertexClient` compile; purely a
+  refactor of already-shipped behavior (same `ThemedLabel` construction, same
+  clear/add/revalidate/repaint sequence as before, just no longer hand-rolled
+  separately in each of the three panels), so no behavior change to verify beyond
+  that.
+- **Testing infrastructure formalized: the reversible default from the
+  2026-09-28 audit is now built.** Every verification this project has ever done -
+  roughly 30 of them across recent sessions, from the `VertexSerializationFilter`
+  round-trip tests to the injection-fix and reconnection tests - followed the exact
+  same shape without ever being told to: a throwaway `.java` file in the scratchpad,
+  a hand-rolled `checks`/`failures` counter, compiled once, run once, then deleted.
+  That worked and genuinely caught real bugs, but nothing survived to catch a
+  *regression* the next time someone touched that code. Built exactly the shape the
+  audit already decided, not guessed at further: `VertexServerTests/support/Check.java`
+  (a tiny shared harness formalizing the `check(label, condition)` + running-total
+  pattern every scratch test already reinvented by hand - a few lines, not a
+  framework, and deliberately no external test dependency like JUnit, matching this
+  project's zero-external-dependency `build.sh`/BlueJ philosophy) and `test.sh`
+  (sibling to `build.sh`: builds `VertexServer` fresh, compiles every
+  `VertexServerTests` class against it, runs each `main()` in its own fresh temp
+  working directory - several of these tests exercise flat-file stores that
+  hardcode a relative file name, so isolating each test's CWD keeps them from
+  colliding with each other or writing into the repo itself - and fails, nonzero
+  exit, if any test reports a failure). `VertexServerTests/` is a sibling to
+  `VertexServer/`, not nested inside it, so nothing here ships in the jar
+  (`build.sh` only ever globs `.java` files under `VertexServer/`/`VertexClient/`
+  themselves).
+  **First graduated batch (per the audit's own stated reversible default - the
+  security-relevant tests, not a mandate to commit all ~30 at once)**: the
+  `VertexSerializationFilter` round trip (a REAL `ObjectOutputStream`/
+  `ObjectInputStream` pair through the actual filter - a rich `Message` carrying an
+  `Account` and a full `DominionSnapshot` all correctly deserialize, and a
+  deliberately non-allow-listed `java.util.HashMap` is actually rejected with an
+  `InvalidClassException`, proving the deny-by-default tail really denies rather
+  than just reading that way in the config string), the three admin-store
+  entry-forgery fixes (`GameSuggestionStore`/`AdminLog`/`FeedbackManager` - each
+  submits an adversarial embedded-newline or exact-delimiter-line payload, then
+  forces a real save-then-reload round trip via a second fresh instance and asserts
+  the reloaded entries are byte-for-byte identical to what went in, not a forged
+  extra entry), and `DominionStore`'s full save/load round trip (every entity type,
+  including a declared-but-not-yet-active war whose `effectiveFromTick` must
+  survive exactly rather than being reinterpreted relative to the reloaded tick,
+  and loading with no file present yielding a fresh empty world rather than
+  erroring). 36 checks total across 5 committed tests, `./test.sh` green.
+  **A real bug caught in the tests themselves, not the product, while wiring this
+  up**: two of the admin-store tests originally scanned the reloaded output for the
+  *absence* of a `"] admin:"`-shaped substring as proof nothing was forged - but
+  that string legitimately still appears, inline, as part of the one correctly-merged
+  entry the fix produces (the fix strips the newline, it doesn't remove the
+  attacker's characters), so the check false-failed against passing code. Fixed by
+  asserting exact equality between the pre-reload and post-reload entry lists
+  instead - the actually-unambiguous way to prove nothing split into two entries -
+  rather than leaving a flaky assertion in a newly-"permanent" regression test.
+  README.md's file listing updated to mention `test.sh` alongside `build.sh`.
+- **Sky Hopper, a new original vertical-climber single-player game** - the games
+  backlog's `Doodle Jump`-genre concept, distinct from every other single-player
+  game here (nothing else is a vertical endless climber). Bounce automatically off
+  procedurally generated platforms (55% normal, 20% moving, 15% breakable/one-bounce,
+  10% spring/extra-height, weighted on generation) as a camera that only ever
+  scrolls up follows the player once they climb past a fixed fraction of the
+  screen - falling below the bottom of the current view ends the run; score is the
+  max height climbed, in meters. `SkyHopperGame`/`SkyHopperWindow` follow the same
+  `<Name>Game`/`<Name>Window` split and `engine.GameLoop` usage `HillClimbGame`/
+  `HillClimbWindow` established, but use a screen-like y-down world convention
+  throughout (climbing decreases y) so physics and rendering share the same numbers
+  1:1 with no separate pixels-per-unit scale to keep in sync. Registered in
+  `GameRegistry`/`GameWindowFactory`/`GameMetadata`/`GameRules`, and a practice
+  reward formula added to `EconomyConfig` (score/15, capped at 35 coins, same shape
+  as every other formula in that table) - the exact bug class flagged in
+  `BLOCKED_QUESTIONS.md`'s resolved Sudoku entry (a new game shipping with no reward
+  formula at all) checked and avoided up front rather than found later. Verified
+  with an 218-check scratch logic test (starting-platform bounce, monotonically
+  increasing score, camera-never-scrolls-back-down, a forced fall reliably ending
+  the game with ticking-after-game-over a confirmed no-op, platforms staying
+  generated ahead of the camera, horizontal wrap-around, and a breakable platform
+  actually breaking after one bounce) plus a real Xvfb+Swing screenshot of a live
+  mid-game frame, eyeballed for correct rendering (sky gradient, all four platform
+  colors including the breakable crack mark, player, score readout). `GameRegistry`/
+  `EconomyConfig` are the only files this needed in `VertexServer` (confirmed by
+  checking - `HillClimbGame`/`HillClimbWindow`/`NumberNestGame`/`NumberNestWindow`
+  don't exist server-side either, since an offline single-player game's logic never
+  runs anywhere but the client; the server only ever sees a final `GAME_PLAYED_
+  REQUEST` score to award a reward against) - both trees compile clean and stay
+  byte-identical on those two files.
+- **Rock Paper Scissors joins the reconnect-aware games (8th adopter)** - the same
+  `ReconnectRegistry` grace-period shape as TicTacToe/Connect Four/Checkers/Reversi/
+  Dots and Boxes/Word Duel/Battleship, and a third genuinely distinct per-game
+  accommodation (not a repeat of either earlier shape): RPS has no board and no turn
+  at all (moves are blind and simultaneous each round), so neither `mySymbol` nor
+  `boardState` carries anything meaningful by default. `RockPaperScissorsMatch.
+  onReconnect()` packs the running score into `ReconnectResult.boardState` as
+  `"myScore:opponentScore"` instead, and `AuthWindow.resumeMatchIfPending()` gained a
+  `rock-paper-scissors` branch that unpacks it into the synthetic push's
+  `rpsMyScore`/`rpsOpponentScore` fields before replaying it - which also surfaced and
+  fixed a real client bug along the way: `RockPaperScissorsWindow`'s `RPS_MATCH_FOUND`
+  handling was unconditionally resetting the score display to 0-0, which would have
+  silently wiped a reconnecting player's real mid-series score the moment this reused
+  that same message type as the resume push. Now reads `rpsMyScore`/`rpsOpponentScore`
+  off the message instead (a one-line change, harmless for a genuinely fresh match
+  since those fields are simply unset/0 there). `submitMove()` now also rejects a move
+  server-side while the opponent is mid-grace-period, the same freeze check
+  `BattleshipMatch.fire()`/`TicTacToeMatch` already have - never trusting the client's
+  own input-blocking. `TournamentManager`'s RPS bracket matches (RPS is one of only two
+  tournament-capable games, alongside Battleship) are threaded onto the same registry
+  too. Client-side, `RockPaperScissorsWindow` gained `OPPONENT_DISCONNECTED_NOTICE`
+  handling (hides the move buttons, shows the wait message) cleared by the resume
+  `RPS_MATCH_FOUND` push. Verified with a 15-check scratch test (a fake `ClientHandler`
+  subclass capturing `sendMessage()`, same technique as every other reconnect test)
+  covering: the full disconnect → notice → reconnect cycle with a real seeded score
+  correctly carried across it, a grace-window timeout finalizing correctly, a late
+  reconnect attempt after the window closed finding nothing pending, a guest
+  disconnect finalizing immediately with no grace period, a move rejected
+  server-side while the opponent is mid-grace-period, and both players disconnecting
+  during the same window cleaning up without a stray reconnect succeeding. Mirrored
+  byte-identical across both trees (`RockPaperScissorsMatch`/
+  `RockPaperScissorsMatchManager`/`TournamentManager`/`ClientHandler`;
+  `AuthWindow`/`RockPaperScissorsWindow` are client-only); both compile clean. Trivia
+  Blitz is the only online-multiplayer game left without any reconnection story -
+  audited 2026-09-29 and found NOT to be a small "9th adopter" the way this entry
+  once assumed (see `BLOCKED_QUESTIONS.md`: it's 2-6 players and deliberately
+  doesn't forfeit on a disconnect, a genuinely different shape than every 2-player
+  forfeit-based game `ReconnectRegistry` was built for) - a real open design
+  question, not guessed at.
+- **A mandatory screen-break timer, per Bipin's explicit request** ("every 20
+  min they have to look away for 30 sec and if in middle of game they wait
+  till end of game. No exceptions"). `ui/ScreenBreakOverlay.java` (new,
+  `VertexClient`-only - a wellness/UI feature, not shared game/account/
+  economy logic, so it's not on the byte-identical sync list): a single
+  `javax.swing.Timer` ticking once a second counts *active* screen time
+  (`MainMenu.isActive()` and not `ICONIFIED` - paused while the window is
+  unfocused or minimized, not wall-clock time); once 20 real minutes of
+  active time accrue, a full-screen glass-pane overlay blocks all mouse/key
+  input for exactly 30 seconds (dark scrim, countdown ring, no close
+  button, no Escape binding, no Settings toggle - genuinely not skippable).
+  If a game is currently embedded in the `GAME_HOST` slot when the
+  threshold is reached (`MainMenu.isGameInProgress()`, a new one-line
+  method reading the existing `currentPageKey` field - reuses the same
+  signal the embedded-games architecture already tracks, rather than
+  inventing a second "is a match active" flag per game), the break is
+  deferred and rechecked every second until that game ends, exactly as
+  asked - "mid-game" never gets interrupted, but the break still fires the
+  instant it's clear. Attached once, whole-app, from `MainMenu`'s
+  constructor - the same "one static `attach()` call from the shell" shape
+  `SignatureOverlay`/`CursorTrailOverlay` already use, via the frame's
+  glass pane rather than a layered-pane child since this one needs to
+  actually block input, not be click-through. Verified with a reflective
+  Xvfb+Swing screenshot smoke test (the overlay's own panel class is
+  intentionally private, so the throwaway harness reflects into it rather
+  than weakening its visibility for testability) rendering the countdown
+  ring/text at three sample values and eyeballed for layout (a
+  subtitle/ring overlap the first render caught was fixed before landing).
+  `VertexClient` compiles clean; no `VertexServer` changes needed since
+  this is purely client-side.
+- **Battleship joins the reconnect-aware games** - the same `ReconnectRegistry`
+  grace-period shape (Connect Four/Checkers/Reversi/Dots and Boxes/Word Duel) rolled
+  out to a sixth game, and the first turn-based one since Word Duel to need its own
+  real accommodation in the shared client-side resume mechanism rather than fitting
+  the first-5-adopters' flat-board shape unchanged. `BattleshipMatch`/`Battleship-
+  MatchManager` gained `playerA`/`playerB` reassignment, a `disconnectedIsA` Boolean
+  slot, `onReconnectTimeout()`/`onReconnect()`, and `fire()` now rejects a shot
+  server-side while the opponent is mid-grace-period (never trusting the client's
+  own input-blocking, matching `TicTacToeMatch`'s freeze check - a real gap this game
+  didn't have before, caught while building this). `TournamentManager`'s Battleship
+  bracket matches were threaded onto the same registry rather than passed `null`, so
+  tournament matches get grace-period support for free too. Unlike the first 5
+  adopters (and unlike Word Duel, which needed to *repurpose* boardState/turnSymbol),
+  Battleship's real `BATTLESHIP_MATCH_FOUND` already uses plain symbol ("MINE"/
+  "THEIRS")/boardState (own fleet layout) - so `AuthWindow.resumeMatchIfPending()`
+  only needed a new "skip the generic second UPDATE message" branch for this game,
+  since Battleship has no generic `*_UPDATE` type at all, only the richly-shaped
+  `BATTLESHIP_FIRE_RESULT` (sending that with default/null shot fields would have
+  misdrawn a phantom hit on cell 0, not just done nothing). The still-connected
+  opponent's "waiting to reconnect" UI is cleared by reusing `BATTLESHIP_FIRE_RESULT`
+  with a `cellIndex` of -1 as a sentinel - `fire()` never produces a negative index,
+  so it's unambiguous - `BattleshipWindow` recognizes it as a pure resync and skips
+  `markCell()` entirely. Honestly-flagged gap, not silently skipped: `ReconnectRegistry
+  .ReconnectResult` has no field for "every past shot," so the *reconnecting* player's
+  own two grids repaint from a fresh fleet-layout MATCH_FOUND rather than replaying
+  their hit-marker history - cosmetic only, every piece of server-side state (whose
+  turn it is, which cells are already fired, both fleets) was never touched by the
+  disconnect and resumes exactly right. Verified with an 18-check test (`Battleship
+  ReconnectTest.java`, a real `ClientHandler` subclass capturing `sendMessage()`,
+  same technique as this project's other reconnect tests) covering: the full
+  disconnect → notice → reconnect cycle (matchId/gameId/opponentUsername/boardState
+  all correct, plus the opponent's -1-sentinel resume nudge), a real grace-window
+  timeout finalizing correctly via `ReconnectRegistry`'s short-grace-window test seam,
+  a late reconnect attempt after the window closed finding nothing pending, a guest
+  disconnect still finalizing immediately with no grace period ever registered, a
+  fire attempt rejected server-side while the opponent is mid-grace-period, and both
+  players disconnecting during the same grace period cleaning up without a stray
+  reconnect ever succeeding against the now-ended match. Mirrored byte-identical
+  across both trees where shared (`BattleshipMatch`/`BattleshipMatchManager`/
+  `ClientHandler`/`TournamentManager`; `AuthWindow`/`BattleshipWindow` are client-only
+  Window classes); both trees compile clean. RPS and Trivia Blitz are next for the
+  same rollout - see `PROGRAM_STRUCTURE.md`'s reconnection note for the up-to-date gap
+  list.
 - **Security pass: a real entry-forgery bug found and fixed across three admin
   stores.** `GameSuggestionStore` (public, reachable by any logged-in player)
   and `AdminLog` (admin/mod-only) both persist one entry per physical line, but
@@ -1314,35 +1988,53 @@ recorded below as they're confirmed.
   future game/window**: grep for every external construction site of that game's
   window (not just `GameLauncher.java`) before considering it done - Chess's
   spectate-path bug is exactly the kind of thing that slips through otherwise.
-- Also still wanted: a true embedded `CardLayout` "Details" step (Discover -> Details
-  -> Mode -> ... -> Return, continuous with the rest of the flow) rather than
-  `GameDetailDialog`'s current modal popup (now full-screen-sized, see "Done" above,
-  but still a separate `JDialog` on top of the app rather than a step inside it) -
-  would mean auditing and rewriting all 3 of its call sites to hand off into
-  `MainMenu`'s game-host slot instead of `dialog.setVisible(true)`. Also still wanted:
-  a game should be able to have chat "popped out" alongside it while playing (with
-  some games, like a Gartic-Phone-style drawing game, needing chat *restricted* rather
-  than open, since free chat would let players just say the answer out loud).
+- In-match chat beside the game (restricted for games like Telephone, where free chat
+  would let players say the answer out loud) is **built** for the 14 `MatchmakingKernel`
+  games and Telephone - see "Done" above. What remains is giving it to the other games:
+  Tic-Tac-Toe, Chess, Battleship, Rock Paper Scissors and the group/real-time games each
+  need their `Match` to open and close a room via `GameChatPolicies` (and a line in that
+  table). Games where chat would leak hidden info (e.g. Among Us) should be decided
+  deliberately, not defaulted on. (The other half of this note, the true embedded
+  "Details" step, is also done.)
 
-- **Reconnection rollout continues: Chess and the richer-protocol games are next.**
-  Connect Four, Checkers, Reversi, Dots and Boxes, and now Word Duel are reconnect-aware
-  (2026-09-26/27, see "Done" below) - the same `disconnectedSlot`/grace-period/timeout
-  shape `TicTacToeMatch` proved. Word Duel's addition surfaced a real, previously-
-  unexercised limit in the shared client-side resume mechanism worth flagging here for
-  whichever game is next: `AuthWindow.resumeMatchIfPending()`'s generic reconstruction
-  only ever populates a reconnecting player's synthetic MATCH_FOUND/UPDATE pushes with
-  `symbol`/`boardState` - fine for the first 5 adopters purely by coincidence (they're
-  all simple flat-board grid games whose real wire protocol happens to use exactly
-  those two fields), but Word Duel's real protocol uses `triviaQuestion`/`triviaScores`
-  instead, so it needed its own small `if ("word-duel".equals(gameId))` branch in that
-  method to unpack the repurposed `boardState`/`turnSymbol` slots back into the fields
-  its window actually reads (see `WordDuelMatch.onReconnect()`'s javadoc for the full
-  repurposing explanation). Battleship, RPS, and Trivia Blitz all have similarly rich,
-  non-flat-board protocols (hidden per-player fleets, round/question state) and will
-  need the same kind of per-game unpacking branch, not a bigger generalized abstraction
-  - proportionate to "2-3 more special cases," not a rewrite of a mechanism that's
-  correctly serving 5 existing games already. Chess is still deliberately NOT yet
-  adopted - its resign/draw-offer state (`CHESS_DRAW_OFFERED` etc.) interacts with a
+- **Reconnection rollout: every 2-player game is now covered; Chess and Trivia
+  Blitz are the two remaining open questions, for different reasons (see below).**
+  Connect Four, Checkers, Reversi, Dots and Boxes, Word Duel, Battleship, and now
+  Rock Paper Scissors are reconnect-aware (2026-09-26/27/28/29, see "Done" below) - the same
+  `disconnectedSlot`/grace-period/timeout shape `TicTacToeMatch` proved, across three
+  genuinely distinct per-game accommodations to the shared client-side resume
+  mechanism so far, not one mechanism silently failing to generalize:
+  `AuthWindow.resumeMatchIfPending()`'s generic reconstruction only ever populates a
+  reconnecting player's synthetic MATCH_FOUND/UPDATE pushes with `symbol`/`boardState`
+  by default - fine for the first 5 adopters purely by coincidence (they're all simple
+  flat-board grid games whose real wire protocol happens to use exactly those two
+  fields). Word Duel's real protocol uses `triviaQuestion`/`triviaScores` instead, so
+  it needed its own small `if ("word-duel".equals(gameId))` branch to unpack the
+  repurposed `boardState`/`turnSymbol` slots back into the fields its window actually
+  reads (see `WordDuelMatch.onReconnect()`'s javadoc). Battleship's real MATCH_FOUND
+  already fits symbol/boardState unchanged, but has no generic `*_UPDATE` type at all
+  (only the richly-shaped `BATTLESHIP_FIRE_RESULT`), so it just skips sending the
+  generic second message entirely rather than repurposing its fields. RPS is a third
+  shape again: no board and no turn at all, so it repurposes `boardState` to carry
+  `"myScore:opponentScore"` instead, and also skips the second message (see the "Done"
+  entry above and `PROGRAM_STRUCTURE.md`'s reconnection note for the full detail on
+  all three). That's all 7 of the platform's 2-player forfeit-based online games -
+  proportionate to "the mechanism generalizes across three different accommodation
+  shapes," not a claim that every online game fits it. **Trivia Blitz turned out NOT
+  to be a small "one more special case" once actually audited (2026-09-29)** - it's
+  2-6 players, not 2, and `TriviaMatch.handleDisconnect()` already deliberately
+  keeps the match running with the disconnected player's score locked in, rather
+  than forfeiting. `ReconnectRegistry`/`ReconnectableMatch` is built entirely around
+  "one named opponent, one grace period, then a forfeit" - retrofitting that onto an
+  N-player non-forfeiting match isn't a per-game accommodation like RPS's was, it's
+  a real, different design question (does this even need "reconnection" as a
+  concept, or is losing your locked-in score on disconnect already fine?) - recorded
+  in `BLOCKED_QUESTIONS.md` rather than guessed at, with `TriviaMatch` left
+  completely untouched in the meantime (its current behavior isn't a regression, so
+  there's no code debt riding on the answer). Chess
+  is still deliberately NOT yet
+  adopted for its own, unrelated reason - its resign/draw-offer state
+  (`CHESS_DRAW_OFFERED` etc.) interacts with a
   mid-grace-period reconnect in ways not designed yet (can a disconnected player's
   pending draw offer survive a reconnect? should the timer pause?) - a real design
   question, not guessed at, tracked here rather than in `BLOCKED_QUESTIONS.md` since
@@ -1353,87 +2045,121 @@ recorded below as they're confirmed.
   those are lower priority for this pattern until a second concrete game proves that
   shape out too. Client-side, every game window that adopts this needs its own
   `OPPONENT_DISCONNECTED_NOTICE` handling branch (a few lines each, following
-  `TicTacToeWindow`'s as the template, now also done for Word Duel) since each game's
-  `onPush` dispatch is still hand-written per window, not a shared base class.
+  `TicTacToeWindow`'s as the template, now also done for Word Duel, Battleship, and
+  Rock Paper Scissors) since each game's `onPush` dispatch is still hand-written per
+  window, not a shared base class.
+
+## 📋 Planned — requested 2026-09-30 (refined and approved in direction by Bipin; nothing built yet)
+
+Supersedes the first version of this list. **Dominion is deliberately deferred** ("can be added
+later"). Each entry records what was asked, what is true in the code today (audited, not
+assumed), and the decisions taken. Open questions are in `BLOCKED_QUESTIONS.md`.
+
+- **1. Shared-mechanics package + ~30-second reconnect for every applicable game. - DONE 2026-09-30** (see the top
+  of "Done" for what was built, how it was verified and the known gaps left: server heartbeat, a live
+  countdown, the group games, the match-chat dock on resume). Remaining from the original
+  entry: decide the group games separately (tier C), if ever.
+- **2. Protect the source code (the approach: keep the server the authority).** Direction agreed:
+  sensitive logic, validation, economy, authentication and statistics stay server-side; the client
+  is UI + protocol; no secrets/keys/credentials shipped with it; the client is packaged so what
+  players get isn't the readable project source; nothing the client reports is trusted. Concrete
+  items found while checking: **(a)** `VertexClient.jar` **and `VertexServer.jar` are committed in
+  the public GitHub repo** - remove them from git and publish builds as release files instead;
+  **(b)** the repo is public with no `LICENSE`; **(c)** offline-game coin rewards use the
+  client-reported score (`awardPracticeScore`) - capped per submission but repeat submissions
+  were not verified as rate-limited, which conflicts with "never trust the client" - cap per day
+  or drop coin rewards for offline games; **(d)** audit server->client messages for hidden
+  information a client shouldn't have (Trivia answers, Memory Match card faces, Card Rush hands,
+  Among Us roles); **(e)** ship an obfuscated client jar (ProGuard is free) with debug info
+  stripped. Client bytecode can never be made undecompilable - the goal is cost, plus the server
+  making a copied client worthless for cheating.
+- **3. Global online hosting - servers Bipin runs himself.** Official servers on a VPS/cloud host
+  he controls, provider chosen later (candidates noted earlier: Oracle Cloud Always Free, Hetzner,
+  DigitalOcean, Vultr, Linode, AWS Lightsail - verify current pricing). Architecture reality: one
+  JVM process, per-connection threads, all state in memory + flat files, so it **scales up (a
+  bigger VPS), not out**; "globally reachable" is not "low ping everywhere" - one region suits
+  nearby players, far players get high latency in real-time games, and regional servers would be
+  separate worlds (conflicts with "no cross-server anything"). Before real growth: move the flat
+  files (accounts, forum, etc.) to a real database and set up backups; add monitoring/logging.
+  **Blockers before public exposure:** TLS on the socket (passwords currently cross it
+  unencrypted), signed auto-updates, **create the admin account before announcing the address**
+  (the first account created on a fresh server is made ADMIN - `ClientHandler` `grantAdmin =
+  !hasAdminAccount()`), per-IP connection/rate limits, firewall, non-root systemd service, domain.
+- **4. `/calc` slash command.** Only this command (the earlier chatbot/slash-command removal
+  stands). No calculator exists today. `/calc 2+3*4` in a chat input (DMs, group chats, match
+  chat) is evaluated **locally** by a small hand-written parser (`+ - * / % ^`, brackets,
+  decimals, a few functions such as `sqrt`; never a script engine) and the answer shown only to the
+  sender - no server change, no spam.
+- **5. Cursor context file.** A dedicated file for Cursor - `.cursor/rules/` (Cursor's project
+  rules), pointing at `CLAUDE.md` - explaining: the UI structure (`MainMenu` shell = `Sidebar` +
+  `TopBar` + a `CardLayout` of pages keyed in `Pages`, the embedded game host, the game-detail
+  page, chat dock); the theme system (`ThemeColor` roles, `ThemeManager`, `UITheme` fonts - never
+  hardcode colours; games keep fixed palettes); the existing components (`RoundedPanel`,
+  `ThemedButton`/`Label`/`TextField`/`TextArea`, `PageHeader`, `PlaceholderPanel`, `GameHubDialog`,
+  `ThemedScrollBarUI`); the **sync rule** (`pages/`, `ui/`, `theme/` and each game's Window/Dialog
+  are client-only; `net`/`games`/`economy`/... must be mirrored to `VertexServer`); how to verify
+  (compile + an Xvfb screenshot harness); and the pitfalls hit in practice (HTML label
+  `style='width'` is ignored on newer JDKs - use a table width; `ThemedTextField.setEnabled` does
+  not disable the field - use `setInputEnabled`; button labels truncate if too narrow; network
+  calls must stay off the Swing thread; never commit keys). Also lists where the logo is used.
+- **6. Themed custom cursors. - DONE 2026-09-30** (see "Done"; remaining: try it on a scaled display and on Windows/macOS).
+- **7. Logo.** Bipin redesigns it separately in Cursor. It is files, not code: `GameLogo` loads
+  `vertex_logo.png`, the window icon is `vertex_icon.ico` (multi-size), plus the website's static
+  assets - replace at the same names and no Java changes are needed. Must be an original design.
+- **8. Changelog (app + website) and a Roadmap (website only). - DONE 2026-09-30** (see "Done").
+- **9. Profile with Stats inside (not a separate top-level tab). - DONE 2026-09-30** (see "Done"). Not done: reusing the stats view for a player's profile from a leaderboard row (only the profile window's button so far).
+- **10. Sidebar: scrollable and regrouped. - DONE 2026-09-30** (see "Done").
+- **11. Main page. - DONE 2026-10-01** (all six sections real; see "Done"). Older Home rows resolved 2026-10-01 (Bipin: "whatever u suggest"): Top Players stays, Explore Games removed as redundant with Quick play / Continue playing. Still open: Bipin's call on the Quick play rule and per-computer pinning (both reversible defaults).
+- **Decisions taken on Bipin's delegation ("you decide"), 2026-09-30 - all reversible, none built.**
+  Full text in `BLOCKED_QUESTIONS.md` (Resolved). In short: **repo goes private** (Bipin flips the
+  GitHub setting) and the jars leave git; **official servers only** (server jar/source not
+  distributed; client keeps a dev-only custom-host field); **TLS terminated in front of the server**
+  with a Let's Encrypt cert and a standard `SSLSocket` on the client; **updates signed with an ECDSA
+  P-256 key Bipin keeps offline**, public key embedded in the client; **first-run admin setup** in
+  the server console replaces "first signup becomes admin" (new work item - small, and the answer to
+  "can I choose the first account's name and password": yes, typed into the server, never shared in
+  chat); **real-time 1v1 pause up to 30s then forfeit, group games are exceptions for now, Trivia
+  keeps its behaviour**, Chess clears a pending draw offer on disconnect. When the official-server
+  model is built, update `CLAUDE.md`, `README.md` and `HOW_VERTEX_WORKS.md`.
+- **Coordination.** Items 9-11 (sidebar, Home, Profile/Stats) are one structural job; do it before
+  Cursor visual polish so two people aren't editing the same files, and do the polish on a separate
+  branch. PR #1 (60+ files, unmerged) should be merged first.
 
 ## 📋 Planned — infrastructure & shared packages
 
-- **A real `ui` empty/loading/error placeholder component.** After fixing the
-  FriendsPanel/LeaderboardPanel/ShopPanel silent-failure bugs, all three now hand-roll
-  their own near-identical "clear this container and drop in a muted label" logic. Three
-  real call sites is enough repetition to justify a shared `ui` primitive (something
-  like a `PlaceholderPanel` a caller sets to loading/empty/error state) instead of a
-  fourth hand-rolled copy next time - not done now since the current fix isn't broken,
-  just slightly duplicated, and a refactor of working code carries real risk for no
-  user-facing benefit on its own. Worth doing the next time a panel needs the same
-  three states.
 - **`save` package** — generic save/load slots for games with persistent state
   (roguelike runs, farming/idle games in the concept backlog need this).
-- **`matchmaking` kernel: rollout to the other ~22 `<Name>MatchManager` classes.**
-  `MatchmakingKernel`/`CheckersMatchManager`/`ConnectFourMatchManager`/
-  `ReversiMatchManager`/`DotsAndBoxesMatchManager` (done - see "Done" below) prove the
-  FIFO queue shape generalizes, including the real matchId-prefix-vs-gameId divergence
-  Connect Four and Dots and Boxes both needed; ELO itself already lives in
-  `LeaderboardManager` separately and isn't part of this kernel (queue mechanics and
-  rating are genuinely different concerns) - "shared ELO/queue logic" in this item's
-  original wording turned out to already be two separate, already-correct systems once
-  actually looked at, not one that needed merging.
+- **`matchmaking` kernel: rollout to the remaining ~20 `<Name>MatchManager`
+  classes continues - optional cleanup, not a requirement, adopted a couple more at
+  a time whenever convenient.** `MatchmakingKernel`/`CheckersMatchManager`/
+  `ConnectFourMatchManager`/`ReversiMatchManager`/`DotsAndBoxesMatchManager`/
+  `DiceDuelMatchManager`/`TypingDuelMatchManager` (all done - see "Done" below) prove
+  the FIFO queue shape generalizes, including the real matchId-prefix-vs-gameId
+  divergence Connect Four/Dots and Boxes/Dice Duel/Typing Duel all needed (a real bug
+  caught by a test before it shipped in the latter two - see the "Done" entry); ELO
+  itself already lives in `LeaderboardManager` separately and isn't part of this
+  kernel (queue mechanics and rating are genuinely different concerns) - "shared
+  ELO/queue logic" in this item's original wording turned out to already be two
+  separate, already-correct systems once actually looked at, not one that needed
+  merging. Good next candidates when this is picked up again: `AirHockeyMatchManager`,
+  `MemoryMatchMatchManager`, `SignalGridMatchManager`, `FusionGridMatchManager` -
+  each a plain 2-player FIFO manager with no rematch/spectate/tournament glue to
+  preserve, the same shape that made Dice Duel/Typing Duel easy conversions. Games
+  with real extra complexity (rematch support like Battleship/RPS/Word Duel's
+  `createDirectMatch`, tournament brackets, 3+ player queues like Trivia Blitz,
+  team-forming like Fight Arena) are deliberately NOT drop-in candidates for the
+  kernel as it exists today - forcing them in would mean growing the kernel's own
+  API, not just adopting it as-is.
 - **Procedural/emergent character system** — a general engine capability (not tied to
   one game): a pool of name/trait/role combinations that get spawned into a game when
   specific triggers fire (a rival general emerges after you conquer 3 provinces, a
   rebel leader after a revolt, etc.) — free, rule-based, no LLM. Fits Dominion's
   leader/succession system especially well, but meant to be usable by other games too.
-- **Testing infrastructure: formalize the harness (audited 2026-09-28, not built -
-  a real architecture decision, not guessed at).** Every verification this project has
-  ever done - roughly 30 of them across this session alone, from the `VertexSerialization
-  Filter` round-trip tests to tonight's injection-fix and reconnection tests - follows
-  the exact same shape without ever being told to: a throwaway `.java` file in the
-  scratchpad, a hand-rolled `checks`/`failures` counter and a `check(label, condition)`
-  helper, compiled against a fresh `javac` output directory, run once, then deleted.
-  It works, and it's genuinely caught real bugs (tonight's `GameSuggestionStore`
-  forgery bug among them) - but nothing survives to catch a *regression* the next time
-  someone touches that code, and every test's `check()` boilerplate gets reinvented
-  from scratch. "Formalizing" this for real means deciding, not assuming:
-  - **No external test framework (JUnit, etc.).** This project has zero external
-    dependencies by design - `build.sh` is plain `javac` + `jar`, no Maven/Gradle, and
-    both trees still open and run directly in BlueJ (`package.bluej` files in each
-    folder). Adding JUnit would mean either a build-tool BlueJ can't see, or manually
-    vendoring a `.jar` - a real philosophy break, not a small addition. The existing
-    hand-rolled `check()` pattern already does everything these tests actually need
-    (a label, a boolean, a running count) and costs nothing to keep using - the honest
-    move is to formalize *that* pattern, not replace it.
-  - **Where committed tests would live.** Not inside `VertexServer`/`VertexClient`
-    themselves - `build.sh` compiles every `.java` file under those trees straight into
-    the shipped jar, so a test class sitting there would ship to every user's install.
-    A sibling `VertexServerTests/` (compiled against `VertexServer`'s classes on the
-    classpath, the same way tonight's scratch tests already do with `-cp`) keeps tests
-    out of the product entirely, mirroring how `VertexClient`/`VertexServer` are
-    already siblings rather than nested.
-  - **A tiny shared harness class**, e.g. `VertexServerTests/support/Check.java`, just
-    formalizing the `check(label, condition)` + running-total pattern every scratch
-    test already reinvents by hand - a few lines, not a framework.
-  - **`test.sh`**, a sibling to `build.sh`: compile every test class against the
-    relevant tree's freshly-built classes, run each `main()`, fail the script (nonzero
-    exit) if any test reports a failure - so this becomes a real, repeatable
-    "did I break anything" step, not something only ever run ad hoc mid-session.
-  - **What's genuinely undecided, worth Bipin's steer rather than a guess**: whether
-    *every* future scratch test should graduate into a permanently-committed
-    regression test (maximum safety, real ongoing maintenance burden as the game
-    catalog keeps growing - close to 50 games and counting), or only the
-    security/correctness-critical ones (the serialization filter, save-format
-    round trips, economy/reward math, anything touching real money-equivalent
-    state) while quick one-off UI/visual checks stay scratch-and-discard as they are
-    today. Recorded here rather than guessed at; a reasonable reversible default
-    if this needs to move before that's answered: commit the shape (`VertexServerTests/`,
-    `Check.java`, `test.sh`) and start by graduating only this session's
-    security-relevant tests (the injection fixes, the serialization filter, Dominion's
-    save-format round trips) as the first, deliberately small batch - not a mandate to
-    commit all ~30 of tonight's tests at once.
-
 ## 📋 Planned — social & community
 
-- **Standalone Forums section** — Reddit-style boards (one per game, plus general
-  discussion), separate from group chats.
+- ~~**Standalone Forums section**~~ — **built 2026-09-29** as a new sidebar tab, see "Done"
+  above. Possible later additions (none started): votes, editing your own posts, images,
+  notifications when someone replies to your thread, nested replies.
 - **`GameSuggestionsPanel` structuring** — the other half of this item; `FeedbackDialog`
   (bug reports/suggestions about Vertex itself) is done, see "Done" below.
   `GameSuggestionsPanel` is a genuinely different, smaller feature though (pitching a
@@ -1442,11 +2168,9 @@ recorded below as they're confirmed.
   the right amount of structure rather than needing the same title/description/steps
   treatment. Left open rather than guessed at; worth a real look (not just copying
   FeedbackDialog's shape) before changing it.
-- **Slash commands + a free pattern-matching chatbot** — `/help`, `/rules chess`,
-  `/theme`, `/challenge @friend`, etc. Deliberately *not* a real LLM chatbot (that
-  costs money per message and needs an API key) — free and instant by design. A
-  bring-your-own-API-key *option* for real chat later is a separate, explicitly
-  opt-in idea, not the default.
+- ~~**Slash commands + a free pattern-matching chatbot**~~ — **removed from the backlog
+  2026-09-29 at Bipin's request** - no chatbot, no slash-command system. (Was: `/help`,
+  `/rules chess`, `/theme`, `/challenge @friend`; deliberately never a paid LLM chatbot.)
 - ~~**Discord**~~ — **resolved 2026-09-26: no platform integration wanted.** Bipin is
   running a Discord server for the project but will just share the invite link with
   the group directly - no webhook, no bot, nothing to build here.
@@ -1501,8 +2225,8 @@ even playable.
   guesses submitted as game moves, same pattern as every other game's move
   submission), not free-form chat, so that infrastructure piece this entry
   originally flagged was never actually needed.
-- **A Quiplash/Jackbox-style prompt-and-vote game (original concept, working title
-  "Caption Chaos")** — the server shows a silly prompt ("The worst thing to say on
+- ~~**A Quiplash/Jackbox-style prompt-and-vote game (original concept, working title
+  "Caption Chaos")**~~ **BUILT 2026-10-01, see "Done".** Original entry: — the server shows a silly prompt ("The worst thing to say on
   a first date"), everyone privately submits an answer, then everyone votes
   anonymously for their favorite (can't vote for your own); most votes wins the
   round. Cheap to build (no real-time sync, no physics, just request/response like
@@ -1523,11 +2247,8 @@ even playable.
 Looked at what actually makes multiplayer games popular right now (io-game and
 party-game genres, not any specific game's content/art/code) to find good, provable
 formats - not to copy anything:
-- **A vertical "climber" single-player game** (original mechanic, `Doodle Jump`
-  genre) — bounce upward off procedurally-placed platforms, camera scrolls up
-  forever, moving/breakable/spring platforms add variety, game ends when you fall
-  off the bottom of the screen. Distinct from every existing single-player game
-  here (nothing else is a vertical endless climber). Not yet built.
+- ~~A vertical "climber" single-player game~~ (original mechanic, `Doodle Jump`
+  genre) — **built, see "Done" below (Sky Hopper).**
 - ~~A number-merge puzzle, `Threes`/`1010!` genre, distinct from 2048~~ — **built,
   see "Done" below (Number Nest).**
 - Both chosen specifically because the ask was "don't make this only multiplayer" -

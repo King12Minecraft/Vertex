@@ -4,7 +4,11 @@ import games.RematchOfferDialog;
 import social.GameInviteDialog;
 import ui.GameHubDialog;
 import ui.CursorTrailOverlay;
+import ui.ScreenBreakOverlay;
+import chat.MatchChatDock;
 import games.EmbeddedGamePanel;
+import games.GameDetailPanel;
+import games.GameInfo;
 import net.MessageType;
 import net.NetworkManager;
 import account.PermissionManager;
@@ -93,12 +97,20 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     private final JLayeredPane transitionPane;
     private final GamesPanel gamesPanel;
     private JPanel gameHostContainer;
+    private JPanel gameDetailContainer;
+    /** The chat docked beside the game currently in the game-host slot, or null - created when the server announces an in-match chat room, dropped whenever the host slot is cleared. */
+    private MatchChatDock chatDock;
     private String currentPageKey = Pages.HOME;
+    /** Where the game-detail page's Back button goes - whichever page opened it (see showGameDetails). */
+    private String detailReturnPage = Pages.GAMES;
+    private JPanel statsContainer;
+    private String statsReturnPage = Pages.PROFILE;
 
     public MainMenu()
     {
         super("Vertex");
         instance = this;
+        SessionRestorer.install();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1000, 650));
 
@@ -185,6 +197,8 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         contentPanel.add(new TournamentsPanel(), Pages.TOURNAMENTS);
         contentPanel.add(new FriendsPanel(), Pages.FRIENDS);
         contentPanel.add(new ChatPanel(), Pages.CHAT);
+        contentPanel.add(new ForumsPanel(), Pages.FORUMS);
+        contentPanel.add(new ChangelogPanel(), Pages.CHANGELOG);
         contentPanel.add(new ShopPanel(), Pages.SHOP);
         contentPanel.add(new DominionPanel(), Pages.DOMINION);
         contentPanel.add(new ProfilePanel(), Pages.PROFILE);
@@ -192,6 +206,12 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         gameHostContainer = new JPanel(new BorderLayout());
         gameHostContainer.setOpaque(false);
         contentPanel.add(gameHostContainer, Pages.GAME_HOST);
+        gameDetailContainer = new JPanel(new BorderLayout());
+        gameDetailContainer.setOpaque(false);
+        contentPanel.add(gameDetailContainer, Pages.GAME_DETAIL);
+        statsContainer = new JPanel(new BorderLayout());
+        statsContainer.setOpaque(false);
+        contentPanel.add(statsContainer, Pages.STATS);
 
         Account current = Session.getCurrentAccount();
         if (PermissionManager.isAtLeastModerator(current))
@@ -221,8 +241,15 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         cardLayout.show(contentPanel, Pages.HOME);
 
         CursorTrailOverlay.attach(this, transitionPane);
+        ScreenBreakOverlay.attach(this);
 
         NetworkManager.addPushListener(this);
+    }
+
+    /** True while a game is embedded in the GAME_HOST slot and actively being played - the signal ScreenBreakOverlay uses to defer a mandatory break rather than interrupting a match already in progress. */
+    public boolean isGameInProgress()
+    {
+        return Pages.GAME_HOST.equals(currentPageKey);
     }
 
     /**
@@ -286,6 +313,13 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
                 }
             });
         }
+        else if (message.getType() == MessageType.MATCH_CHAT_STATE || message.getType() == MessageType.MATCH_CHAT_MESSAGE)
+        {
+            SwingUtilities.invokeLater(new Runnable()
+            {
+                public void run() { handleMatchChat(message); }
+            });
+        }
         else if (message.getType() == MessageType.FRIEND_STATUS_UPDATE)
         {
             if (message.isOnline())
@@ -298,6 +332,47 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         }
     }
 
+    /**
+     * In-match chat (see the chat package). A state message for a room we aren't showing
+     * yet docks a new chat beside the game; messages and state for any other match id
+     * (a previous match's leftover room) are ignored, and so is a "closed" for a room we
+     * never showed.
+     */
+    private void handleMatchChat(Message message)
+    {
+        String matchId = message.getMatchId();
+        if (matchId == null)
+        {
+            return;
+        }
+
+        if (message.getType() == MessageType.MATCH_CHAT_STATE)
+        {
+            if (chatDock == null || !matchId.equals(chatDock.getMatchId()))
+            {
+                if ("CLOSED".equals(message.getMatchChatState()))
+                {
+                    return;
+                }
+                if (chatDock != null)
+                {
+                    // BorderLayout only replaces the EAST slot's layout entry - the old
+                    // dock would stay behind as an unlaid-out child unless removed.
+                    gameHostContainer.remove(chatDock);
+                }
+                chatDock = new MatchChatDock(matchId);
+                gameHostContainer.add(chatDock, BorderLayout.EAST);
+                gameHostContainer.revalidate();
+                gameHostContainer.repaint();
+            }
+            chatDock.setState(message.getMatchChatState());
+        }
+        else if (chatDock != null && matchId.equals(chatDock.getMatchId()))
+        {
+            chatDock.addMessage(message.getUsername(), message.getChatText());
+        }
+    }
+
     @Override
     public void onNavigate(String pageKey)
     {
@@ -306,21 +381,94 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
             return;
         }
 
-        if (Pages.GAME_HOST.equals(currentPageKey) && !Pages.GAME_HOST.equals(pageKey))
+        if (!Pages.GAME_HOST.equals(pageKey) && !confirmLeaveGameHost())
         {
-            Component hosted = gameHostContainer.getComponentCount() > 0 ? gameHostContainer.getComponent(0) : null;
-            if (hosted instanceof EmbeddedGamePanel && !((EmbeddedGamePanel) hosted).requestLeave())
-            {
-                // The game itself is handling this (e.g. showing its own
-                // "leave match?" confirm dialog) - don't navigate away yet.
-                // If the player does confirm, the game calls
-                // returnToGames() itself, which bypasses this guard since
-                // it's already been asked and answered once.
-                return;
-            }
+            return;
         }
 
         switchToPage(pageKey);
+    }
+
+    /**
+     * True if it's fine to navigate away from the current page. Only matters while a
+     * game is embedded in the GAME_HOST slot: if the game itself is handling this
+     * (e.g. showing its own "leave match?" confirm dialog) this returns false and the
+     * caller must not navigate yet - if the player does confirm, the game calls
+     * returnToGames() itself, which bypasses this guard since it's already been asked
+     * and answered once.
+     */
+    private boolean confirmLeaveGameHost()
+    {
+        if (!Pages.GAME_HOST.equals(currentPageKey))
+        {
+            return true;
+        }
+        Component hosted = gameHostContainer.getComponentCount() > 0 ? gameHostContainer.getComponent(0) : null;
+        return !(hosted instanceof EmbeddedGamePanel) || ((EmbeddedGamePanel) hosted).requestLeave();
+    }
+
+    /**
+     * Shows the "about this game" step for the given game - every Play action goes
+     * through this first (GameLauncher.launch and GamesPanel's art/name clicks). Back
+     * returns to whichever page opened it; if it was opened from inside a running game
+     * (e.g. accepting an invite mid-match) that page is the Games page instead, since
+     * the game itself is gone by then.
+     */
+    public void showGameDetails(final GameInfo game)
+    {
+        if (!confirmLeaveGameHost())
+        {
+            return;
+        }
+        if (!Pages.GAME_DETAIL.equals(currentPageKey))
+        {
+            detailReturnPage = Pages.GAME_HOST.equals(currentPageKey) ? Pages.GAMES : currentPageKey;
+        }
+        gameDetailContainer.removeAll();
+        gameDetailContainer.add(new GameDetailPanel(game, new Runnable()
+        {
+            public void run() { leaveGameDetails(); }
+        }), BorderLayout.CENTER);
+        gameDetailContainer.revalidate();
+        switchToPage(Pages.GAME_DETAIL);
+    }
+
+    /**
+     * The stats page for a player (null = the logged-in player), as a full page with a Back button that
+     * returns to whichever page opened it - the same pattern as the game detail page.
+     */
+    public void showStats(final String username)
+    {
+        if (!confirmLeaveGameHost())
+        {
+            return;
+        }
+        if (!Pages.STATS.equals(currentPageKey))
+        {
+            statsReturnPage = Pages.GAME_HOST.equals(currentPageKey) ? Pages.GAMES : currentPageKey;
+        }
+        statsContainer.removeAll();
+        statsContainer.add(new StatsPanel(username, new Runnable()
+        {
+            public void run() { leaveStats(); }
+        }), BorderLayout.CENTER);
+        statsContainer.revalidate();
+        switchToPage(Pages.STATS);
+    }
+
+    private void leaveStats()
+    {
+        statsContainer.removeAll();
+        statsContainer.revalidate();
+        switchToPage(statsReturnPage);
+    }
+
+    /** Back from the game-detail page - clears it and returns to the page that opened it. */
+    private void leaveGameDetails()
+    {
+        gameDetailContainer.removeAll();
+        gameDetailContainer.revalidate();
+        switchToPage(detailReturnPage);
     }
 
     /** The actual page swap, without the leave-confirmation guard - onNavigate goes through that guard first; showGame(...)/returnToGames() call this directly since by the time either runs, leaving has already been decided (there was nothing at stake, or the game itself already asked and got a yes). */
@@ -346,7 +494,9 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         }
 
         currentPageKey = pageKey;
-        topBar.setPageTitle(titleFor(pageKey));
+        // Pages built on PageScaffold already show their title in their own header; repeating it up here was noise.
+        boolean ownHeader = !(Pages.GAME_HOST.equals(pageKey) || Pages.GAME_DETAIL.equals(pageKey) || Pages.DOMINION.equals(pageKey));
+        topBar.setPageTitle(ownHeader ? "" : titleFor(pageKey));
 
         if (snapshot != null)
         {
@@ -355,8 +505,26 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     }
 
     /** Embeds the given game panel in the single game-host slot and navigates to it - the replacement for a game opening its own separate JFrame. Called by GameLauncher.openGame(...) for games that have been converted to EmbeddedGamePanel (Chess is the first; most games still open their own window until they're converted too). */
+    /**
+     * Like showGame, for putting a player back into a match the server just restored
+     * (MatchResume). If a window for the old, dropped session is still on screen it is
+     * unhooked from the network first - without sending any "leave" (that would forfeit the
+     * very match being resumed) - so its stale copy of the game can't also react to the
+     * restored match's messages.
+     */
+    public void showResumedGame(javax.swing.JComponent gamePanel)
+    {
+        Component hosted = gameHostContainer.getComponentCount() > 0 ? gameHostContainer.getComponent(0) : null;
+        if (hosted instanceof net.NetworkManager.PushListener)
+        {
+            net.NetworkManager.removePushListener((net.NetworkManager.PushListener) hosted);
+        }
+        showGame(gamePanel);
+    }
+
     public void showGame(javax.swing.JComponent gamePanel)
     {
+        chatDock = null;
         gameHostContainer.removeAll();
         gameHostContainer.add(gamePanel, BorderLayout.CENTER);
         gameHostContainer.revalidate();
@@ -366,6 +534,7 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
     /** Clears the game-host slot and returns to the Games page - an embedded game calls this itself once it's confirmed leaving (see EmbeddedGamePanel.requestLeave()), the same way the old per-window games called dispose(). Bypasses onNavigate's guard on purpose - see switchToPage's own note. */
     public void returnToGames()
     {
+        chatDock = null;
         gameHostContainer.removeAll();
         gameHostContainer.revalidate();
         switchToPage(Pages.GAMES);
@@ -441,11 +610,15 @@ public class MainMenu extends JFrame implements NavigationListener, NetworkManag
         if (pageKey.equals(Pages.QUESTS))      return "Quests";
         if (pageKey.equals(Pages.FRIENDS))    return "Friends";
         if (pageKey.equals(Pages.CHAT))       return "Chat";
+        if (pageKey.equals(Pages.FORUMS))     return "Forums";
+        if (pageKey.equals(Pages.CHANGELOG))  return "Changelog";
         if (pageKey.equals(Pages.SHOP))       return "Shop";
         if (pageKey.equals(Pages.DOMINION))   return "Dominion";
         if (pageKey.equals(Pages.PROFILE))    return "Profile";
         if (pageKey.equals(Pages.SETTINGS))   return "Settings";
         if (pageKey.equals(Pages.MODERATION)) return "Moderation";
+        if (pageKey.equals(Pages.GAME_DETAIL)) return "Game Details";
+        if (pageKey.equals(Pages.STATS))      return "Stats";
         return "Games";
     }
 

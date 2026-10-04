@@ -1,4 +1,5 @@
 package pages;
+import chat.CalcParser;
 import economy.NotificationSoundSetting;
 import net.NetworkConfig;
 import ui.GameHubDialog;
@@ -191,7 +192,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private PageHeader createHeader()
     {
-        headerLabel = new PageHeader("MESSAGES");
+        headerLabel = new PageHeader("MESSAGES", "Direct messages and group chats.");
 
         ThemedButton report = new ThemedButton("Report a Player", false);
         report.setPreferredSize(new Dimension(150, 34));
@@ -208,7 +209,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
     {
         RoundedPanel wrap = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
         wrap.setLayout(new BorderLayout());
-        wrap.setPreferredSize(new Dimension(210, 0));
+        wrap.setPreferredSize(new Dimension(240, 0));
         wrap.setBorder(new EmptyBorder(12, 8, 12, 8));
 
         sidebarList = new JPanel();
@@ -748,7 +749,7 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
 
         if (entry.text != null && !entry.text.isEmpty())
         {
-            JLabel textLabel = new ThemedLabel("<html><body style='width:340px'>" + escapeHtml(entry.text) + "</body></html>", ThemeColor.TEXT_PRIMARY);
+            JLabel textLabel = new ThemedLabel("<html><table width='340' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(entry.text) + "</td></tr></table></html>", ThemeColor.TEXT_PRIMARY);
             textLabel.setFont(UITheme.FONT_BODY);
             textLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             content.add(textLabel);
@@ -1020,6 +1021,21 @@ public class ChatPanel extends RoundedPanel implements NetworkManager.PushListen
         String text = field.getValue();
         if (text.isEmpty())
         {
+            return;
+        }
+
+        if (CalcParser.isCalcCommand(text))
+        {
+            // "/calc ..." is answered here and never sent - only the sender sees it.
+            if (currentChannel != null)
+            {
+                Message local = new Message();
+                local.setType(MessageType.PRIVATE_MESSAGE);
+                local.setUsername("Calculator");
+                local.setChatText(CalcParser.reply(text) + "   (only you can see this)");
+                recordAndMaybeRender(currentChannel, local);
+            }
+            field.clear();
             return;
         }
 

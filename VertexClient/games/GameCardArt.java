@@ -38,6 +38,11 @@ public class GameCardArt extends JPanel
         });
     }
 
+    /**
+     * A soft, flat tile in a colour of its own (a muted tint of a hue picked from the game id) with the icon or
+     * monogram in a deeper shade of the same hue - Claude-style: calm blocks of colour rather than glowing gradients.
+     * Light and dark themes get light and dark variants of each tint.
+     */
     @Override
     protected void paintComponent(Graphics g)
     {
@@ -46,23 +51,28 @@ public class GameCardArt extends JPanel
 
         int w = getWidth();
         int h = getHeight();
-        int cut = Math.min(16, h / 4);
+        boolean dark = ThemeManager.isDarkTheme();
+        float hue = (Math.abs(gameId.hashCode() * 31) % 12) / 12f;
+        Color fill = new Color(Color.HSBtoRGB(hue, dark ? 0.30f : 0.20f, dark ? 0.34f : 0.95f));
+        Color ink = new Color(Color.HSBtoRGB(hue, dark ? 0.40f : 0.50f, dark ? 0.92f : 0.40f));
 
-        GeneralPath shape = ChamferShape.build(0, 0, w, h, cut);
-
-        Color start = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-        Color end = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END);
-        LinearGradientPaint gradient = new LinearGradientPaint(
-            0, 0, Math.max(w, 1), Math.max(h, 1), new float[] {0f, 1f}, new Color[] {start, end});
-        g2.setPaint(gradient);
+        java.awt.geom.RoundRectangle2D.Float shape = new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, 12, 12);
+        g2.setColor(fill);
         g2.fill(shape);
 
-        g2.setColor(new Color(255, 255, 255, 210));
-        g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
+        g2.clip(shape);   // patterns must not spill past the rounded corners
+        g2.setColor(ink);
+        g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         drawIcon(g2, w, h);
 
         g2.dispose();
+    }
+
+    private static Color shiftHue(Color c, int degrees)
+    {
+        float[] hsb = Color.RGBtoHSB(c.getRed(), c.getGreen(), c.getBlue(), null);
+        float hue = (hsb[0] + degrees / 360f + 1f) % 1f;
+        return new Color(Color.HSBtoRGB(hue, hsb[1], hsb[2]));
     }
 
     private void drawIcon(Graphics2D g2, int w, int h)
@@ -107,10 +117,40 @@ public class GameCardArt extends JPanel
         {
             drawSpaceIcon(g2, w, h);
         }
+        else if ("caption-chaos".equals(id))
+        {
+            drawCaptionIcon(g2, w, h);
+        }
         else
         {
-            drawGenericIcon(g2, w, h);
+            drawMonogramIcon(g2, w, h, id);
         }
+    }
+
+    /** Two overlapping speech bubbles with a few "typed" lines - the prompt and the answers. */
+    private static void drawCaptionIcon(Graphics2D g2, int w, int h)
+    {
+        int cx = w / 2;
+        int cy = h / 2;
+        int u = Math.min(w, h) / 6;
+        g2.setStroke(new BasicStroke(Math.max(2f, u / 5f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
+        // back bubble
+        g2.drawRoundRect(cx - u * 3, cy - u * 2, u * 3 + u / 2, u * 2 + u / 2, u / 2, u / 2);
+        // front bubble with a tail
+        int fx = cx - u / 2;
+        int fy = cy - u / 2;
+        int fw = u * 3 + u / 2;
+        int fh = u * 2 + u / 2;
+        g2.drawRoundRect(fx, fy, fw, fh, u / 2, u / 2);
+        GeneralPath tail = new GeneralPath();
+        tail.moveTo(fx + u, fy + fh);
+        tail.lineTo(fx + u / 2, fy + fh + u * 0.8);
+        tail.lineTo(fx + u * 1.8, fy + fh);
+        g2.draw(tail);
+        // text lines in the front bubble
+        g2.drawLine(fx + u / 2 + u / 4, fy + u * 3 / 4, fx + fw - u / 2, fy + u * 3 / 4);
+        g2.drawLine(fx + u / 2 + u / 4, fy + u * 3 / 2, fx + fw - u * 3 / 2, fy + u * 3 / 2);
     }
 
     /** A simple curled snake body with a dot for the head. */
@@ -265,14 +305,83 @@ public class GameCardArt extends JPanel
     }
 
     /** Fallback for any game without a dedicated icon yet - a simple d-pad-like cross, echoing the logo mark. */
-    private static void drawGenericIcon(Graphics2D g2, int w, int h)
+    /**
+     * The art for every game without a hand-drawn icon: its monogram ("Ch", "TT", "2048") over a faint pattern picked by
+     * the game id. Before this all ~45 of them showed the same "+", so the catalogue read as one repeated tile; now each
+     * game is recognisable at a glance and neighbouring cards differ. Colours still come from the theme (the gradient
+     * behind and white strokes on top), so it follows whichever palette is active.
+     */
+    private static void drawMonogramIcon(Graphics2D g2, int w, int h, String id)
     {
-        int cx = w / 2;
-        int cy = h / 2;
-        int arm = Math.min(w, h) / 5;
-        int thickness = arm / 2;
+        int seed = Math.abs(id.hashCode());
+        Color ink = g2.getColor();
+        java.awt.Stroke oldStroke = g2.getStroke();
+        g2.setColor(new Color(ink.getRed(), ink.getGreen(), ink.getBlue(), 22));
+        g2.setStroke(new BasicStroke(Math.max(1.5f, h / 60f)));
+        int step = Math.max(12, h / 7);
+        switch (seed % 6)
+        {
+            case 0:   // diagonal stripes
+                for (int x = -h; x < w + h; x += step) g2.drawLine(x, h, x + h, 0);
+                break;
+            case 1:   // rings from the bottom-right corner
+                for (int r = step * 2; r < w + h; r += step * 2) g2.drawOval(w - r, h - r, r * 2, r * 2);
+                break;
+            case 2:   // dot grid
+                for (int x = step / 2; x < w; x += step) for (int y = step / 2; y < h; y += step) g2.fillOval(x - 2, y - 2, 5, 5);
+                break;
+            case 3:   // zigzag rows
+                for (int y = step; y < h; y += step * 2)
+                {
+                    int px = 0;
+                    int py = y;
+                    for (int x = step; x <= w + step; x += step)
+                    {
+                        int ny = (py == y) ? y - step / 2 : y;
+                        g2.drawLine(px, py, x, ny);
+                        px = x;
+                        py = ny;
+                    }
+                }
+                break;
+            case 4:   // two big rings
+                g2.drawOval(-h / 3, -h / 3, h, h);
+                g2.drawOval(w - h * 2 / 3, h / 3, h, h);
+                break;
+            default:  // crosshatch squares
+                for (int x = 0; x < w; x += step * 2) for (int y = 0; y < h; y += step * 2) g2.drawRect(x, y, step, step);
+                break;
+        }
+        g2.setStroke(oldStroke);
 
-        g2.drawRoundRect(cx - arm, cy - thickness / 2, arm * 2, thickness, 6, 6);
-        g2.drawRoundRect(cx - thickness / 2, cy - arm, thickness, arm * 2, 6, 6);
+        String text = monogram(id);
+        float size = Math.min(h * 0.46f, w * 0.78f / Math.max(1, text.length()) * 1.3f);
+        g2.setFont(UITheme.FONT_HEADING.deriveFont(java.awt.Font.PLAIN, Math.max(10f, size)));
+        java.awt.FontMetrics fm = g2.getFontMetrics();
+        int tx = (w - fm.stringWidth(text)) / 2;
+        int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
+        g2.setColor(ink);
+        g2.drawString(text, tx, ty);
+    }
+
+    /** "chess" -> "Ch", "tictactoe-online" -> "TO"... uses the game's display name when it is known. */
+    private static String monogram(String id)
+    {
+        GameInfo info = GameManager.findCachedGame(id);
+        String name = info != null && info.getName() != null ? info.getName() : id.replace('-', ' ');
+        String[] words = name.trim().split("[^A-Za-z0-9]+");
+        java.util.List<String> parts = new java.util.ArrayList<String>();
+        for (String word : words) if (!word.isEmpty()) parts.add(word);
+        if (parts.isEmpty()) return "?";
+        String first = parts.get(0);
+        if (Character.isDigit(first.charAt(0)))
+        {
+            return first.length() > 4 ? first.substring(0, 4) : first;
+        }
+        if (parts.size() >= 2)
+        {
+            return ("" + Character.toUpperCase(first.charAt(0)) + Character.toUpperCase(parts.get(1).charAt(0)));
+        }
+        return Character.toUpperCase(first.charAt(0)) + (first.length() > 1 ? "" + Character.toLowerCase(first.charAt(1)) : "");
     }
 }

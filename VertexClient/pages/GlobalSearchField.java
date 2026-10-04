@@ -48,7 +48,7 @@ public class GlobalSearchField extends JPanel
         this.navigationListener = navigationListener;
         setOpaque(false);
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(200, 38));
+        setPreferredSize(new Dimension(320, 38));
 
         field = new ThemedTextField("Search games, friends...");
         field.addChangeListener(new Runnable()

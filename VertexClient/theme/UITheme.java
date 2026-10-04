@@ -14,20 +14,34 @@ import java.awt.RenderingHints;
  */
 public class UITheme
 {
-    private static final String FONT_FAMILY = "Segoe UI";
+    /** First installed family from a preference list, else the logical fallback - so each platform gets its native-feeling UI font. */
+    private static String pick(String fallback, String... preferred)
+    {
+        java.util.Set<String> installed = new java.util.HashSet<String>(java.util.Arrays.asList(
+            java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()));
+        for (String family : preferred)
+        {
+            if (installed.contains(family)) return family;
+        }
+        return fallback;
+    }
 
-    public static final Font FONT_LOGO     = new Font(FONT_FAMILY, Font.BOLD, 20);
-    public static final Font FONT_HEADING  = new Font(FONT_FAMILY, Font.BOLD, 24);
+    private static final String FONT_FAMILY = pick(Font.SANS_SERIF, "Segoe UI", "SF Pro Text", "Helvetica Neue", "Inter", "Noto Sans", "Ubuntu");
+    /** Headings use a serif (Claude-style: calm, editorial) where the system has a good one. */
+    private static final String SERIF_FAMILY = pick(Font.SERIF, "Georgia", "Iowan Old Style", "Charter", "Cambria", "Palatino Linotype", "Noto Serif");
+
+    public static final Font FONT_LOGO     = new Font(SERIF_FAMILY, Font.PLAIN, 22);
+    public static final Font FONT_HEADING  = new Font(SERIF_FAMILY, Font.PLAIN, 26);
     public static final Font FONT_SUBHEAD  = new Font(FONT_FAMILY, Font.PLAIN, 14);
-    public static final Font FONT_NAV      = new Font(FONT_FAMILY, Font.PLAIN, 15);
-    public static final Font FONT_NAV_BOLD = new Font(FONT_FAMILY, Font.BOLD, 15);
-    public static final Font FONT_BODY     = new Font(FONT_FAMILY, Font.PLAIN, 13);
+    public static final Font FONT_NAV      = new Font(FONT_FAMILY, Font.PLAIN, 14);
+    public static final Font FONT_NAV_BOLD = new Font(FONT_FAMILY, Font.BOLD, 14);
+    public static final Font FONT_BODY     = new Font(FONT_FAMILY, Font.PLAIN, 14);
     public static final Font FONT_SMALL    = new Font(FONT_FAMILY, Font.PLAIN, 12);
 
-    public static final int RADIUS_PANEL  = 18;
-    public static final int RADIUS_BUTTON = 14;
-    public static final int SIDEBAR_WIDTH = 220;
-    public static final int TOPBAR_HEIGHT = 64;
+    public static final int RADIUS_PANEL  = 14;
+    public static final int RADIUS_BUTTON = 9;
+    public static final int SIDEBAR_WIDTH = 240;
+    public static final int TOPBAR_HEIGHT = 60;
 
     private UITheme()
     {

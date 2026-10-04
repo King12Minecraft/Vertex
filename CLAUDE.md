@@ -37,7 +37,7 @@ every change; trust it over your own assumptions about project state.
 - **Two projects, `VertexClient/` and `VertexServer/`, not one.** `VertexClient/`
   is the edit-source-of-truth for anything shared between them (networking, game
   rule engines, account/economy/social logic). **The sync rule:** every file
-  under `net`/`account`/`social`/`admin`/`economy`/`games`/`dominion` (except each
+  under `net`/`account`/`social`/`admin`/`economy`/`games`/`dominion`/`chat`/`forum`/`mechanics` (except each
   game's Window/Dialog classes, which are client-only) must stay byte-identical
   between the two trees. Edit in `VertexClient/`, copy the same file to the
   matching path in `VertexServer/`, diff to confirm. This has already caused two
@@ -84,6 +84,9 @@ every change; trust it over your own assumptions about project state.
   afterthought - `ROADMAP.md`'s "Done" section gets a new entry, `PROGRAM_STRUCTURE.md`
   gets updated if a class's role/behavior changed, every single time. This is
   established, not optional.
+- **Player-visible changes also get a line in `CHANGELOG.md`** (repo root, plain player-facing wording, newest
+  entry first) - it's the one file behind both the app's Changelog page and the website's. `ROADMAP.md` stays the
+  developer-facing record.
 - **Verify before claiming done.** This project's standard is: compile both
   trees clean, then a real check beyond "it compiles" - a logic/unit test for
   pure logic, an Xvfb+Swing screenshot harness for anything visual (undecorated

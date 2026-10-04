@@ -1,3 +1,4 @@
+import ui.CursorManager;
 import ui.SplashScreen;
 import net.ClientUpdateChecker;
 import account.AuthWindow;
@@ -47,6 +48,7 @@ public class Vertex
         {
             public void run()
             {
+                CursorManager.install();
                 SplashScreen.showThenRun(new Runnable()
                 {
                     public void run()

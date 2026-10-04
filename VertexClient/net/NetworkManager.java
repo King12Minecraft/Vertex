@@ -62,6 +62,22 @@ public class NetworkManager
     private static final List<Message> offlineQueue = new ArrayList<Message>();
     private static Thread reconnectThread;
     private static final int RECONNECT_INTERVAL_MS = 4000;
+    /** Keep-alive cadence, and how long the client will wait in silence before deciding the server is gone (the server pings back, so silence past this really is a dead link). Server side: ClientHandler.SILENCE_TIMEOUT_MS. */
+    private static final int HEARTBEAT_INTERVAL_MS = 8000;
+    private static final int SILENCE_TIMEOUT_MS = 30000;
+    private static Thread heartbeatThread;
+
+    /** Bumped every time a connection is closed, so a listener thread can tell whether the socket it was reading is still THE current one (a stale one ending is just cleanup, not a drop). */
+    private static int connectionGeneration = 0;
+    /** True from a detected drop until the next successful connect - so that connect is known to be a recovery, not the first connection or a deliberate server switch. */
+    private static boolean connectionLost = false;
+    private static Runnable reconnectedHook = null;
+
+    /** Runs (on its own thread) each time the connection is re-established after a drop - the client uses it to log back in, since the server only knows who a connection is from a login. */
+    public static void setReconnectedHook(Runnable hook)
+    {
+        reconnectedHook = hook;
+    }
 
     private NetworkManager()
     {
@@ -171,9 +187,16 @@ public class NetworkManager
             out = new ObjectOutputStream(socket.getOutputStream());
             in = new ObjectInputStream(socket.getInputStream());
             in.setObjectInputFilter(VertexSerializationFilter.FILTER);
+            socket.setSoTimeout(SILENCE_TIMEOUT_MS);
             setState(ConnectionState.ONLINE);
+            ensureHeartbeatThreadRunning();
             startListenerThread();
             flushOfflineQueue();
+            if (connectionLost)
+            {
+                connectionLost = false;
+                fireReconnectedHook();
+            }
             return true;
         }
         catch (IOException e)
@@ -188,6 +211,7 @@ public class NetworkManager
     public static synchronized boolean switchServer(String host, int port)
     {
         closeQuietly();
+        connectionLost = false;
         NetworkConfig.setServerHost(host);
         NetworkConfig.setServerPort(port);
         return connect();
@@ -232,8 +256,55 @@ public class NetworkManager
         reconnectThread.start();
     }
 
+    /** One daemon thread for the life of the process: while ONLINE, pings the server every few seconds so both sides can tell a quiet-but-alive connection from a dead one. */
+    private static synchronized void ensureHeartbeatThreadRunning()
+    {
+        if (heartbeatThread != null && heartbeatThread.isAlive())
+        {
+            return;
+        }
+        heartbeatThread = new Thread(new Runnable()
+        {
+            public void run()
+            {
+                while (true)
+                {
+                    try
+                    {
+                        Thread.sleep(HEARTBEAT_INTERVAL_MS);
+                    }
+                    catch (InterruptedException e)
+                    {
+                        return;
+                    }
+                    if (state == ConnectionState.ONLINE)
+                    {
+                        Message ping = new Message();
+                        ping.setType(MessageType.PING_REQUEST);
+                        sendAsync(ping);
+                    }
+                }
+            }
+        });
+        heartbeatThread.setDaemon(true);
+        heartbeatThread.start();
+    }
+
+    private static void fireReconnectedHook()
+    {
+        final Runnable hook = reconnectedHook;
+        if (hook == null)
+        {
+            return;
+        }
+        Thread t = new Thread(hook);
+        t.setDaemon(true);
+        t.start();
+    }
+
     private static void startListenerThread()
     {
+        final int myGeneration = connectionGeneration;
         listenerThread = new Thread(new Runnable()
         {
             public void run()
@@ -248,7 +319,14 @@ public class NetworkManager
                 }
                 catch (IOException e)
                 {
-                    // Socket closed/dropped - normal on disconnect, nothing to log loudly.
+                    // Socket closed/dropped. If this is still the live connection (not one we closed
+                    // ourselves), it's a real drop: recover now instead of waiting for the next send
+                    // to fail - an idle player (say, thinking over a chess move) would otherwise not
+                    // notice for as long as they sat there, and the reconnect window is only 30s.
+                    if (myGeneration == connectionGeneration)
+                    {
+                        handleDisconnect();
+                    }
                 }
                 catch (ClassNotFoundException e)
                 {
@@ -350,10 +428,20 @@ public class NetworkManager
         MessageType.CLIENT_UPDATE_DOWNLOAD_RESPONSE,
         MessageType.GAME_SUGGESTION_SUBMIT_RESPONSE,
         MessageType.GAME_SUGGESTION_LIST_RESPONSE,
+        MessageType.FORUM_RESPONSE,
         MessageType.ADMIN_ACCOUNT_LIST_RESPONSE,
         MessageType.ADMIN_SET_ROLE_RESPONSE,
         MessageType.ADMIN_LOG_RESPONSE,
         MessageType.PLAYER_PROFILE_RESPONSE,
+        MessageType.STATS_RESPONSE,
+        MessageType.SELECT_FRAME_RESPONSE,
+        MessageType.DOMINION_FOUND_NATION_RESPONSE,
+        MessageType.DOMINION_STATE_RESPONSE,
+        MessageType.DOMINION_RECRUIT_ARMY_RESPONSE,
+        MessageType.DOMINION_QUEUE_MARCH_RESPONSE,
+        MessageType.DOMINION_DECLARE_WAR_RESPONSE,
+        MessageType.DOMINION_PROPOSE_RELATION_RESPONSE,
+        MessageType.DOMINION_RESPOND_PROPOSAL_RESPONSE,
         MessageType.ADMIN_BAN_RESPONSE,
         MessageType.ADMIN_UNBAN_RESPONSE,
         MessageType.ADMIN_BAN_LIST_RESPONSE,
@@ -483,6 +571,7 @@ public class NetworkManager
 
     private static void handleDisconnect()
     {
+        connectionLost = true;
         setState(ConnectionState.RECONNECTING);
         closeQuietly();
 
@@ -494,6 +583,7 @@ public class NetworkManager
 
     private static void closeQuietly()
     {
+        connectionGeneration++;
         try
         {
             if (socket != null)

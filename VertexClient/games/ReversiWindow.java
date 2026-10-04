@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -445,7 +446,7 @@ public class ReversiWindow extends JPanel implements NetworkManager.PushListener
             // why (a short reconnect grace window, not an immediate forfeit).
             awaitingReconnect = true;
             applyBoardState(message.getBoardState());
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.REVERSI_MOVE_REJECTED)
         {

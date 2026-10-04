@@ -1,5 +1,7 @@
 package games;
 
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 import net.ClientHandler;
 import net.Message;
 import net.MessageType;
@@ -40,8 +42,8 @@ public class CardRushMatch
     private static final String GAME_ID = "card-rush";
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final CardRushMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -52,6 +54,40 @@ public class CardRushMatch
     private final List<Integer> stockB = new ArrayList<Integer>();
     private int centerPile1, centerPile2;
     private boolean over = false;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return CardRushMatch.this.stateStringFor(playerA); }
+        public String stateStringFor(ClientHandler viewer) { return CardRushMatch.this.stateStringFor(viewer); }
+        public void attach(ClientHandler handler) { handler.setCurrentCardRushMatch(CardRushMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.CARDRUSH_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            msg.setBoardState(stateStringFor(remaining));
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdateTo(opponent);
+            // No turns in this game, so the turn slot carries nothing meaningful.
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, slot == 0 ? "A" : "B",
+                opponent.getLoggedInUsername(), stateStringFor(slot == 0 ? playerA : playerB), "-");
+        }
+    });
 
     public CardRushMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                           CardRushMatchManager matchManager, EconomyManager economyManager,
@@ -101,7 +137,7 @@ public class CardRushMatch
         msg.setMatchId(matchId);
         msg.setSymbol(symbol);
         msg.setOpponentUsername(opponentUsername);
-        msg.setBoardState(stateString());
+        msg.setBoardState(stateStringFor(to));
         to.sendMessage(msg);
     }
 
@@ -110,7 +146,7 @@ public class CardRushMatch
     /** pileNumber is 1 or 2. Removes the card from the requester's hand if the play is legal, refills their hand from their own stock, then checks for a stuck deadlock and resolves it before broadcasting. Illegal or out-of-turn-less (there's no turn) requests are just silently ignored - the requester's own hand not changing is the natural feedback. */
     public synchronized void playCard(ClientHandler requester, int cardId, int pileNumber)
     {
-        if (over || (pileNumber != 1 && pileNumber != 2)) return;
+        if (over || reconnect.isPaused() || (pileNumber != 1 && pileNumber != 2)) return;
         boolean isA = requester == playerA;
         List<Integer> hand = isA ? handA : handB;
         if (!hand.contains(cardId)) return;
@@ -174,23 +210,41 @@ public class CardRushMatch
 
     private void broadcastUpdate()
     {
-        String state = stateString();
-        for (ClientHandler player : new ClientHandler[] { playerA, playerB })
-        {
-            Message msg = new Message();
-            msg.setType(MessageType.CARDRUSH_UPDATE);
-            msg.setMatchId(matchId);
-            msg.setBoardState(state);
-            player.sendMessage(msg);
-        }
+        sendUpdateTo(playerA);
+        sendUpdateTo(playerB);
     }
 
-    /** "centerPile1,centerPile2|handA-comma-list|handB-comma-list|stockA.size|stockB.size" - each player's own window shows their own hand from the matching half, and only the OTHER hand's card COUNT (not its cards) for a fair "how close are they" read without seeing their actual hand. */
-    private String stateString()
+    private void sendUpdateTo(ClientHandler player)
     {
+        Message msg = new Message();
+        msg.setType(MessageType.CARDRUSH_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(stateStringFor(player));
+        player.sendMessage(msg);
+    }
+
+    /**
+     * The state as one particular player may see it: "centerPile1,centerPile2|handA|handB|stockA.size,stockB.size". The OTHER
+     * player's hand is sent as placeholder zeros (right count, no cards) - a window only ever shows how many cards the
+     * opponent holds, and sending the real ones would let a modified client read them.
+     */
+    private String stateStringFor(ClientHandler viewer)
+    {
+        boolean viewerIsA = viewer == playerA;
         return centerPile1 + "," + centerPile2 + "|"
-            + joinInts(handA) + "|" + joinInts(handB) + "|"
+            + (viewerIsA ? joinInts(handA) : hiddenHand(handA)) + "|" + (viewerIsA ? hiddenHand(handB) : joinInts(handB)) + "|"
             + stockA.size() + "," + stockB.size();
+    }
+
+    private String hiddenHand(List<Integer> hand)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < hand.size(); i++)
+        {
+            if (i > 0) sb.append(",");
+            sb.append("0");
+        }
+        return sb.toString();
     }
 
     private String joinInts(List<Integer> values)
@@ -247,26 +301,14 @@ public class CardRushMatch
         Message msg = new Message();
         msg.setType(MessageType.CARDRUSH_RESULT);
         msg.setMatchId(matchId);
-        msg.setBoardState(stateString());
+        msg.setBoardState(stateStringFor(to));
         boolean toIsWinner = (to == playerA && "A".equals(winnerResult)) || (to == playerB && "B".equals(winnerResult));
         msg.setMatchResult("DRAW".equals(winnerResult) ? "DRAW" : (toIsWinner ? "WIN" : "LOSE"));
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.CARDRUSH_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        msg.setBoardState(stateString());
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }

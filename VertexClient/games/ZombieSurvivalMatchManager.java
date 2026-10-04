@@ -30,6 +30,7 @@ public class ZombieSurvivalMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, ZombieSurvivalMatch> activeMatches = new HashMap<String, ZombieSurvivalMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("zombie-survival");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final EconomyManager economyManager;
@@ -76,6 +77,7 @@ public class ZombieSurvivalMatchManager
                 recordPlay(group.get(i));
             }
             match.start();
+            chatRooms.open(matchId, group);
         }
 
         broadcastQueueCount();
@@ -101,6 +103,7 @@ public class ZombieSurvivalMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized int getQueueCount()

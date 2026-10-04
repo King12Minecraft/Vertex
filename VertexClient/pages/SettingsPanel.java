@@ -11,6 +11,7 @@ import account.PermissionManager;
 import admin.FeedbackDialog;
 import net.NetworkConfig;
 import games.ServerBrowserDialog;
+import ui.CursorManager;
 import ui.ThemedButton;
 import ui.ThemedLabel;
 import net.NetworkManager;
@@ -55,67 +56,28 @@ import java.awt.event.ActionListener;
  * UI itself is Phase 17), the connection status, and Account buttons
  * that explain they're coming in Phase 3.
  */
-public class SettingsPanel extends RoundedPanel
+public class SettingsPanel extends PageScaffold
 {
     public SettingsPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("SETTINGS", "How Vertex looks, runs and connects on this computer, plus your account.");
 
-        add(new PageHeader("SETTINGS"), BorderLayout.NORTH);
-
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(24, 0, 24, 0));
-
-        content.add(section("GENERAL", createGeneralSection()));
-
-        content.add(section("PERFORMANCE", createPerformanceSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("APPEARANCE", createAppearanceSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("FUN", createPartyModeSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("CONNECTION", createConnectionSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("FEEDBACK", createFeedbackSection()));
-        content.add(Box.createVerticalStrut(20));
-        content.add(section("ACCOUNT", createAccountSection()));
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-
-        add(scroll, BorderLayout.CENTER);
+        row(PageScaffold.split(section("GENERAL", createGeneralSection()), section("PERFORMANCE", createPerformanceSection()), 1, 1));
+        gap(16);
+        row(PageScaffold.split(section("APPEARANCE", createAppearanceSection()), section("FUN", createPartyModeSection()), 1, 1));
+        gap(16);
+        row(PageScaffold.split(section("CONNECTION", createConnectionSection()), section("FEEDBACK", createFeedbackSection()), 1, 1));
+        gap(16);
+        row(PageScaffold.fullWidth(section("ACCOUNT", createAccountSection())));
     }
 
-    private JPanel section(String title, JPanel body)
+    private SectionCard section(String title, JPanel body)
     {
-        JPanel wrap = new JPanel();
-        wrap.setOpaque(false);
-        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrap.setMaximumSize(new Dimension(2000, 600));
-
-        JLabel label = new ThemedLabel(title, ThemeColor.TEXT_PRIMARY);
-        label.setFont(UITheme.FONT_NAV_BOLD);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(new EmptyBorder(0, 0, 12, 0));
-        wrap.add(label);
-
-        RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(18, 20, 18, 20));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(body);
-        wrap.add(card);
-
-        return wrap;
+        // NORTH keeps the body at its own height when a neighbouring card makes this one taller (no stretched rows)
+        JPanel holder = new JPanel(new BorderLayout());
+        holder.setOpaque(false);
+        holder.add(body, BorderLayout.NORTH);
+        return new SectionCard(title).content(holder);
     }
 
     private JPanel createGeneralSection()
@@ -161,8 +123,8 @@ public class SettingsPanel extends RoundedPanel
         soundRow.add(soundToggleWrap, BorderLayout.EAST);
         col.add(soundRow);
 
-        JLabel soundDescription = new ThemedLabel("<html><body style='width:420px'>Plays a short system beep when a "
-            + "new chat message or group invite comes in.</body></html>", ThemeColor.TEXT_MUTED);
+        JLabel soundDescription = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Plays a short system beep when a "
+            + "new chat message or group invite comes in.</td></tr></table></html>", ThemeColor.TEXT_MUTED);
         soundDescription.setFont(UITheme.FONT_SMALL);
         soundDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
         soundDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
@@ -196,9 +158,9 @@ public class SettingsPanel extends RoundedPanel
         row.add(toggleWrap, BorderLayout.EAST);
         col.add(row);
 
-        JLabel description = new ThemedLabel("<html><body style='width:420px'>Turns off antialiased/high-quality "
+        JLabel description = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Turns off antialiased/high-quality "
             + "rendering app-wide, drops in-game frame rate from 60 to 30fps, and skips a couple of decorative "
-            + "background effects. Takes effect the next time you open a game or restart Vertex.</body></html>",
+            + "background effects. Takes effect the next time you open a game or restart Vertex.</td></tr></table></html>",
             ThemeColor.TEXT_MUTED);
         description.setFont(UITheme.FONT_SMALL);
         description.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -226,9 +188,9 @@ public class SettingsPanel extends RoundedPanel
         fpsRow.add(fpsToggleWrap, BorderLayout.EAST);
         col.add(fpsRow);
 
-        JLabel fpsDescription = new ThemedLabel("<html><body style='width:420px'>Shows a live frame-rate readout in "
+        JLabel fpsDescription = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Shows a live frame-rate readout in "
             + "the corner of every game - useful for checking whether Performance Mode (or your hardware) is "
-            + "actually giving you a smooth 60/30fps.</body></html>", ThemeColor.TEXT_MUTED);
+            + "actually giving you a smooth 60/30fps.</td></tr></table></html>", ThemeColor.TEXT_MUTED);
         fpsDescription.setFont(UITheme.FONT_SMALL);
         fpsDescription.setAlignmentX(Component.LEFT_ALIGNMENT);
         fpsDescription.setBorder(new EmptyBorder(6, 0, 0, 0));
@@ -262,9 +224,9 @@ public class SettingsPanel extends RoundedPanel
         row.add(toggleWrap, BorderLayout.EAST);
         col.add(row);
 
-        JLabel description = new ThemedLabel("<html><body style='width:420px'>A silly rainbow cursor trail "
+        JLabel description = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>A silly rainbow cursor trail "
             + "everywhere in the app, plus confetti when you win a game. Purely cosmetic - doesn't touch scores, "
-            + "matchmaking, or anything else. Takes effect immediately, no restart needed.</body></html>",
+            + "matchmaking, or anything else. Takes effect immediately, no restart needed.</td></tr></table></html>",
             ThemeColor.TEXT_MUTED);
         description.setFont(UITheme.FONT_SMALL);
         description.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -280,17 +242,98 @@ public class SettingsPanel extends RoundedPanel
         col.setOpaque(false);
         col.setLayout(new BoxLayout(col, BoxLayout.Y_AXIS));
 
-        JLabel label = new ThemedLabel("Theme", ThemeColor.TEXT_SECONDARY);
+        JLabel modeLabel = new ThemedLabel("Mode", ThemeColor.TEXT_SECONDARY);
+        modeLabel.setFont(UITheme.FONT_BODY);
+        modeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        modeLabel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        col.add(modeLabel);
+        col.add(createModeSwitch());
+
+        JLabel label = new ThemedLabel("Colour theme", ThemeColor.TEXT_SECONDARY);
         label.setFont(UITheme.FONT_BODY);
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        label.setBorder(new EmptyBorder(0, 0, 10, 0));
+        label.setBorder(new EmptyBorder(18, 0, 10, 0));
         col.add(label);
 
         ThemeDropdown dropdown = new ThemeDropdown();
         dropdown.setAlignmentX(Component.LEFT_ALIGNMENT);
         col.add(dropdown);
 
+        JLabel cursorLabel = new ThemedLabel("Mouse cursor", ThemeColor.TEXT_SECONDARY);
+        cursorLabel.setFont(UITheme.FONT_BODY);
+        cursorLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        cursorLabel.setBorder(new EmptyBorder(18, 0, 4, 0));
+        col.add(cursorLabel);
+
+        final ui.CursorPicker cursorPicker = new ui.CursorPicker();
+        cursorPicker.setAlignmentX(Component.LEFT_ALIGNMENT);
+        col.add(cursorPicker);
+
+        JPanel glowRow = new JPanel(new BorderLayout());
+        glowRow.setOpaque(false);
+        glowRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        glowRow.setBorder(new EmptyBorder(14, 0, 0, 0));
+        JLabel glowLabel = new ThemedLabel("Cursor glow", ThemeColor.TEXT_PRIMARY);
+        glowLabel.setFont(UITheme.FONT_BODY);
+        glowRow.add(glowLabel, BorderLayout.WEST);
+        final ToggleSwitch glowToggle = new ToggleSwitch(CursorManager.isGlow());
+        glowToggle.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { CursorManager.setGlow(glowToggle.isOn()); cursorPicker.repaint(); }
+        });
+        JPanel glowWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        glowWrap.setOpaque(false);
+        glowWrap.add(glowToggle);
+        glowRow.add(glowWrap, BorderLayout.EAST);
+        col.add(glowRow);
+
         return col;
+    }
+
+    /** System / Light / Dark: the calm Claude-style looks. "System" follows the operating system and is the default; the other colour themes below remain available. */
+    private JPanel createModeSwitch()
+    {
+        final ThemedButton system = new ThemedButton("System", false);
+        final ThemedButton light = new ThemedButton("Light", false);
+        final ThemedButton dark = new ThemedButton("Dark", false);
+        final Runnable refresh = new Runnable()
+        {
+            public void run()
+            {
+                String name = theme.ThemeManager.getCurrentTheme().getName();
+                boolean following = theme.ThemeManager.isFollowingSystem();
+                system.setPrimary(following);
+                light.setPrimary(!following && "Claude Light".equals(name));
+                dark.setPrimary(!following && "Claude Dark".equals(name));
+            }
+        };
+        system.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { theme.ThemeManager.useSystem(); }
+        });
+        light.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { theme.ThemeManager.setTheme(new theme.ClaudeLightTheme()); }
+        });
+        dark.addActionListener(new ActionListener()
+        {
+            public void actionPerformed(ActionEvent e) { theme.ThemeManager.setTheme(new theme.ClaudeDarkTheme()); }
+        });
+        theme.ThemeManager.addListener(refresh);
+        refresh.run();
+
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setBorder(new EmptyBorder(0, -8, 0, 0));
+        for (ThemedButton b : new ThemedButton[] { system, light, dark })
+        {
+            b.setPreferredSize(new Dimension(96, 36));
+            row.add(b);
+        }
+        // keep a strong reference: ThemeManager only holds its listeners weakly
+        row.putClientProperty("modeRefresh", refresh);
+        return row;
     }
 
     private JPanel createConnectionSection()
@@ -348,9 +391,9 @@ public class SettingsPanel extends RoundedPanel
         });
         col.add(copyDiagnostics);
 
-        JLabel diagNote = new ThemedLabel("<html><body style='width:420px'>Useful to paste into a bug report - "
+        JLabel diagNote = new ThemedLabel("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>Useful to paste into a bug report - "
             + "includes your Java version, OS, and which server you're connected to. No account info or "
-            + "message content.</body></html>", ThemeColor.TEXT_MUTED);
+            + "message content.</td></tr></table></html>", ThemeColor.TEXT_MUTED);
         diagNote.setFont(UITheme.FONT_SMALL);
         diagNote.setAlignmentX(Component.LEFT_ALIGNMENT);
         diagNote.setBorder(new EmptyBorder(6, 0, 0, 0));

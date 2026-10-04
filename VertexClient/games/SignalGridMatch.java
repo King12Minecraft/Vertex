@@ -1,4 +1,6 @@
 package games;
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 
 import net.ClientHandler;
 import net.Message;
@@ -34,8 +36,8 @@ public class SignalGridMatch
     private static final String GAME_ID = "signal-grid";
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final SignalGridMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -43,6 +45,38 @@ public class SignalGridMatch
     private final int[] owners = new int[GRID_SIZE * GRID_SIZE];
     private int turnPlayerIndex = 0;
     private boolean over = false;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return SignalGridMatch.this.stateString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentSignalGridMatch(SignalGridMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.SIGNALGRID_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            msg.setBoardState(stateString());
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdateTo(opponent);
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, String.valueOf(slot),
+                opponent.getLoggedInUsername(), stateString(), String.valueOf(turnPlayerIndex));
+        }
+    });
 
     public SignalGridMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                             SignalGridMatchManager matchManager, EconomyManager economyManager,
@@ -77,6 +111,7 @@ public class SignalGridMatch
     /** Places a node at index, then fires it in the given direction - see the class javadoc for exactly what firing does. Both the placement cell and direction are chosen by the player in one move (the client sends both together). */
     public synchronized void placeAndFire(ClientHandler requester, int index, int direction)
     {
+        if (reconnect.isPaused()) return;
         if (over || index < 0 || index >= owners.length || direction < 0 || direction > 3) return;
         int playerIndex = requester == playerA ? 0 : requester == playerB ? 1 : -1;
         if (playerIndex != turnPlayerIndex || owners[index] != -1) return;
@@ -122,6 +157,16 @@ public class SignalGridMatch
     {
         for (int owner : owners) if (owner == -1) return false;
         return true;
+    }
+
+    private void sendUpdateTo(ClientHandler player)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.SIGNALGRID_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(stateString());
+        msg.setSymbol(String.valueOf(turnPlayerIndex));
+        player.sendMessage(msg);
     }
 
     private void broadcastUpdate()
@@ -194,20 +239,8 @@ public class SignalGridMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.SIGNALGRID_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        msg.setBoardState(stateString());
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }

@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 import net.MessageType;
 import ui.GameModeCard;
 import theme.ThemeManager;
@@ -543,7 +544,7 @@ public class TicTacToeWindow extends JPanel implements NetworkManager.PushListen
             // needed.
             canPlay = false;
             applyBoardState(message.getBoardState());
-            updateStatus(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (message.getType() == MessageType.MOVE_REJECTED)
         {

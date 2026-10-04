@@ -38,69 +38,30 @@ import java.util.List;
  * visible to everyone as a shared wishlist, so people can see what's
  * already been suggested before posting a duplicate.
  */
-public class GameSuggestionsPanel extends RoundedPanel
+public class GameSuggestionsPanel extends PageScaffold
 {
     private JPanel listPanel;
     private ThemedTextField inputField;
 
     public GameSuggestionsPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("SUGGEST A GAME", "Got an idea for a game? Post it - everyone sees the list, so check what's been suggested first.");
 
-        add(createHeader(), BorderLayout.NORTH);
-        add(createBody(), BorderLayout.CENTER);
-
-        refreshInBackground();
-    }
-
-    private JPanel createHeader()
-    {
-        JPanel wrap = new JPanel();
-        wrap.setOpaque(false);
-        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-
-        wrap.add(new PageHeader("SUGGEST A GAME"));
-
-        JLabel subtitle = new ThemedLabel("Got an idea for a game you'd like to see added? Post it below - "
-            + "everyone can see the list so it's easy to check what's already been suggested.", ThemeColor.TEXT_SECONDARY);
-        subtitle.setFont(UITheme.FONT_SUBHEAD);
-        subtitle.setBorder(new EmptyBorder(4, 0, 16, 0));
-        wrap.add(subtitle);
-
-        return wrap;
-    }
-
-    private JPanel createBody()
-    {
-        JPanel body = new JPanel(new BorderLayout(0, 14));
-        body.setOpaque(false);
-
-        body.add(createInputRow(), BorderLayout.NORTH);
+        row(PageScaffold.fullWidth(new SectionCard("YOUR IDEA").withGlow().content(createInputRow())));
+        gap(16);
 
         listPanel = new JPanel();
         listPanel.setOpaque(false);
         listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
-        listPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row(PageScaffold.fullWidth(new SectionCard("SUGGESTIONS FROM EVERYONE").content(listPanel)));
 
-        JScrollPane scroll = new JScrollPane(listPanel);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        body.add(scroll, BorderLayout.CENTER);
-
-        return body;
+        refreshInBackground();
     }
 
     private JPanel createInputRow()
     {
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
-        row.setLayout(new BorderLayout(10, 0));
-        row.setBorder(new EmptyBorder(12, 12, 12, 12));
-        row.setPreferredSize(new Dimension(10, 64));
+        JPanel row = new JPanel(new BorderLayout(10, 0));
+        row.setOpaque(false);
 
         inputField = new ThemedTextField("e.g. \"A Connect Four game\" or \"Something like Pictionary, multiplayer\"");
         row.add(inputField, BorderLayout.CENTER);
@@ -208,13 +169,13 @@ public class GameSuggestionsPanel extends RoundedPanel
 
     private RoundedPanel buildEntryRow(String formattedEntry)
     {
-        RoundedPanel row = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        RoundedPanel row = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_BUTTON);
         row.setLayout(new BorderLayout());
-        row.setBorder(new EmptyBorder(12, 14, 12, 14));
+        row.setBorder(new EmptyBorder(10, 14, 10, 14));
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
-        row.setMaximumSize(new Dimension(2000, 56));
+        row.setMaximumSize(new Dimension(2000, 64));
 
-        JLabel label = new ThemedLabel("<html><body style='width:600px'>" + escapeHtml(formattedEntry) + "</body></html>", ThemeColor.TEXT_PRIMARY);
+        JLabel label = new ThemedLabel("<html><table width='600' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(formattedEntry) + "</td></tr></table></html>", ThemeColor.TEXT_PRIMARY);
         label.setFont(UITheme.FONT_BODY);
         row.add(label, BorderLayout.CENTER);
 

@@ -34,12 +34,18 @@ import java.util.List;
  */
 public class ThemeManager
 {
-    private static Theme currentTheme = new DarkNavyTheme();
+    private static final java.util.prefs.Preferences PREFS = java.util.prefs.Preferences.userNodeForPackage(ThemeManager.class);
+    /** Saved choice: a theme name, or SYSTEM (the default) = Claude Light or Claude Dark following the operating system. */
+    public static final String SYSTEM = "SYSTEM";
+
+    private static Theme currentTheme;
     private static final List<WeakReference<Runnable>> listeners = new ArrayList<WeakReference<Runnable>>();
 
     private static final List<Theme> AVAILABLE_THEMES = new ArrayList<Theme>();
     static
     {
+        AVAILABLE_THEMES.add(new ClaudeLightTheme());
+        AVAILABLE_THEMES.add(new ClaudeDarkTheme());
         AVAILABLE_THEMES.add(new DarkNavyTheme());
         AVAILABLE_THEMES.add(new MidnightPurpleTheme());
         AVAILABLE_THEMES.add(new OceanTheme());
@@ -51,6 +57,34 @@ public class ThemeManager
         AVAILABLE_THEMES.add(new BloodMoonTheme());
         AVAILABLE_THEMES.add(new GoldRushTheme());
         AVAILABLE_THEMES.add(new GlitchTheme());
+    
+        currentTheme = resolve(PREFS.get("theme", SYSTEM));
+    }
+
+    /** The theme a saved choice stands for; SYSTEM (or an unknown name) follows the operating system's light/dark setting. */
+    private static Theme resolve(String saved)
+    {
+        if (!SYSTEM.equals(saved))
+        {
+            for (Theme t : AVAILABLE_THEMES)
+            {
+                if (t.getName().equals(saved)) return t;
+            }
+        }
+        return OsAppearance.isDark() ? new ClaudeDarkTheme() : new ClaudeLightTheme();
+    }
+
+    /** True while the user has not picked a specific theme (the app follows the operating system). */
+    public static boolean isFollowingSystem()
+    {
+        return SYSTEM.equals(PREFS.get("theme", SYSTEM));
+    }
+
+    /** Back to following the operating system's light/dark setting. */
+    public static void useSystem()
+    {
+        PREFS.put("theme", SYSTEM);
+        applyTheme(resolve(SYSTEM));
     }
 
     private ThemeManager()
@@ -70,6 +104,12 @@ public class ThemeManager
 
     /** Switches the active theme and notifies every still-live registered listener, dropping any whose owner has been garbage collected along the way. */
     public static void setTheme(Theme theme)
+    {
+        PREFS.put("theme", theme.getName());
+        applyTheme(theme);
+    }
+
+    private static void applyTheme(Theme theme)
     {
         currentTheme = theme;
         Iterator<WeakReference<Runnable>> it = listeners.iterator();
@@ -126,5 +166,28 @@ public class ThemeManager
             case BORDER:         return t.border();
             default:             return t.textPrimary();
         }
+    }
+
+    /** A readable text colour (near-black or white) for content drawn ON the accent colour, whichever theme is active. */
+    public static Color onAccent()
+    {
+        Color a = currentTheme.accent();
+        double lum = (0.299 * a.getRed() + 0.587 * a.getGreen() + 0.114 * a.getBlue()) / 255.0;
+        return lum > 0.62 ? new Color(20, 20, 19) : Color.WHITE;
+    }
+
+    /** A blend of two colours, t = 0 gives a, t = 1 gives b. */
+    public static Color mix(Color a, Color b, double t)
+    {
+        return new Color((int) Math.round(a.getRed() + (b.getRed() - a.getRed()) * t),
+            (int) Math.round(a.getGreen() + (b.getGreen() - a.getGreen()) * t),
+            (int) Math.round(a.getBlue() + (b.getBlue() - a.getBlue()) * t));
+    }
+
+    /** True when the active theme's page background is dark. */
+    public static boolean isDarkTheme()
+    {
+        Color bg = currentTheme.bgApp();
+        return (0.299 * bg.getRed() + 0.587 * bg.getGreen() + 0.114 * bg.getBlue()) < 128;
     }
 }

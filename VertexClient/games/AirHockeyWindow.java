@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -66,6 +67,8 @@ public class AirHockeyWindow extends JPanel implements NetworkManager.PushListen
     private String mySymbol;
     private String opponentUsername;
     private boolean gameOver;
+    /** True while the opponent is inside their reconnect window (the server freezes play); the next update - sent after they return - clears it. */
+    private boolean awaitingReconnect;
     private long lastMoveSentAt = 0;
 
     private double puckX, puckY, paddleAX, paddleAY, paddleBX, paddleBY;
@@ -234,7 +237,7 @@ public class AirHockeyWindow extends JPanel implements NetworkManager.PushListen
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.AIRHOCKEY_MATCH_FOUND || type == MessageType.AIRHOCKEY_UPDATE
-            || type == MessageType.AIRHOCKEY_RESULT;
+            || type == MessageType.AIRHOCKEY_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -262,8 +265,19 @@ public class AirHockeyWindow extends JPanel implements NetworkManager.PushListen
             statusLabel.setText("You are " + ("A".equals(mySymbol) ? "bottom" : "top") + " - " + opponentUsername + " is opposite");
             cardLayout.show(cards, BOARD);
         }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
+            awaitingReconnect = true;
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
+        }
         else if (type == MessageType.AIRHOCKEY_UPDATE)
         {
+            if (awaitingReconnect)
+            {
+                awaitingReconnect = false;
+                statusLabel.setText("Opponent is back");
+            }
             applyState(message.getBoardState());
             statusLabel.setText("You: " + ("A".equals(mySymbol) ? scoreA : scoreB)
                 + "   Opponent: " + ("A".equals(mySymbol) ? scoreB : scoreA));

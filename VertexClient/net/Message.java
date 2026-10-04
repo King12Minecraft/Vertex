@@ -123,6 +123,34 @@ public class Message implements Serializable
     public String getChatText() { return chatText; }
     public void setChatText(String chatText) { this.chatText = chatText; }
 
+    // ---- Forums (see the forum package) - the post/reply body travels in chatText ----
+    private String forumBoardId;
+    private String forumThreadId;
+    private String forumPostId;
+    private String forumTitle;
+    private java.util.List<String> forumEntries;
+    private boolean forumLocked;
+
+    public String getForumBoardId() { return forumBoardId; }
+    public void setForumBoardId(String forumBoardId) { this.forumBoardId = forumBoardId; }
+    public String getForumThreadId() { return forumThreadId; }
+    public void setForumThreadId(String forumThreadId) { this.forumThreadId = forumThreadId; }
+    public String getForumPostId() { return forumPostId; }
+    public void setForumPostId(String forumPostId) { this.forumPostId = forumPostId; }
+    public String getForumTitle() { return forumTitle; }
+    public void setForumTitle(String forumTitle) { this.forumTitle = forumTitle; }
+    /** Encoded records - see ForumCodec.threadSummaryLine / postLine. */
+    public java.util.List<String> getForumEntries() { return forumEntries; }
+    public void setForumEntries(java.util.List<String> forumEntries) { this.forumEntries = forumEntries; }
+    public boolean isForumLocked() { return forumLocked; }
+    public void setForumLocked(boolean forumLocked) { this.forumLocked = forumLocked; }
+
+    private String matchChatState;
+
+    /** "OPEN", "LOCKED" or "CLOSED" - set on MATCH_CHAT_STATE (see the chat package's ChatRestriction/MatchChatRoom). */
+    public String getMatchChatState() { return matchChatState; }
+    public void setMatchChatState(String matchChatState) { this.matchChatState = matchChatState; }
+
     /** A per-message identifier assigned when a DM/group chat message is broadcast (ChatManager/GroupChatManager) - lets a later MESSAGE_REACTION reference exactly which message it's reacting to, in an otherwise session-only, non-persisted chat history. */
     public String getChatMessageId() { return chatMessageId; }
     public void setChatMessageId(String chatMessageId) { this.chatMessageId = chatMessageId; }
@@ -676,6 +704,26 @@ public class Message implements Serializable
     public java.util.List<String> getSyncRatings() { return syncRatings; }
     public void setSyncRatings(java.util.List<String> syncRatings) { this.syncRatings = syncRatings; }
 
+    // ---- Stats page (STATS_RESPONSE) ----
+    private int statsTotalPlays;
+    private java.util.List<String> statsPlayCounts;
+    private java.util.List<String> statsGameRows;
+    private int statsAchievementCount;
+
+    public int getStatsTotalPlays() { return statsTotalPlays; }
+    public void setStatsTotalPlays(int statsTotalPlays) { this.statsTotalPlays = statsTotalPlays; }
+
+    /** "gameId:plays", most-played first. */
+    public java.util.List<String> getStatsPlayCounts() { return statsPlayCounts; }
+    public void setStatsPlayCounts(java.util.List<String> statsPlayCounts) { this.statsPlayCounts = statsPlayCounts; }
+
+    /** "gameId|rating|wins|losses|draws|bestScore" - see LeaderboardManager.getStatsRowsForAccount. */
+    public java.util.List<String> getStatsGameRows() { return statsGameRows; }
+    public void setStatsGameRows(java.util.List<String> statsGameRows) { this.statsGameRows = statsGameRows; }
+
+    public int getStatsAchievementCount() { return statsAchievementCount; }
+    public void setStatsAchievementCount(int statsAchievementCount) { this.statsAchievementCount = statsAchievementCount; }
+
     // ---- Client auto-update (see ClientUpdateChecker/ClientUpdatePackage) ----
     private String clientJarHash;
     private boolean updateAvailable;
@@ -795,6 +843,52 @@ public class Message implements Serializable
     /** True on the very last TELEPHONE_REVEAL_ENTRY of the match, so the client knows the reveal stream is complete rather than waiting on a message that isn't coming. */
     public boolean isTelephoneRevealDone() { return telephoneRevealDone; }
     public void setTelephoneRevealDone(boolean telephoneRevealDone) { this.telephoneRevealDone = telephoneRevealDone; }
+
+    // ---- Caption Chaos (prompt-and-vote party game - see CaptionChaosMatch) ----
+    private int captionRound;
+    private int captionTotalRounds;
+    private int captionSeconds;
+    private String captionPrompt;
+    private String captionText;
+    private int captionIndex;
+    private java.util.List<String> captionOptions;
+    private java.util.List<String> captionResults;
+    private java.util.List<String> captionScores;
+    private java.util.List<String> captionWinners;
+    private boolean captionAborted;
+
+    /** 1-based round number and the total - CAPTIONCHAOS_WRITE_START / VOTE_START / ROUND_RESULT. */
+    public int getCaptionRound() { return captionRound; }
+    public void setCaptionRound(int captionRound) { this.captionRound = captionRound; }
+    public int getCaptionTotalRounds() { return captionTotalRounds; }
+    public void setCaptionTotalRounds(int captionTotalRounds) { this.captionTotalRounds = captionTotalRounds; }
+    /** How long this phase lasts, for the client's countdown. */
+    public int getCaptionSeconds() { return captionSeconds; }
+    public void setCaptionSeconds(int captionSeconds) { this.captionSeconds = captionSeconds; }
+    /** The prompt everyone answers this round. */
+    public String getCaptionPrompt() { return captionPrompt; }
+    public void setCaptionPrompt(String captionPrompt) { this.captionPrompt = captionPrompt; }
+    /** A player's own answer - CAPTIONCHAOS_SUBMIT_REQUEST (client to server). */
+    public String getCaptionText() { return captionText; }
+    public void setCaptionText(String captionText) { this.captionText = captionText; }
+    /** CAPTIONCHAOS_VOTE_REQUEST: the option being voted for. CAPTIONCHAOS_VOTE_START: which option is the receiver's own (-1 = none). */
+    public int getCaptionIndex() { return captionIndex; }
+    public void setCaptionIndex(int captionIndex) { this.captionIndex = captionIndex; }
+    /** The anonymous answers to vote between, in display order - CAPTIONCHAOS_VOTE_START. */
+    public java.util.List<String> getCaptionOptions() { return captionOptions; }
+    public void setCaptionOptions(java.util.List<String> captionOptions) { this.captionOptions = captionOptions; }
+    /** The revealed round, most votes first, "author|answer|votes" per entry - CAPTIONCHAOS_ROUND_RESULT. */
+    public java.util.List<String> getCaptionResults() { return captionResults; }
+    public void setCaptionResults(java.util.List<String> captionResults) { this.captionResults = captionResults; }
+    /** Running totals, best first, "name:points" per entry - ROUND_RESULT and MATCH_OVER. */
+    public java.util.List<String> getCaptionScores() { return captionScores; }
+    public void setCaptionScores(java.util.List<String> captionScores) { this.captionScores = captionScores; }
+    /** Usernames that finished top (ties included; empty if nobody scored) - CAPTIONCHAOS_MATCH_OVER. */
+    public java.util.List<String> getCaptionWinners() { return captionWinners; }
+    public void setCaptionWinners(java.util.List<String> captionWinners) { this.captionWinners = captionWinners; }
+    /** True when the match ended early because too few players were left (no win is awarded) - MATCH_OVER. */
+    public boolean isCaptionAborted() { return captionAborted; }
+    public void setCaptionAborted(boolean captionAborted) { this.captionAborted = captionAborted; }
 
     // ---- Vertex: Dominion (see dominion package, DOMINION_DESIGN.md) ----
     private String dominionNationName;

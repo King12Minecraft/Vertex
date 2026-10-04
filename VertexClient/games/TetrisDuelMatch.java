@@ -1,5 +1,7 @@
 package games;
 
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 import net.ClientHandler;
 import net.Message;
 import net.MessageType;
@@ -38,10 +40,12 @@ public class TetrisDuelMatch
 {
     private static final long TICK_MS = 50;
     private static final String GAME_ID = "tetris-duel";
+    /** After a reconnect both boards stay frozen this long so the returning player's window is up before the pieces fall. */
+    private static final long RESUME_DELAY_MS = 3000;
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final TetrisDuelMatchManager matchManager;
     private final EconomyManager economyManager;
     private final LeaderboardManager leaderboardManager;
@@ -51,6 +55,41 @@ public class TetrisDuelMatch
     private int linesClearedSoFarA = 0, linesClearedSoFarB = 0;
     private boolean over = false;
     private Timer tickTimer;
+
+    /** Shared drop-and-return handling (see mechanics.PairReconnect): the Host below is the only per-game part. Real-time, so the tick and inputs hold while paused and for a short beat after a return. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? playerA : playerB; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) playerA = handler; else playerB = handler; }
+        public String stateString() { return null; }
+        public void attach(ClientHandler handler) { handler.setCurrentTetrisDuelMatch(TetrisDuelMatch.this); }
+
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            if (tickTimer != null) tickTimer.cancel();
+            matchManager.endMatch(matchId);
+            if (remaining == null) return;
+            Message msg = new Message();
+            msg.setType(MessageType.TETRISDUEL_RESULT);
+            msg.setMatchId(matchId);
+            msg.setMatchResult("OPPONENT_LEFT");
+            remaining.sendMessage(msg);
+            economyManager.awardWin(remaining, GAME_ID);
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdateTo(opponent, slot == 0 ? gameB : gameA, slot == 0 ? gameA : gameB);
+            // Each player's update is their own grid, the opponent's grid (chatText) and their score. A login response has neither field, so the own grid rides in the board slot and "score|opponentGrid" in the turn slot (AuthWindow unpacks them).
+            TetrisGame mine = slot == 0 ? gameA : gameB;
+            TetrisGame theirs = slot == 0 ? gameB : gameA;
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, slot == 0 ? "A" : "B",
+                opponent.getLoggedInUsername(), gridToString(mine), mine.getScore() + "|" + gridToString(theirs));
+        }
+    }, RESUME_DELAY_MS);
 
     public TetrisDuelMatch(String matchId, ClientHandler playerA, ClientHandler playerB,
                             TetrisDuelMatchManager matchManager, EconomyManager economyManager,
@@ -89,7 +128,7 @@ public class TetrisDuelMatch
     /** action: "LEFT", "RIGHT", "ROTATE", "SOFT_DROP", or "HARD_DROP" - applied immediately, not queued to the next gravity tick, so input feels responsive rather than laggy. */
     public synchronized void applyAction(ClientHandler requester, String action)
     {
-        if (over) return;
+        if (over || reconnect.isHeld()) return;
         TetrisGame game = requester == playerA ? gameA : requester == playerB ? gameB : null;
         if (game == null || game.isGameOver()) return;
 
@@ -105,7 +144,7 @@ public class TetrisDuelMatch
 
     private synchronized void tick()
     {
-        if (over) return;
+        if (over || reconnect.isHeld()) return;
 
         gameA.tick();
         gameB.tick();
@@ -142,21 +181,20 @@ public class TetrisDuelMatch
 
     private void broadcastUpdate()
     {
-        Message toA = new Message();
-        toA.setType(MessageType.TETRISDUEL_UPDATE);
-        toA.setMatchId(matchId);
-        toA.setBoardState(gridToString(gameA));
-        toA.setChatText(gridToString(gameB));
-        toA.setScore(gameA.getScore());
-        playerA.sendMessage(toA);
+        sendUpdateTo(playerA, gameA, gameB);
+        sendUpdateTo(playerB, gameB, gameA);
+    }
 
-        Message toB = new Message();
-        toB.setType(MessageType.TETRISDUEL_UPDATE);
-        toB.setMatchId(matchId);
-        toB.setBoardState(gridToString(gameB));
-        toB.setChatText(gridToString(gameA));
-        toB.setScore(gameB.getScore());
-        playerB.sendMessage(toB);
+    /** One player's view: their own grid and score, and the opponent's grid. */
+    private void sendUpdateTo(ClientHandler player, TetrisGame mine, TetrisGame theirs)
+    {
+        Message msg = new Message();
+        msg.setType(MessageType.TETRISDUEL_UPDATE);
+        msg.setMatchId(matchId);
+        msg.setBoardState(gridToString(mine));
+        msg.setChatText(gridToString(theirs));
+        msg.setScore(mine.getScore());
+        player.sendMessage(msg);
     }
 
     /** Flattens the 10x20 grid plus the falling piece's current cells into one comma-separated string of cell values (0=empty, 1-7=locked piece colors, 8=garbage) - the falling piece is merged in here rather than sent separately, since the client only ever needs to draw the board as it currently looks. */
@@ -234,20 +272,8 @@ public class TetrisDuelMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over) return;
-        over = true;
-        if (tickTimer != null) tickTimer.cancel();
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
-        Message msg = new Message();
-        msg.setType(MessageType.TETRISDUEL_RESULT);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        remaining.sendMessage(msg);
-
-        economyManager.awardWin(remaining, GAME_ID);
+        reconnect.handleDisconnect(who);
     }
 }

@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 import economy.GuestPlayTracker;
 import pages.MainMenu;
 import ui.GameHubDialog;
@@ -235,7 +236,7 @@ public class ChessWindow extends JPanel implements NetworkManager.PushListener, 
         if (!isSpectator && !isRematchWait)
         {
             offerDrawButton = new ThemedButton("Offer Draw", false);
-            offerDrawButton.setPreferredSize(new Dimension(110, 32));
+            offerDrawButton.setPreferredSize(new Dimension(130, 32));
             offerDrawButton.addActionListener(new ActionListener()
             {
                 public void actionPerformed(ActionEvent e)
@@ -603,7 +604,7 @@ public class ChessWindow extends JPanel implements NetworkManager.PushListener, 
         boolean isChessType = type == MessageType.CHESS_MATCH_FOUND || type == MessageType.CHESS_UPDATE
             || type == MessageType.CHESS_MOVE_REJECTED || type == MessageType.CHESS_MATCH_OVER
             || type == MessageType.SPECTATE_ENDED || type == MessageType.CHESS_DRAW_OFFERED
-            || type == MessageType.CHESS_DRAW_DECLINED;
+            || type == MessageType.CHESS_DRAW_DECLINED || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isChessType)
         {
             return;
@@ -623,6 +624,8 @@ public class ChessWindow extends JPanel implements NetworkManager.PushListener, 
     {
         if (message.getType() == MessageType.CHESS_MATCH_FOUND)
         {
+            // A resumed match (login reconnect) builds this window fresh on the mode-select card; show the board.
+            cardLayout.show(cards, MAIN);
             matchId = message.getMatchId();
             myColor = message.getSymbol();
             opponentUsername = message.getOpponentUsername();
@@ -644,6 +647,14 @@ public class ChessWindow extends JPanel implements NetworkManager.PushListener, 
                 statusLabel.setText("You are " + myColor + " vs " + opponentUsername
                     + (myTurn ? " - your move" : " - waiting for their move"));
             }
+        }
+        else if (message.getType() == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy). The next CHESS_UPDATE - sent when they return - restores the turn.
+            myTurn = false;
+            selectedSquare = -1;
+            renderBoard(message.getBoardState());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (message.getType() == MessageType.CHESS_MOVE_REJECTED)
         {

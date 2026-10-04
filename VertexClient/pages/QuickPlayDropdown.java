@@ -38,7 +38,10 @@ public class QuickPlayDropdown extends JButton
 
     public QuickPlayDropdown()
     {
-        setPreferredSize(new Dimension(96, 38));
+        // fixed: the top bar's BoxLayout shrinks anything with a small minimum size, which cut this to "Pla"
+        setPreferredSize(new Dimension(120, 38));
+        setMinimumSize(new Dimension(120, 38));
+        setMaximumSize(new Dimension(120, 38));
         setFocusPainted(false);
         setBorderPainted(false);
         setContentAreaFilled(false);

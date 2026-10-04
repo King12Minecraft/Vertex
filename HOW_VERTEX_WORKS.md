@@ -58,8 +58,9 @@ draw anything on screen.
    if you play on more than one friend group's server). If it can't reach
    anything, it tells you plainly instead of hanging silently, and still lets you
    play the handful of fully-offline games.
-3. You log in (or make an account — the very first account ever created on a
-   brand-new server automatically becomes the admin).
+3. You log in (or make an account). Nobody becomes an admin by signing up — the
+   person running the server picks the admin name and password at the server's
+   own console the first time it starts.
 4. From the main menu you can browse ~50 games, chat with friends, check a shop
    for cosmetic items you've earned, look at leaderboards, and more.
 5. Pick a game. If it's a real-time multiplayer game, the app finds you an
@@ -114,8 +115,9 @@ way your account does.
 
 ## 8. Who can see what, and who's in charge
 
-The person who creates the very first account on a brand-new server
-automatically becomes that server's **admin** — full control: manage roles,
+The person who runs a brand-new server sets up its **admin** account at the
+server's own console on first start (never through the game, never over chat) —
+full control: manage roles,
 review reports, ban/unban people. An admin can also promote trusted players to
 **moderator**, who get a smaller set of powers (mute, kick, resolve reports) but
 not full admin control. This is all per-server — being an admin on your server

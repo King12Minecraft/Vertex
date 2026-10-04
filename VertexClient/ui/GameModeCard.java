@@ -64,7 +64,7 @@ public class GameModeCard extends RoundedPanel
         titleLabel.setFont(UITheme.FONT_HEADING.deriveFont(20f));
         titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
 
-        JLabel descLabel = new JLabel("<html><body style='width:150px'>" + description + "</body></html>");
+        JLabel descLabel = new JLabel("<html><table width='150' cellpadding='0' cellspacing='0'><tr><td>" + description + "</td></tr></table></html>");
         descLabel.setFont(UITheme.FONT_SMALL);
         descLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         descLabel.setBorder(new EmptyBorder(8, 0, 0, 0));

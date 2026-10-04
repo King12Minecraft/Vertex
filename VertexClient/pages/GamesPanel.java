@@ -2,10 +2,8 @@ package pages;
 import games.GameRulesDialog;
 import games.GameLauncher;
 import ui.StatusPill;
-import games.GameDetailDialog;
 import games.GameCardArt;
 import ui.HeroBanner;
-import economy.PinnedGamesStore;
 import ui.GameHubDialog;
 import theme.ThemeManager;
 import theme.UITheme;
@@ -63,7 +61,7 @@ import java.util.Map;
  * Every card (on either view) has a small Pin/Unpin toggle, so a user
  * can build their Quick Play list from wherever they find a game.
  */
-public class GamesPanel extends RoundedPanel implements NetworkManager.PushListener
+public class GamesPanel extends PageScaffold implements NetworkManager.PushListener
 {
     private static final String HOME = "HOME";
     private static final String ALL_GAMES = "ALL_GAMES";
@@ -94,11 +92,8 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
     public GamesPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
-
-        add(createHeader(), BorderLayout.NORTH);
+        super("GAMES", "Everything you can play - pin your favourites to keep them on Home.");
+        header().setRightComponent(createHeaderControls());
 
         // Without this, viewCards paints its own default (opaque, light
         // gray/white) Swing background wherever its shown card doesn't
@@ -111,7 +106,12 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
         viewCards.add(createHomeView(), HOME);
         viewCards.add(createAllGamesView(), ALL_GAMES);
-        add(viewCards, BorderLayout.CENTER);
+        setBody(viewCards);
+
+        PinnedGames.addListener(new Runnable()
+        {
+            public void run() { refreshPinnedRow(); }
+        });
 
         GameManager.addListener(new Runnable()
         {
@@ -152,41 +152,27 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
     // ==================== Header + tabs ====================
 
-    private JPanel createHeader()
+    private JPanel createHeaderControls()
     {
-        JPanel wrap = new JPanel();
-        wrap.setOpaque(false);
-        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
-
-        wrap.add(new PageHeader("GAMES"));
-
-        JPanel tabRow = new JPanel(new BorderLayout());
+        JPanel tabRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         tabRow.setOpaque(false);
-        tabRow.setBorder(new EmptyBorder(4, 0, 16, 0));
 
-        JPanel tabs = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        tabs.setOpaque(false);
-
-        homeTabButton = new ThemedButton("Home", true);
-        homeTabButton.setPreferredSize(new Dimension(90, 36));
+        homeTabButton = new ThemedButton("Featured", true);
+        homeTabButton.setPreferredSize(new Dimension(120, 34));
         homeTabButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { switchView(HOME); }
         });
 
         allGamesTabButton = new ThemedButton("All Games", false);
-        allGamesTabButton.setPreferredSize(new Dimension(110, 36));
+        allGamesTabButton.setPreferredSize(new Dimension(130, 34));
         allGamesTabButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e) { switchView(ALL_GAMES); }
         });
 
-        tabs.add(homeTabButton);
-        tabs.add(allGamesTabButton);
-        tabRow.add(tabs, BorderLayout.WEST);
-
         refreshButton = new ThemedButton("Refresh", false);
-        refreshButton.setPreferredSize(new Dimension(110, 36));
+        refreshButton.setPreferredSize(new Dimension(110, 34));
         refreshButton.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
@@ -195,13 +181,11 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
                 fetchHistoryInBackground();
             }
         });
-        JPanel refreshWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        refreshWrap.setOpaque(false);
-        refreshWrap.add(refreshButton);
-        tabRow.add(refreshWrap, BorderLayout.EAST);
 
-        wrap.add(tabRow);
-        return wrap;
+        tabRow.add(homeTabButton);
+        tabRow.add(allGamesTabButton);
+        tabRow.add(refreshButton);
+        return tabRow;
     }
 
     private void switchView(String view)
@@ -227,7 +211,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
     private JScrollPane createHomeView()
     {
-        JPanel content = new JPanel();
+        JPanel content = new PageScaffold.WidthTrackingPanel();
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
@@ -243,8 +227,8 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         pinnedSection.setLayout(new BoxLayout(pinnedSection, BoxLayout.Y_AXIS));
         pinnedSection.setAlignmentX(Component.LEFT_ALIGNMENT);
         pinnedSection.setVisible(false);
-        pinnedSection.add(sectionLabel("QUICK PLAY"));
-        pinnedRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        pinnedSection.add(sectionLabel("PINNED"));
+        pinnedRow = new JPanel(new ui.WrapLayout(FlowLayout.LEFT, 16, 16));
         pinnedRow.setOpaque(false);
         pinnedRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         pinnedSection.add(pinnedRow);
@@ -257,7 +241,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         recentSection.setAlignmentX(Component.LEFT_ALIGNMENT);
         recentSection.setVisible(false);
         recentSection.add(sectionLabel("CONTINUE PLAYING"));
-        recentRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 16, 0));
+        recentRow = new JPanel(new ui.WrapLayout(FlowLayout.LEFT, 16, 16));
         recentRow.setOpaque(false);
         recentRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         recentSection.add(recentRow);
@@ -276,14 +260,14 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
 
     private JScrollPane createAllGamesView()
     {
-        JPanel content = new JPanel();
+        JPanel content = new PageScaffold.WidthTrackingPanel();
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         filterRow.setOpaque(false);
         filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        filterRow.setBorder(new EmptyBorder(0, 0, 20, 0));
+        filterRow.setBorder(new EmptyBorder(8, 0, 20, 0));
 
         addFilterChip(filterRow, "All", FILTER_ALL);
         addFilterChip(filterRow, "Trending", FILTER_TRENDING);
@@ -431,7 +415,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
     {
         pinnedRow.removeAll();
 
-        List<String> pinnedIds = PinnedGamesStore.getPinned();
+        List<String> pinnedIds = PinnedGames.getAll();
         List<GameInfo> matched = new ArrayList<GameInfo>();
         for (int i = 0; i < pinnedIds.size(); i++)
         {
@@ -588,18 +572,22 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         art.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         art.addMouseListener(new MouseAdapter()
         {
-            public void mouseClicked(MouseEvent e) { GameDetailDialog.show(art, game); }
+            public void mouseClicked(MouseEvent e) { MainMenu.getInstance().showGameDetails(game); }
         });
         artWrap.add(art, BorderLayout.CENTER);
 
-        final ThemedButton pin = new ThemedButton(PinnedGamesStore.isPinned(game.getGameId()) ? "Pinned" : "Pin", false);
+        final ThemedButton pin = new ThemedButton(PinnedGames.isPinned(game.getGameId()) ? "Pinned" : "Pin", false);
         pin.setPreferredSize(new Dimension(70, 26));
         pin.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent e)
             {
-                PinnedGamesStore.toggle(game.getGameId());
-                pin.setText(PinnedGamesStore.isPinned(game.getGameId()) ? "Pinned" : "Pin");
+                if (!PinnedGames.toggle(game.getGameId()))
+                {
+                    GameHubDialog.show(pin, "Pinned games", "You can pin up to " + PinnedGames.MAX_PINNED + " games. Unpin one first.");
+                    return;
+                }
+                pin.setText(PinnedGames.isPinned(game.getGameId()) ? "Pinned" : "Pin");
                 refreshPinnedRow();
             }
         });
@@ -621,7 +609,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
         name.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
         name.addMouseListener(new MouseAdapter()
         {
-            public void mouseClicked(MouseEvent e) { GameDetailDialog.show(name, game); }
+            public void mouseClicked(MouseEvent e) { MainMenu.getInstance().showGameDetails(game); }
         });
 
         JLabel type = new ThemedLabel(game.getType(), ThemeColor.TEXT_MUTED);
@@ -647,7 +635,7 @@ public class GamesPanel extends RoundedPanel implements NetworkManager.PushListe
             // length. The earlier plain-JLabel version had no width
             // constraint of its own and could spill past the card.
             JLabel queueLabel = new ThemedLabel(
-                "<html><body style='width:180px'>" + queueText(game.getQueueCount()) + "</body></html>", ThemeColor.ACCENT);
+                "<html><table width='180' cellpadding='0' cellspacing='0'><tr><td>" + queueText(game.getQueueCount()) + "</td></tr></table></html>", ThemeColor.ACCENT);
             queueLabel.setFont(UITheme.FONT_SMALL.deriveFont(java.awt.Font.BOLD));
             queueLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             queueLabel.setMaximumSize(new Dimension(200, 20));

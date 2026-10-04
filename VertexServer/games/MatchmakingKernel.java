@@ -1,4 +1,7 @@
 package games;
+import mechanics.ReconnectRegistry;
+import chat.GameChatPolicies;
+import chat.MatchChatRoom;
 import net.MessageType;
 import net.Message;
 import net.ClientHandler;
@@ -54,6 +57,10 @@ public class MatchmakingKernel<M>
 
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, M> activeMatches = new HashMap<String, M>();
+    /** In-match chat rooms for matches whose game has one (see GameChatPolicies) - opened when the pair is made, closed shortly after endMatch. */
+    private final Map<String, MatchChatRoom> chatRooms = new HashMap<String, MatchChatRoom>();
+    /** How long a match's chat room stays open after the match ends - long enough for a "gg", short enough not to linger. */
+    private static final long POST_MATCH_CHAT_MILLIS = 60000;
     private int nextMatchId = 1;
 
     private final String gameId;
@@ -61,7 +68,7 @@ public class MatchmakingKernel<M>
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final PairHandler<M> pairHandler;
-    private final ReconnectRegistry reconnectRegistry = new ReconnectRegistry();
+    private final ReconnectRegistry reconnectRegistry = ReconnectRegistry.shared();
 
     /** Every kernel-backed match type gets a grace-period reconnect registry for free - see ReconnectRegistry's javadoc. A PairHandler.pair() implementation that wants reconnect support passes this to its Match constructor, same as TicTacToeMatch takes MatchManager's own registry today. */
     public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
@@ -105,6 +112,12 @@ public class MatchmakingKernel<M>
             pairHandler.attach(opponent, match);
             pairHandler.attach(player, match);
 
+            MatchChatRoom chatRoom = GameChatPolicies.openRoom(matchId, gameId, java.util.Arrays.asList(opponent, player));
+            if (chatRoom != null)
+            {
+                chatRooms.put(matchId, chatRoom);
+            }
+
             recordPlay(opponent);
             recordPlay(player);
 
@@ -137,6 +150,11 @@ public class MatchmakingKernel<M>
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        MatchChatRoom chatRoom = chatRooms.remove(matchId);
+        if (chatRoom != null)
+        {
+            chatRoom.closeAfter(POST_MATCH_CHAT_MILLIS);
+        }
     }
 
     public synchronized int getQueueCount()

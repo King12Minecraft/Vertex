@@ -1,4 +1,6 @@
 package games;
+import mechanics.PairReconnect;
+import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
 import economy.EconomyManager;
@@ -22,8 +24,48 @@ import java.util.List;
 public class ChessMatch
 {
     private final String matchId;
-    private final ClientHandler whitePlayer;
-    private final ClientHandler blackPlayer;
+    private static final String GAME_ID = "chess";
+
+    /** Not final: a reconnecting player logs back in on a brand-new ClientHandler, which replaces their old slot (see onReconnect). */
+    private ClientHandler whitePlayer;
+    private ClientHandler blackPlayer;
+    /** Shared drop-and-return handling (see mechanics.PairReconnect); slot 0 is White, 1 is Black. */
+    private final PairReconnect reconnect = new PairReconnect(this, GAME_ID, new PairReconnect.Host()
+    {
+        public String matchId() { return matchId; }
+        public boolean isOver() { return over; }
+        public ClientHandler player(int slot) { return slot == 0 ? whitePlayer : blackPlayer; }
+        public void setPlayer(int slot, ClientHandler handler) { if (slot == 0) whitePlayer = handler; else blackPlayer = handler; }
+        public String stateString() { return boardString(); }
+        public void attach(ClientHandler handler) { handler.setCurrentChessMatch(ChessMatch.this); }
+
+        /** A pending draw offer shouldn't survive the pause - the offerer may not be around to see the answer, and the accepter may be the one who left. */
+        public void onPaused(int droppedSlot) { drawOfferPending = false; }
+
+        /** Abandonment keeps the pre-reconnect outcome: the remaining player is told OPPONENT_LEFT; no rating, coins or replay. */
+        public void forfeit(ClientHandler remaining)
+        {
+            over = true;
+            matchManager.endMatch(matchId);
+            if (remaining != null)
+            {
+                Message msg = new Message();
+                msg.setType(MessageType.CHESS_MATCH_OVER);
+                msg.setMatchId(matchId);
+                msg.setMatchResult("OPPONENT_LEFT");
+                msg.setBoardState(boardString());
+                remaining.sendMessage(msg);
+            }
+            notifySpectatorsEnded();
+        }
+
+        public ReconnectRegistry.ReconnectResult resume(int slot, ClientHandler opponent)
+        {
+            sendUpdate(opponent);   // clears their waiting notice
+            return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, slot == 0 ? "WHITE" : "BLACK",
+                opponent.getLoggedInUsername(), boardString(), whiteTurn ? "WHITE" : "BLACK");
+        }
+    });
     private final ChessMatchManager matchManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
@@ -97,6 +139,11 @@ public class ChessMatch
     {
         if (over)
         {
+            return;
+        }
+        if (reconnect.isPaused())
+        {
+            sendRejected(requester, "Waiting for your opponent to reconnect...");
             return;
         }
 
@@ -571,7 +618,7 @@ public class ChessMatch
     /** Relays the offer to the other player - doesn't end anything itself, that only happens if they accept. A fresh offer can't be sent while one is already pending, and offering doesn't cost you your move. */
     public synchronized void offerDraw(ClientHandler requester)
     {
-        if (over || drawOfferPending)
+        if (over || drawOfferPending || reconnect.isPaused())
         {
             return;
         }
@@ -624,23 +671,9 @@ public class ChessMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over)
-        {
-            return;
-        }
-        over = true;
-        matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == whitePlayer) ? blackPlayer : whitePlayer;
-        Message msg = new Message();
-        msg.setType(MessageType.CHESS_MATCH_OVER);
-        msg.setMatchId(matchId);
-        msg.setMatchResult("OPPONENT_LEFT");
-        msg.setBoardState(boardString());
-        remaining.sendMessage(msg);
-        notifySpectatorsEnded();
+        reconnect.handleDisconnect(who);
     }
 
     private String boardString()

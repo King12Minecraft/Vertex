@@ -68,9 +68,9 @@ public class OfflineHubWindow extends JFrame
         content.setOpaque(false);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
-        JLabel blurb = new JLabel("<html><body style='width:460px'>No account or server connection "
+        JLabel blurb = new JLabel("<html><table width='460' cellpadding='0' cellspacing='0'><tr><td>No account or server connection "
             + "needed for these. Anything you play here is remembered and synced - history and any "
-            + "coins earned - the moment you log in.</body></html>");
+            + "coins earned - the moment you log in.</td></tr></table></html>");
         blurb.setFont(UITheme.FONT_BODY);
         blurb.setForeground(ThemeManager.getColor(ThemeColor.TEXT_SECONDARY));
         blurb.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -120,7 +120,7 @@ public class OfflineHubWindow extends JFrame
         nameLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
         nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel descLabel = new JLabel("<html><body style='width:180px'>" + description + "</body></html>");
+        JLabel descLabel = new JLabel("<html><table width='180' cellpadding='0' cellspacing='0'><tr><td>" + description + "</td></tr></table></html>");
         descLabel.setFont(UITheme.FONT_SMALL);
         descLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
         descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);

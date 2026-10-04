@@ -36,6 +36,15 @@ public class EconomyConfig
         if ("card-rush".equals(gameId))        return 15;
         if ("dots-and-boxes".equals(gameId))   return 15;
         if ("telephone".equals(gameId))        return 20;
+        if ("caption-chaos".equals(gameId))    return 20;
+        // Found missing during an audit (2026-09-29): TriviaMatch.finishMatch() has
+        // always called getWinReward("trivia-blitz") to compute the pot every winner
+        // splits, but "trivia-blitz" was never added to this table - every Trivia
+        // Blitz match has been silently paying its winner(s) zero coins since the game
+        // shipped. 20 matches Among Us's tier (also a small multiplayer group, EASY
+        // difficulty here vs. Among Us's Medium) - a reasonable, retunable default,
+        // not a guess at an untested balance number.
+        if ("trivia-blitz".equals(gameId))     return 20;
         return 0;
     }
 
@@ -78,6 +87,7 @@ public class EconomyConfig
         if ("yahtzee".equals(gameId))        return Math.min(35, score / 12);
         if ("mancala".equals(gameId))        return Math.min(35, score / 8);
         if ("hill-climb".equals(gameId))     return Math.min(35, score / 20);
+        if ("sky-hopper".equals(gameId))     return Math.min(35, score / 15);
         // Folded in from the old standalone getSnakeReward()/awardSnakeScore() - same
         // Math.min(cap, score/divisor) shape as every entry above, just previously
         // kept as its own special case (Snake predates this generic table) instead of

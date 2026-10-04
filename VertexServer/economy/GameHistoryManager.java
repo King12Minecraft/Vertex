@@ -119,6 +119,36 @@ public class GameHistoryManager
         return result;
     }
 
+    /** How many times this account has played each game, "gameId:count" per entry, most-played first (ties by game id, so the order is stable). Feeds the Stats page. */
+    public synchronized List<String> getPlayCountsByGame(int accountId)
+    {
+        final Map<String, Integer> counts = new java.util.HashMap<String, Integer>();
+        for (int i = 0; i < events.size(); i++)
+        {
+            PlayEvent event = events.get(i);
+            if (event.accountId == accountId)
+            {
+                Integer current = counts.get(event.gameId);
+                counts.put(event.gameId, current == null ? 1 : current + 1);
+            }
+        }
+        List<String> gameIds = new ArrayList<String>(counts.keySet());
+        java.util.Collections.sort(gameIds, new java.util.Comparator<String>()
+        {
+            public int compare(String a, String b)
+            {
+                int byCount = counts.get(b) - counts.get(a);
+                return byCount != 0 ? byCount : a.compareTo(b);
+            }
+        });
+        List<String> result = new ArrayList<String>();
+        for (int i = 0; i < gameIds.size(); i++)
+        {
+            result.add(gameIds.get(i) + ":" + counts.get(gameIds.get(i)));
+        }
+        return result;
+    }
+
     /** Total plays across every game, ever - used by the achievements system's "games played" milestone. */
     public synchronized int getTotalPlayCount(int accountId)
     {

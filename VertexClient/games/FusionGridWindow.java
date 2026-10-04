@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 
 import net.Message;
 import net.MessageType;
@@ -390,7 +391,7 @@ public class FusionGridWindow extends JPanel implements NetworkManager.PushListe
     {
         MessageType type = message.getType();
         boolean isType = type == MessageType.FUSIONGRID_MATCH_FOUND || type == MessageType.FUSIONGRID_UPDATE
-            || type == MessageType.FUSIONGRID_RESULT;
+            || type == MessageType.FUSIONGRID_RESULT || type == MessageType.OPPONENT_DISCONNECTED_NOTICE;
         if (!isType)
         {
             return;
@@ -425,6 +426,14 @@ public class FusionGridWindow extends JPanel implements NetworkManager.PushListe
             applyState(message.getBoardState());
             myTurn = Integer.parseInt(message.getSymbol()) == mySymbol;
             updateStatus();
+        }
+        else if (type == MessageType.OPPONENT_DISCONNECTED_NOTICE)
+        {
+            // Paused, not over: the opponent has a short window to log back in (mechanics.ReconnectPolicy).
+            // The update the server sends when they return restores whose turn it is.
+            applyState(message.getBoardState());
+            myTurn = false;
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.FUSIONGRID_RESULT)
         {

@@ -15,6 +15,7 @@ import ui.ThemedButton;
 import ui.ThemedLabel;
 import economy.ShopItemInfo;
 import ui.RoundedPanel;
+import ui.PlaceholderPanel;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -47,7 +48,7 @@ import java.util.List;
  * Shop is purely for spending now. All prices come from the server's
  * EconomyConfig.
  */
-public class ShopPanel extends RoundedPanel implements NetworkManager.PushListener
+public class ShopPanel extends PageScaffold implements NetworkManager.PushListener
 {
     private JPanel itemsGrid;
     private JPanel badgesGrid;
@@ -57,60 +58,36 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
 
     public ShopPanel()
     {
-        super(ThemeColor.BG_APP, 0);
-        setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(0, 32, 24, 32));
+        super("SHOP", "Spend your coins on username colours, badges and profile frames.");
+        header().setRightComponent(createBalanceRow());
 
-        add(new PageHeader("SHOP"), BorderLayout.NORTH);
-
-        JPanel content = new JPanel();
-        content.setOpaque(false);
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(new EmptyBorder(24, 0, 24, 0));
-
-        content.add(createBalanceRow());
-        content.add(Box.createVerticalStrut(24));
-
-        content.add(sectionLabel("USERNAME COLORS"));
-        itemsGrid = new JPanel(new GridLayout(0, 4, 18, 18));
-        itemsGrid.setOpaque(false);
-        itemsGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(itemsGrid);
-        content.add(Box.createVerticalStrut(24));
-
-        content.add(sectionLabel("BADGES"));
-        badgesGrid = new JPanel(new GridLayout(0, 4, 18, 18));
-        badgesGrid.setOpaque(false);
-        badgesGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(badgesGrid);
-        content.add(Box.createVerticalStrut(24));
-
-        content.add(sectionLabel("PROFILE FRAMES"));
-        framesGrid = new JPanel(new GridLayout(0, 4, 18, 18));
-        framesGrid.setOpaque(false);
-        framesGrid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(framesGrid);
-
-        JScrollPane scroll = new JScrollPane(content);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        ThemedScrollBarUI.apply(scroll);
-        add(scroll, BorderLayout.CENTER);
+        itemsGrid = newGrid();
+        badgesGrid = newGrid();
+        framesGrid = newGrid();
+        row(PageScaffold.fullWidth(new SectionCard("USERNAME COLORS").content(itemsGrid)));
+        gap(16);
+        row(PageScaffold.fullWidth(new SectionCard("BADGES").content(badgesGrid)));
+        gap(16);
+        row(PageScaffold.fullWidth(new SectionCard("PROFILE FRAMES").content(framesGrid)));
 
         NetworkManager.addPushListener(this);
 
         loadShopItems();
     }
 
+    private static JPanel newGrid()
+    {
+        JPanel grid = new JPanel(new GridLayout(0, 4, 14, 14));
+        grid.setOpaque(false);
+        return grid;
+    }
+
     private JPanel createBalanceRow()
     {
-        JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         row.setOpaque(false);
-        row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        RoundedPanel badge = new RoundedPanel(ThemeColor.BG_SIDEBAR, 18);
+        RoundedPanel badge = new RoundedPanel(ThemeColor.BG_PANEL, 18);
         badge.setLayout(new FlowLayout(FlowLayout.CENTER, 8, 0));
         badge.setBorder(new EmptyBorder(9, 16, 9, 16));
 
@@ -158,24 +135,14 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                         else if (itemsResponse == null)
                         {
                             String connectionIssue = NetworkManager.describeIfNotReady();
-                            itemsGrid.removeAll();
-                            itemsGrid.add(mutedLabel(connectionIssue != null ? connectionIssue
-                                : "Couldn't load the shop - try again."));
-                            itemsGrid.revalidate();
-                            itemsGrid.repaint();
+                            PlaceholderPanel.show(itemsGrid, connectionIssue != null ? connectionIssue
+                                : "Couldn't load the shop - try again.");
                         }
                     }
                 });
             }
         });
         worker.start();
-    }
-
-    private JLabel mutedLabel(String text)
-    {
-        JLabel label = new ThemedLabel(text, ThemeColor.TEXT_MUTED);
-        label.setFont(UITheme.FONT_SMALL);
-        return label;
     }
 
     private void renderShopItems(List<ShopItemInfo> items)
@@ -218,11 +185,10 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
 
     private JPanel buildShopCard(final ShopItemInfo item)
     {
-        final RoundedPanel card = new RoundedPanel(ThemeColor.BG_PANEL, UITheme.RADIUS_PANEL);
+        final RoundedPanel card = new RoundedPanel(ThemeColor.BG_APP, UITheme.RADIUS_PANEL);
         card.setLayout(new BorderLayout());
-        card.setBorder(new EmptyBorder(18, 18, 18, 18));
-        card.setPreferredSize(new Dimension(200, 210));
-        card.enableTopAccent();
+        card.setBorder(new EmptyBorder(14, 14, 14, 14));
+        card.setPreferredSize(new Dimension(160, 188));
         card.addMouseListener(new MouseAdapter()
         {
             public void mouseEntered(MouseEvent e) { card.glow().animateIn(); }
@@ -274,7 +240,7 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
                 swatch.setBackground(ThemeManager.getColor(ThemeColor.ACCENT));
             }
         }
-        swatch.setPreferredSize(new Dimension(50, 50));
+        swatch.setPreferredSize(new Dimension(50, 46));
         card.add(swatch, BorderLayout.NORTH);
 
         JPanel info = new JPanel();
@@ -317,8 +283,8 @@ public class ShopPanel extends RoundedPanel implements NetworkManager.PushListen
             });
         }
         buy.setAlignmentX(Component.LEFT_ALIGNMENT);
-        buy.setMaximumSize(new Dimension(500, 36));
-        buy.setPreferredSize(new Dimension(160, 36));
+        buy.setMaximumSize(new Dimension(500, 34));
+        buy.setPreferredSize(new Dimension(120, 34));
 
         info.add(name);
         info.add(price);

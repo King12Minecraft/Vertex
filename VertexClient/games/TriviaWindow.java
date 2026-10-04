@@ -317,7 +317,7 @@ public class TriviaWindow extends JPanel implements NetworkManager.PushListener,
         {
             answeredThisRound = false;
             roundLabel.setText("Round " + message.getTriviaRound() + "/" + message.getTriviaTotalRounds());
-            questionLabel.setText("<html><body style='width:420px'>" + escapeHtml(message.getTriviaQuestion()) + "</body></html>");
+            questionLabel.setText("<html><table width='420' cellpadding='0' cellspacing='0'><tr><td>" + escapeHtml(message.getTriviaQuestion()) + "</td></tr></table></html>");
 
             List<String> options = message.getTriviaOptions();
             for (int i = 0; i < optionButtons.length; i++)

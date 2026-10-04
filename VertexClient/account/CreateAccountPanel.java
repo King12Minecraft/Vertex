@@ -1,5 +1,4 @@
 package account;
-import theme.GlowBackdrop;
 import ui.GameHubDialog;
 import net.NetworkManager;
 import net.MessageType;
@@ -227,17 +226,5 @@ public class CreateAccountPanel extends JPanel
         worker.start();
     }
 
-    @Override
-    protected void paintComponent(java.awt.Graphics g)
-    {
-        super.paintComponent(g);
-        java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
-        UITheme.applyAntialiasing(g2);
-        // Solid base first - see LoginPanel's identical fix for why (GlowBackdrop's gradient
-        // fades to fully transparent at the edges, and this panel is non-opaque).
-        g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
-        g2.fillRect(0, 0, getWidth(), getHeight());
-        GlowBackdrop.paint(g2, getWidth(), getHeight());
-        g2.dispose();
-    }
+    // The soft glow behind the form is painted once for the whole window by AuthWindow, so it has no hard edge here.
 }

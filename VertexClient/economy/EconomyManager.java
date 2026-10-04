@@ -16,6 +16,8 @@ public class EconomyManager
     private final ChallengeManager challengeManager = new ChallengeManager();
     private final TransactionManager transactionManager;
     private AchievementManager achievementManager;
+    /** Rate limit on coins from offline games, whose scores the server can't verify - see PracticeRewardLimiter. */
+    private final PracticeRewardLimiter practiceLimiter = new PracticeRewardLimiter();
 
     public EconomyManager(ServerAccountStore accountStore, TransactionManager transactionManager)
     {
@@ -203,6 +205,20 @@ public class EconomyManager
         player.sendMessage(walletUpdate);
     }
 
+    /** A flat reward for finishing an offline game (Minesweeper, Puzzle Quest) - the same rate limit as the score-scaled ones, since "I finished it" is just as unverifiable. */
+    public void awardPracticeFlat(ClientHandler player, String gameId, int amount, String reason)
+    {
+        String username = player.getLoggedInUsername();
+        if (username == null) return;
+        Account account = accountStore.findByUsername(username);
+        if (account == null) return;
+        int allowed = practiceLimiter.allow(account.getAccountId(), gameId, amount);
+        if (allowed > 0)
+        {
+            awardCoins(player, allowed, reason);
+        }
+    }
+
     /** Generic score-based reward for any offline/practice game, driven entirely by EconomyConfig.getPracticeReward's per-game formula table (Snake included, folded in there - see EconomyKernel.awardCompletion, the one-line entry point every future practice-mode game should call). */
     public void awardPracticeScore(ClientHandler player, String gameId, int score)
     {
@@ -211,7 +227,7 @@ public class EconomyManager
         Account account = accountStore.findByUsername(username);
         if (account == null) return;
 
-        int reward = EconomyConfig.getPracticeReward(gameId, score);
+        int reward = practiceLimiter.allow(account.getAccountId(), gameId, EconomyConfig.getPracticeReward(gameId, score));
         if (reward <= 0)
         {
             return;

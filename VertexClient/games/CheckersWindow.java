@@ -1,4 +1,5 @@
 package games;
+import ui.ReconnectCountdown;
 import net.MessageType;
 import ui.ThemedButton;
 import ui.GameModeCard;
@@ -505,7 +506,7 @@ public class CheckersWindow extends JPanel implements NetworkManager.PushListene
             awaitingReconnect = true;
             applyBoardState(message.getBoardState());
             selectedIndex = null;
-            statusLabel.setText(message.getErrorText());
+            ReconnectCountdown.show(statusLabel, message.getErrorText());
         }
         else if (type == MessageType.CHECKERS_MOVE_REJECTED)
         {

@@ -46,6 +46,7 @@ public class SidebarButton extends RoundedPanel
     {
         super(ThemeColor.BG_SIDEBAR, UITheme.RADIUS_BUTTON);
         this.pageKey = pageKey;
+        setBorderVisible(false);
         setLayout(new BorderLayout());
         setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
@@ -89,6 +90,9 @@ public class SidebarButton extends RoundedPanel
     }
 
     /** A small colored dot in the corner of the icon - used for "something new here" indicators (e.g. a friend just came online) without needing a numeric count. */
+    /** Whether the small notification dot is currently showing - lets a collapsed group's header echo it. */
+    public boolean isShowingBadge() { return showBadge; }
+
     public void setShowBadge(boolean show)
     {
         this.showBadge = show;
@@ -106,8 +110,8 @@ public class SidebarButton extends RoundedPanel
     {
         if (selected)
         {
-            setBackgroundRole(ThemeColor.ACCENT_DIM);
-            label.setForeground(ThemeManager.getColor(ThemeColor.ACCENT));
+            setBackgroundRole(ThemeColor.BG_PANEL);
+            label.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
             label.setFont(UITheme.FONT_NAV_BOLD);
         }
         else if (hovering)
@@ -150,19 +154,6 @@ public class SidebarButton extends RoundedPanel
                 g2.setColor(ThemeManager.getColor(ThemeColor.SUCCESS));
                 g2.fillOval(dotX, dotY, dotSize, dotSize);
             }
-        }
-
-        if (selected)
-        {
-            // Aurora Glass: an inset glow ring around the whole pill, not a
-            // solid color bar down the edge - reads as "lit up," not "tagged."
-            Color accent = ThemeManager.getColor(ThemeColor.ACCENT);
-            g2.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 50));
-            g2.fillRoundRect(-3, -3, getWidth() + 6, getHeight() + 6, UITheme.RADIUS_BUTTON + 6, UITheme.RADIUS_BUTTON + 6);
-
-            g2.setColor(accent);
-            g2.setStroke(new BasicStroke(1.3f));
-            g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, UITheme.RADIUS_BUTTON, UITheme.RADIUS_BUTTON);
         }
 
         g2.dispose();

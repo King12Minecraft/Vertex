@@ -60,7 +60,7 @@ public class AuthWindow extends JFrame
 
         final CardLayout cardLayout = new CardLayout();
         final JPanel cards = new JPanel(cardLayout);
-        cards.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
+        cards.setOpaque(false);
 
         LoginPanel.LoginSuccessListener onSuccess = new LoginPanel.LoginSuccessListener()
         {
@@ -72,7 +72,7 @@ public class AuthWindow extends JFrame
                 AuthWindow.this.dispose();
                 MainMenu window = new MainMenu();
                 window.setVisible(true);
-                resumeMatchIfPending(loginResponse);
+                pages.MatchResume.resumeIfPending(loginResponse);
             }
         };
 
@@ -88,7 +88,19 @@ public class AuthWindow extends JFrame
         cards.add(new LoginPanel(onSuccess, toCreate), LOGIN);
         cards.add(new CreateAccountPanel(onSuccess, toLogin), CREATE);
 
-        JPanel root = new JPanel(new BorderLayout());
+        // one soft glow behind header, form and connection row together (painted per-panel it showed a hard edge)
+        final JPanel root = new JPanel(new BorderLayout())
+        {
+            @Override
+            protected void paintComponent(java.awt.Graphics g)
+            {
+                java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+                g2.setColor(ThemeManager.getColor(ThemeColor.BG_APP));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                theme.GlowBackdrop.paint(g2, getWidth(), getHeight());
+                g2.dispose();
+            }
+        };
         root.setBackground(ThemeManager.getColor(ThemeColor.BG_APP));
         root.add(authHeader, BorderLayout.NORTH);
         root.add(cards, BorderLayout.CENTER);
@@ -118,120 +130,6 @@ public class AuthWindow extends JFrame
             public void run() { NetworkManager.connect(); }
         });
         connectThread.start();
-    }
-
-    /**
-     * Reconnection: if this login's response carried a pending match (see
-     * ReconnectRegistry server-side, now backing TicTacToe/Connect Four/
-     * Checkers/Reversi/Dots and Boxes/Word Duel), jumps straight into that game's window
-     * instead of leaving the player on MainMenu with no idea their match
-     * survived a disconnect. Deliberately does NOT wait for a separate server
-     * push for this - the server already re-associated the match with this
-     * session as part of handling the login itself, and everything needed to
-     * resume is already sitting in loginResponse's fields, so this
-     * reconstructs the equivalent of the messages a *fresh* match-found would
-     * have sent (a MATCH_FOUND-shaped push then an MATCH_UPDATE-shaped one)
-     * and feeds them to the freshly built window directly, purely locally -
-     * avoiding any race with a real network push arriving before this window
-     * exists to receive it. Each game uses its own MessageType pair (TicTacToe's
-     * generic MATCH_FOUND/MATCH_UPDATE vs. e.g. Connect Four's CONNECT4_MATCH_
-     * FOUND/CONNECT4_UPDATE) - reconnectMessageTypesFor() is the (small, just a
-     * per-game lookup, not worth a bigger abstraction for 5 entries) mapping.
-     */
-    private void resumeMatchIfPending(Message loginResponse)
-    {
-        String gameId = loginResponse.getReconnectGameId();
-        if (gameId == null || loginResponse.getMatchId() == null)
-        {
-            return;
-        }
-
-        MessageType[] types = reconnectMessageTypesFor(gameId);
-        if (types == null)
-        {
-            return;
-        }
-
-        java.util.function.Supplier<JComponent> factory = GameWindowFactory.factoryFor(gameId);
-        if (factory == null)
-        {
-            return;
-        }
-        JComponent window = factory.get();
-        MainMenu.getInstance().showGame(window);
-
-        if (!(window instanceof NetworkManager.PushListener))
-        {
-            return;
-        }
-        NetworkManager.PushListener listener = (NetworkManager.PushListener) window;
-
-        Message found = new Message();
-        found.setType(types[0]);
-        found.setMatchId(loginResponse.getMatchId());
-        found.setSymbol(loginResponse.getSymbol());
-        found.setOpponentUsername(loginResponse.getOpponentUsername());
-        found.setBoardState(loginResponse.getBoardState());
-        if ("word-duel".equals(gameId))
-        {
-            // Word Duel's real MATCH_FOUND doesn't use symbol/boardState at all - it
-            // carries its letters via triviaQuestion. WordDuelMatch.onReconnect()
-            // packs them into ReconnectResult.boardState anyway (the only free
-            // string slot that shape has), so unpack it back out into the field
-            // WordDuelWindow actually reads. Harmless no-op for every other game,
-            // which never reads triviaQuestion off a MATCH_FOUND push.
-            found.setTriviaQuestion(loginResponse.getBoardState());
-        }
-        listener.onPush(found);
-
-        // Corrects whose-turn state the match-found push alone can't express (it
-        // always assumes a brand new match where the first symbol goes first) -
-        // reuses the same *_UPDATE shape and handling every online game already
-        // has for a live turn change.
-        Message update = new Message();
-        update.setType(types[1]);
-        update.setMatchId(loginResponse.getMatchId());
-        update.setSymbol(loginResponse.getReconnectTurnSymbol());
-        update.setBoardState(loginResponse.getBoardState());
-        if ("word-duel".equals(gameId))
-        {
-            // Same idea as above: Word Duel's real UPDATE carries progress via
-            // triviaScores (a "mine:opponent" length tuple), not symbol/boardState.
-            // See WordDuelMatch.onReconnect()'s javadoc for the full explanation of
-            // why turnSymbol is repurposed to carry it.
-            update.setTriviaScores(java.util.Arrays.asList(loginResponse.getReconnectTurnSymbol()));
-        }
-        listener.onPush(update);
-    }
-
-    /** {matchFoundType, updateType} for a reconnect-aware game's own message types, or null if gameId isn't one of them (no pending-match resume attempted in that case). */
-    private static MessageType[] reconnectMessageTypesFor(String gameId)
-    {
-        if ("tictactoe-online".equals(gameId))
-        {
-            return new MessageType[] { MessageType.MATCH_FOUND, MessageType.MATCH_UPDATE };
-        }
-        if ("connect-four".equals(gameId))
-        {
-            return new MessageType[] { MessageType.CONNECT4_MATCH_FOUND, MessageType.CONNECT4_UPDATE };
-        }
-        if ("checkers".equals(gameId))
-        {
-            return new MessageType[] { MessageType.CHECKERS_MATCH_FOUND, MessageType.CHECKERS_UPDATE };
-        }
-        if ("reversi".equals(gameId))
-        {
-            return new MessageType[] { MessageType.REVERSI_MATCH_FOUND, MessageType.REVERSI_UPDATE };
-        }
-        if ("dots-and-boxes".equals(gameId))
-        {
-            return new MessageType[] { MessageType.DOTS_MATCH_FOUND, MessageType.DOTS_UPDATE };
-        }
-        if ("word-duel".equals(gameId))
-        {
-            return new MessageType[] { MessageType.WORDDUEL_MATCH_FOUND, MessageType.WORDDUEL_UPDATE };
-        }
-        return null;
     }
 
     private JPanel createConnectionRow()

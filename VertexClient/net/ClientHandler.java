@@ -1,4 +1,9 @@
 package net;
+import chat.MatchChatRoom;
+import forum.ForumCodec;
+import forum.ForumService;
+import forum.ForumThread;
+import forum.ForumPost;
 import economy.ShopItemDefinition;
 import economy.ShopItemInfo;
 import games.GameInfo;
@@ -56,6 +61,8 @@ import games.SignalGridMatchManager;
 import games.SignalGridMatch;
 import games.CardRushMatchManager;
 import games.CardRushMatch;
+import games.CaptionChaosMatch;
+import games.CaptionChaosMatchManager;
 import games.TelephoneMatchManager;
 import games.TelephoneMatch;
 import games.SquareWarsMatchManager;
@@ -137,6 +144,10 @@ public class ClientHandler implements Runnable
     private CardRushMatchManager cardRushMatchManager;
     private TelephoneMatch currentTelephoneMatch;
     private TelephoneMatchManager telephoneMatchManager;
+    private CaptionChaosMatch currentCaptionChaosMatch;
+    private CaptionChaosMatchManager captionChaosMatchManager;
+    /** The in-match chat room this player is currently in, or null - set/cleared by MatchChatRoom itself (see the chat package). volatile: read by this handler's request thread, written by whichever thread opens/closes the room. */
+    private volatile MatchChatRoom matchChatRoom;
     private RacingMatch currentRacingMatch;
     private RacingMatchManager racingMatchManager;
     private AmongUsMatch currentAmongMatch;
@@ -144,6 +155,9 @@ public class ClientHandler implements Runnable
     private FightMatch currentFightMatch;
     private FightArenaMatchManager fightArenaMatchManager;
     private ChessMatch currentChessMatch;
+    /** True only while a deliberate Leave is being processed - tells the match's disconnect handler this is not a dropped connection, so no reconnect grace period applies (see mechanics.ReconnectPolicy.canReconnect). */
+    private volatile boolean leavingVoluntarily = false;
+    public boolean isLeavingVoluntarily() { return leavingVoluntarily; }
     private ChessMatchManager chessMatchManager;
     private BattleshipMatch currentBattleshipMatch;
     private BattleshipMatchManager battleshipMatchManager;
@@ -164,6 +178,7 @@ public class ClientHandler implements Runnable
     private final GameSuggestionStore gameSuggestionStore;
     private final AvatarStore avatarStore;
     private final dominion.DominionManager dominionManager;
+    private final ForumService forumService;
 
     public ClientHandler(Socket socket, ServerAccountStore accountStore, GameRegistry gameRegistry,
                           MatchManager matchManager, ChatManager chatManager,
@@ -186,8 +201,8 @@ public class ClientHandler implements Runnable
                           DiceDuelMatchManager diceDuelMatchManager, SnakeArenaMatchManager snakeArenaMatchManager,
                           TetrisDuelMatchManager tetrisDuelMatchManager, FusionGridMatchManager fusionGridMatchManager,
                           TypingDuelMatchManager typingDuelMatchManager, SignalGridMatchManager signalGridMatchManager,
-                          CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager,
-                          dominion.DominionManager dominionManager)
+                          CardRushMatchManager cardRushMatchManager, TelephoneMatchManager telephoneMatchManager, CaptionChaosMatchManager captionChaosMatchManager,
+                          dominion.DominionManager dominionManager, ForumService forumService)
     {
         this.socket = socket;
         this.accountStore = accountStore;
@@ -218,6 +233,7 @@ public class ClientHandler implements Runnable
         this.adminLog = adminLog;
         this.connectFourMatchManager = connectFourMatchManager;
         this.avatarStore = avatarStore;
+        this.forumService = forumService;
         this.checkersMatchManager = checkersMatchManager;
         this.squareWarsMatchManager = squareWarsMatchManager;
         this.triviaMatchManager = triviaMatchManager;
@@ -234,6 +250,7 @@ public class ClientHandler implements Runnable
         this.signalGridMatchManager = signalGridMatchManager;
         this.cardRushMatchManager = cardRushMatchManager;
         this.telephoneMatchManager = telephoneMatchManager;
+        this.captionChaosMatchManager = captionChaosMatchManager;
         this.dominionManager = dominionManager;
     }
 
@@ -257,6 +274,9 @@ public class ClientHandler implements Runnable
     public void setCurrentSignalGridMatch(SignalGridMatch match) { this.currentSignalGridMatch = match; }
     public void setCurrentCardRushMatch(CardRushMatch match) { this.currentCardRushMatch = match; }
     public void setCurrentTelephoneMatch(TelephoneMatch match) { this.currentTelephoneMatch = match; }
+    public void setCurrentCaptionChaosMatch(CaptionChaosMatch match) { this.currentCaptionChaosMatch = match; }
+    public MatchChatRoom getMatchChatRoom() { return matchChatRoom; }
+    public void setMatchChatRoom(MatchChatRoom room) { this.matchChatRoom = room; }
     public void setCurrentRacingMatch(RacingMatch match) { this.currentRacingMatch = match; }
     public void setCurrentZombieMatch(ZombieSurvivalMatch match) { this.currentZombieMatch = match; }
     public void setCurrentSpaceBattleMatch(SpaceBattleMatch match) { this.currentSpaceBattleMatch = match; }
@@ -295,10 +315,73 @@ public class ClientHandler implements Runnable
         try { socket.close(); } catch (IOException ignored) { }
     }
 
+    /**
+     * A newer login of the same account is taking over. If this (older) session is still
+     * registered in a reconnect-eligible match - which happens when its connection died
+     * without the server noticing yet (a dropped Wi-Fi link sends no close) - release those
+     * matches now, exactly as a disconnect would: that starts the grace period, which the new
+     * login's reconnect attempt then resolves straight away. The match fields are cleared so
+     * this session's eventual real disconnect can't touch a match that has moved on. Group
+     * games are left alone: a second login must not pull someone out of one of those.
+     */
+    public void releaseMatchesForTakeover()
+    {
+        disconnectFromReconnectableMatches();
+        currentMatch = null;
+        currentChessMatch = null;
+        currentBattleshipMatch = null;
+        currentRpsMatch = null;
+        currentConnectFourMatch = null;
+        currentCheckersMatch = null;
+        currentDotsAndBoxesMatch = null;
+        currentReversiMatch = null;
+        currentMemoryMatchMatch = null;
+        currentAirHockeyMatch = null;
+        currentWordDuelMatch = null;
+        currentDiceDuelMatch = null;
+        currentSnakeArenaMatch = null;
+        currentTetrisDuelMatch = null;
+        currentFusionGridMatch = null;
+        currentTypingDuelMatch = null;
+        currentSignalGridMatch = null;
+        currentCardRushMatch = null;
+    }
+
+    private void disconnectFromReconnectableMatches()
+    {
+        if (currentMatch != null) currentMatch.handleDisconnect(this);
+        if (currentChessMatch != null) currentChessMatch.handleDisconnect(this);
+        if (currentBattleshipMatch != null) currentBattleshipMatch.handleDisconnect(this);
+        if (currentRpsMatch != null) currentRpsMatch.handleDisconnect(this);
+        if (currentConnectFourMatch != null) currentConnectFourMatch.handleDisconnect(this);
+        if (currentCheckersMatch != null) currentCheckersMatch.handleDisconnect(this);
+        if (currentDotsAndBoxesMatch != null) currentDotsAndBoxesMatch.handleDisconnect(this);
+        if (currentReversiMatch != null) currentReversiMatch.handleDisconnect(this);
+        if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
+        if (currentAirHockeyMatch != null) currentAirHockeyMatch.handleDisconnect(this);
+        if (currentWordDuelMatch != null) currentWordDuelMatch.handleDisconnect(this);
+        if (currentDiceDuelMatch != null) currentDiceDuelMatch.handleDisconnect(this);
+        if (currentSnakeArenaMatch != null) currentSnakeArenaMatch.handleDisconnect(this);
+        if (currentTetrisDuelMatch != null) currentTetrisDuelMatch.handleDisconnect(this);
+        if (currentFusionGridMatch != null) currentFusionGridMatch.handleDisconnect(this);
+        if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
+        if (currentSignalGridMatch != null) currentSignalGridMatch.handleDisconnect(this);
+        if (currentCardRushMatch != null) currentCardRushMatch.handleDisconnect(this);
+    }
+
+    /**
+     * How long a connection may be completely silent before it's treated as dead. The client
+     * pings every ~8 seconds, so a healthy idle player never gets near this. Without it, a
+     * connection that died without a close (Wi-Fi off, laptop lid shut) can sit "connected"
+     * on the server for minutes to hours - and the opponent would never be told to wait.
+     */
+    private static final int SILENCE_TIMEOUT_MS = 25000;
+
     public void run()
     {
         try
         {
+            socket.setSoTimeout(SILENCE_TIMEOUT_MS);
             out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
             in.setObjectInputFilter(VertexSerializationFilter.FILTER);
@@ -309,6 +392,10 @@ public class ClientHandler implements Runnable
                 Message response = handle(request);
                 if (response != null) sendMessage(response);
             }
+        }
+        catch (java.net.SocketTimeoutException e)
+        {
+            System.out.println("Client timed out (no traffic for " + (SILENCE_TIMEOUT_MS / 1000) + "s): " + socket.getInetAddress());
         }
         catch (IOException e)
         {
@@ -344,38 +431,25 @@ public class ClientHandler implements Runnable
             signalGridMatchManager.cancelWaiting(this);
             cardRushMatchManager.cancelWaiting(this);
             telephoneMatchManager.cancelWaiting(this);
+            captionChaosMatchManager.cancelWaiting(this);
             zombieSurvivalMatchManager.cancelWaiting(this);
             spaceBattleMatchManager.cancelWaiting(this);
             partyManager.handleDisconnect(this);
             tournamentManager.handleDisconnect(this);
             teamTournamentManager.handleDisconnect(this);
             chatManager.unregister(this, loggedInUsername);
-            if (currentMatch != null) currentMatch.handleDisconnect(this);
+            disconnectFromReconnectableMatches();
             if (currentRacingMatch != null) currentRacingMatch.handleDisconnect(this);
             if (currentAmongMatch != null) currentAmongMatch.handleDisconnect(this);
             if (currentFightMatch != null) currentFightMatch.handleDisconnect(this);
-            if (currentChessMatch != null) currentChessMatch.handleDisconnect(this);
-            if (currentBattleshipMatch != null) currentBattleshipMatch.handleDisconnect(this);
-            if (currentRpsMatch != null) currentRpsMatch.handleDisconnect(this);
-            if (currentConnectFourMatch != null) currentConnectFourMatch.handleDisconnect(this);
-            if (currentCheckersMatch != null) currentCheckersMatch.handleDisconnect(this);
             if (currentSquareWarsMatch != null) currentSquareWarsMatch.handleDisconnect(this);
             if (currentTriviaMatch != null) currentTriviaMatch.handleDisconnect(this);
-            if (currentDotsAndBoxesMatch != null) currentDotsAndBoxesMatch.handleDisconnect(this);
-            if (currentReversiMatch != null) currentReversiMatch.handleDisconnect(this);
-            if (currentMemoryMatchMatch != null) currentMemoryMatchMatch.handleDisconnect(this);
-            if (currentAirHockeyMatch != null) currentAirHockeyMatch.handleDisconnect(this);
-            if (currentWordDuelMatch != null) currentWordDuelMatch.handleDisconnect(this);
-            if (currentDiceDuelMatch != null) currentDiceDuelMatch.handleDisconnect(this);
-            if (currentSnakeArenaMatch != null) currentSnakeArenaMatch.handleDisconnect(this);
-            if (currentTetrisDuelMatch != null) currentTetrisDuelMatch.handleDisconnect(this);
-            if (currentFusionGridMatch != null) currentFusionGridMatch.handleDisconnect(this);
-            if (currentTypingDuelMatch != null) currentTypingDuelMatch.handleDisconnect(this);
-            if (currentSignalGridMatch != null) currentSignalGridMatch.handleDisconnect(this);
-            if (currentCardRushMatch != null) currentCardRushMatch.handleDisconnect(this);
             if (currentTelephoneMatch != null) currentTelephoneMatch.handleDisconnect(this);
+            if (currentCaptionChaosMatch != null) currentCaptionChaosMatch.handleDisconnect(this);
             if (currentZombieMatch != null) currentZombieMatch.handleDisconnect(this);
             if (currentSpaceBattleMatch != null) currentSpaceBattleMatch.handleDisconnect(this);
+            MatchChatRoom leavingChatRoom = matchChatRoom;
+            if (leavingChatRoom != null) leavingChatRoom.leave(this);
 
             if (loggedInUsername != null)
             {
@@ -392,6 +466,18 @@ public class ClientHandler implements Runnable
 
     private Message handle(Message request)
     {
+        if (request.getType() == MessageType.MATCH_CHAT_SYNC_REQUEST)
+        {
+            MatchChatRoom room = matchChatRoom;
+            if (room != null) room.sendStateTo(this);
+            return null;
+        }
+        if (request.getType() == MessageType.PING_REQUEST)
+        {
+            Message pong = new Message();
+            pong.setType(MessageType.PONG);
+            return pong;
+        }
         if (request.getType() == MessageType.LOGIN_REQUEST) return handleLogin(request);
         if (request.getType() == MessageType.CREATE_ACCOUNT_REQUEST) return handleCreateAccount(request);
         if (request.getType() == MessageType.GAME_LIST_REQUEST) return handleGameList();
@@ -401,6 +487,7 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.MAKE_MOVE_REQUEST) return handleMakeMove(request);
         if (request.getType() == MessageType.LEAVE_MATCH_REQUEST) return handleLeaveMatch();
         if (request.getType() == MessageType.PRIVATE_MESSAGE) return handlePrivateMessage(request);
+        if (request.getType() == MessageType.MATCH_CHAT_SEND_REQUEST) return handleMatchChat(request);
         if (request.getType() == MessageType.GROUP_CREATE_REQUEST) return handleGroupCreate(request);
         if (request.getType() == MessageType.GROUP_MESSAGE) return handleGroupMessage(request);
         if (request.getType() == MessageType.MOD_CHAT_MESSAGE) return handleModChatMessage(request);
@@ -532,6 +619,12 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.PARTY_KICK_REQUEST) return handlePartyKick(request);
         if (request.getType() == MessageType.CLIENT_VERSION_CHECK_REQUEST) return handleClientVersionCheck(request);
         if (request.getType() == MessageType.CLIENT_UPDATE_DOWNLOAD_REQUEST) return handleClientUpdateDownload();
+        if (request.getType() == MessageType.FORUM_THREAD_LIST_REQUEST) return handleForumThreadList(request);
+        if (request.getType() == MessageType.FORUM_THREAD_VIEW_REQUEST) return handleForumThreadView(request);
+        if (request.getType() == MessageType.FORUM_NEW_THREAD_REQUEST) return handleForumNewThread(request);
+        if (request.getType() == MessageType.FORUM_REPLY_REQUEST) return handleForumReply(request);
+        if (request.getType() == MessageType.FORUM_DELETE_REQUEST) return handleForumDelete(request);
+        if (request.getType() == MessageType.FORUM_LOCK_REQUEST) return handleForumLock(request);
         if (request.getType() == MessageType.GAME_SUGGESTION_SUBMIT_REQUEST) return handleGameSuggestionSubmit(request);
         if (request.getType() == MessageType.GAME_SUGGESTION_LIST_REQUEST) return handleGameSuggestionList();
         if (request.getType() == MessageType.AVATAR_UPLOAD_REQUEST) return handleAvatarUpload(request);
@@ -540,12 +633,17 @@ public class ClientHandler implements Runnable
         if (request.getType() == MessageType.ADMIN_SET_ROLE_REQUEST) return handleAdminSetRole(request);
         if (request.getType() == MessageType.ADMIN_LOG_REQUEST) return handleAdminLog();
         if (request.getType() == MessageType.PLAYER_PROFILE_REQUEST) return handlePlayerProfile(request);
+        if (request.getType() == MessageType.STATS_REQUEST) return handleStats(request);
         if (request.getType() == MessageType.ADMIN_BAN_REQUEST) return handleAdminBan(request);
         if (request.getType() == MessageType.ADMIN_UNBAN_REQUEST) return handleAdminUnban(request);
         if (request.getType() == MessageType.ADMIN_BAN_LIST_REQUEST) return handleAdminBanList();
         if (request.getType() == MessageType.TELEPHONE_FIND_MATCH_REQUEST) return handleTelephoneFindMatch();
         if (request.getType() == MessageType.TELEPHONE_LEAVE_QUEUE_REQUEST) return handleTelephoneLeaveQueue();
         if (request.getType() == MessageType.TELEPHONE_SUBMIT_REQUEST) return handleTelephoneSubmit(request);
+        if (request.getType() == MessageType.CAPTIONCHAOS_FIND_MATCH_REQUEST) return handleCaptionChaosFindMatch();
+        if (request.getType() == MessageType.CAPTIONCHAOS_LEAVE_QUEUE_REQUEST) return handleCaptionChaosLeave();
+        if (request.getType() == MessageType.CAPTIONCHAOS_SUBMIT_REQUEST) return handleCaptionChaosSubmit(request);
+        if (request.getType() == MessageType.CAPTIONCHAOS_VOTE_REQUEST) return handleCaptionChaosVote(request);
         if (request.getType() == MessageType.DOMINION_FOUND_NATION_REQUEST) return handleDominionFoundNation(request);
         if (request.getType() == MessageType.DOMINION_STATE_REQUEST) return handleDominionState();
         if (request.getType() == MessageType.DOMINION_RECRUIT_ARMY_REQUEST) return handleDominionRecruitArmy(request);
@@ -592,6 +690,136 @@ public class ClientHandler implements Runnable
         response.setFileData(bytes);
         response.setFileName("Vertex.jar");
         return response;
+    }
+
+    // ==================== Forums ====================
+
+    private Message forumResponse(boolean success, String errorText)
+    {
+        Message response = new Message();
+        response.setType(MessageType.FORUM_RESPONSE);
+        response.setSuccess(success);
+        response.setErrorText(errorText);
+        return response;
+    }
+
+    /** Reading is open to anyone connected (like the game-suggestion wishlist); only posting needs a login. */
+    private Message handleForumThreadList(Message request)
+    {
+        java.util.List<ForumThread> threads = forumService.listThreads(request.getForumBoardId());
+        if (threads == null)
+        {
+            return forumResponse(false, "That board doesn't exist.");
+        }
+        java.util.List<String> entries = new java.util.ArrayList<String>();
+        for (int i = 0; i < threads.size(); i++)
+        {
+            entries.add(ForumCodec.threadSummaryLine(threads.get(i)));
+        }
+        Message response = forumResponse(true, null);
+        response.setForumBoardId(request.getForumBoardId());
+        response.setForumEntries(entries);
+        return response;
+    }
+
+    private Message handleForumThreadView(Message request)
+    {
+        ForumThread thread = forumService.getThread(request.getForumThreadId());
+        if (thread == null)
+        {
+            return forumResponse(false, "That thread no longer exists.");
+        }
+        java.util.List<String> entries = new java.util.ArrayList<String>();
+        for (int i = 0; i < thread.getPosts().size(); i++)
+        {
+            ForumPost post = thread.getPosts().get(i);
+            entries.add(ForumCodec.postLine(post));
+        }
+        Message response = forumResponse(true, null);
+        response.setForumThreadId(thread.getId());
+        response.setForumBoardId(thread.getBoardId());
+        response.setForumTitle(thread.getTitle());
+        response.setForumLocked(thread.isLocked());
+        response.setForumEntries(entries);
+        return response;
+    }
+
+    /** Why this connection can't post right now, or null if it can - logged in, not muted, and under the forum flood limit (shared by new threads and replies). */
+    private String forumPostingBlock()
+    {
+        if (loggedInUsername == null)
+        {
+            return "Log in to post.";
+        }
+        if (moderationManager.isMuted(loggedInUsername))
+        {
+            return "You are muted, so you can't post right now.";
+        }
+        if (isFloodLimited("forum", 3, 30000))
+        {
+            return "You're posting too fast - wait a moment and try again.";
+        }
+        return null;
+    }
+
+    private Message handleForumNewThread(Message request)
+    {
+        String block = forumPostingBlock();
+        if (block != null)
+        {
+            return forumResponse(false, block);
+        }
+        ForumService.Result result = forumService.newThread(loggedInUsername, request.getForumBoardId(),
+            request.getForumTitle(), request.getChatText());
+        Message response = forumResponse(result.ok, result.message);
+        response.setForumThreadId(result.id);
+        return response;
+    }
+
+    private Message handleForumReply(Message request)
+    {
+        String block = forumPostingBlock();
+        if (block != null)
+        {
+            return forumResponse(false, block);
+        }
+        ForumService.Result result = forumService.reply(loggedInUsername, request.getForumThreadId(), request.getChatText());
+        Message response = forumResponse(result.ok, result.message);
+        response.setForumThreadId(request.getForumThreadId());
+        return response;
+    }
+
+    /** Moderators and admins only - checked here on the server, not trusted from the client's own role check. Logged in AdminLog like other moderation actions. */
+    private Message handleForumDelete(Message request)
+    {
+        if (!isModeratorOrAdmin())
+        {
+            return forumResponse(false, "Only moderators can delete posts.");
+        }
+        ForumThread before = forumService.getThread(request.getForumThreadId());
+        ForumService.Result result = forumService.delete(request.getForumThreadId(), request.getForumPostId());
+        if (result.ok && before != null)
+        {
+            boolean wholeThread = request.getForumPostId() == null || request.getForumPostId().isEmpty();
+            adminLog.log(loggedInUsername, wholeThread
+                ? "Deleted forum thread " + before.getId() + " \"" + before.getTitle() + "\" by " + before.getAuthor()
+                : "Deleted forum post " + request.getForumPostId() + " in thread " + before.getId() + " \"" + before.getTitle() + "\"");
+        }
+        return forumResponse(result.ok, result.message);
+    }
+
+    private Message handleForumLock(Message request)
+    {
+        if (!isModeratorOrAdmin())
+        {
+            return forumResponse(false, "Only moderators can lock threads.");
+        }
+        ForumService.Result result = forumService.setLocked(request.getForumThreadId(), request.isForumLocked());
+        if (result.ok)
+        {
+            adminLog.log(loggedInUsername, (request.isForumLocked() ? "Locked" : "Unlocked") + " forum thread " + request.getForumThreadId());
+        }
+        return forumResponse(result.ok, result.message);
     }
 
     // ==================== Game suggestions ====================
@@ -807,6 +1035,37 @@ public class ClientHandler implements Runnable
         return response;
     }
 
+    /**
+     * Stats page data. Public in the same way a profile is - anyone can look up any player's plays and ratings -
+     * so no login is needed to ask about someone by name; asking about "yourself" (no username) needs one. The
+     * numbers come only from what the server has recorded, never from anything the client reports.
+     */
+    private Message handleStats(Message request)
+    {
+        Message response = new Message();
+        response.setType(MessageType.STATS_RESPONSE);
+
+        String name = request.getUsername();
+        Account target = (name == null || name.trim().isEmpty())
+            ? (loggedInUsername == null ? null : accountStore.findByUsername(loggedInUsername))
+            : accountStore.findByUsername(name.trim());
+        if (target == null)
+        {
+            response.setSuccess(false);
+            response.setErrorText(name == null || name.trim().isEmpty() ? "Log in to see your stats." : "No such player.");
+            return response;
+        }
+
+        int id = target.getAccountId();
+        response.setSuccess(true);
+        response.setUsername(target.getUsername());
+        response.setStatsTotalPlays(gameHistoryManager.getTotalPlayCount(id));
+        response.setStatsPlayCounts(gameHistoryManager.getPlayCountsByGame(id));
+        response.setStatsGameRows(leaderboardManager.getStatsRowsForAccount(id));
+        response.setStatsAchievementCount(achievementManager == null ? 0 : achievementManager.getUnlocked(id).size());
+        return response;
+    }
+
     // ==================== Bans ====================
 
     /** Moderator or Admin - bans immediately disconnect the target if they're currently online (not just blocked on their next login attempt), and never allow banning another Admin. */
@@ -932,7 +1191,12 @@ public class ClientHandler implements Runnable
             response.setAccount(account);
             loggedInUsername = account.getUsername();
             loggedInAccountId = account.getAccountId();
+            ClientHandler previousSession = chatManager.findByUsername(loggedInUsername);
             chatManager.register(this, loggedInUsername);
+            if (previousSession != null && previousSession != this)
+            {
+                previousSession.releaseMatchesForTakeover();
+            }
             friendManager.broadcastPresenceChange(account, true);
 
             // Reconnection: if this account disconnected mid-match recently enough to
@@ -945,9 +1209,11 @@ public class ClientHandler implements Runnable
             // against every reconnect-aware match type's own registry in turn - a player
             // is only ever in one online match at a time, so at most one of these can
             // ever return non-null.
-            games.ReconnectRegistry.ReconnectResult reconnect = tryReconnectAllGames();
+            mechanics.ReconnectRegistry.ReconnectResult reconnect = tryReconnectAllGames();
             if (reconnect != null)
             {
+                MatchChatRoom chatRoom = MatchChatRoom.find(reconnect.matchId);
+                if (chatRoom != null) chatRoom.rejoin(this);
                 response.setMatchId(reconnect.matchId);
                 response.setReconnectGameId(reconnect.gameId);
                 response.setSymbol(reconnect.mySymbol);
@@ -965,19 +1231,10 @@ public class ClientHandler implements Runnable
     }
 
     /** Tries every reconnect-aware match type's registry in turn, returning the first non-null result (see the call site's comment on why at most one ever can be). */
-    private games.ReconnectRegistry.ReconnectResult tryReconnectAllGames()
+    /** One shared registry serves every game (see ReconnectRegistry.shared()), so this is a single lookup - a game adopting the mechanic needs nothing added here. */
+    private mechanics.ReconnectRegistry.ReconnectResult tryReconnectAllGames()
     {
-        games.ReconnectRegistry.ReconnectResult result = matchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = connectFourMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = checkersMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = reversiMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        result = dotsAndBoxesMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
-        if (result != null) return result;
-        return wordDuelMatchManager.getReconnectRegistry().tryReconnect(loggedInAccountId, this);
+        return mechanics.ReconnectRegistry.shared().tryReconnect(loggedInAccountId, this);
     }
 
     private String describeLoginFailure(ServerAccountStore.LoginResult result)
@@ -1038,10 +1295,9 @@ public class ClientHandler implements Runnable
             return response;
         }
 
-        boolean grantAdmin = !accountStore.hasAdminAccount();
-        Role role = grantAdmin ? Role.ADMIN : Role.PLAYER;
-
-        Account account = accountStore.createAccount(username, password, role);
+        // Nobody becomes ADMIN by signing up: the first administrator is created at the server's
+        // own console (account.AdminBootstrap), so reaching a fresh server first gives no power.
+        Account account = accountStore.createAccount(username, password, Role.PLAYER);
         loggedInUsername = account.getUsername();
         loggedInAccountId = account.getAccountId();
         chatManager.register(this, loggedInUsername);
@@ -1052,7 +1308,7 @@ public class ClientHandler implements Runnable
 
         response.setSuccess(true);
         response.setAccount(account);
-        response.setBootstrapAdmin(grantAdmin);
+        response.setBootstrapAdmin(false);
         return response;
     }
 
@@ -1160,7 +1416,9 @@ public class ClientHandler implements Runnable
         matchManager.cancelWaiting(this);
         if (currentMatch != null)
         {
+            leavingVoluntarily = true;
             currentMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentMatch = null;
         }
         return null;
@@ -1213,6 +1471,25 @@ public class ClientHandler implements Runnable
         if (recipient != null && recipient != this) recipient.sendMessage(delivery);
 
         sendMessage(delivery);
+        return null;
+    }
+
+    /** In-match chat. Mute and flood limits apply exactly as for DMs; whether the room is open to the message (membership, a game's ChatRestriction) is MatchChatRoom.post()'s call, not the client's. */
+    private Message handleMatchChat(Message request)
+    {
+        MatchChatRoom room = matchChatRoom;
+        if (loggedInUsername == null || room == null) return null;
+        if (moderationManager.isMuted(loggedInUsername))
+        {
+            sendMuteNotice();
+            return null;
+        }
+        if (isFloodLimited("chat", 10, 5000))
+        {
+            sendFloodNotice();
+            return null;
+        }
+        room.post(this, request.getChatText());
         return null;
     }
 
@@ -1488,11 +1765,17 @@ public class ClientHandler implements Runnable
 
     private Message handleGamePlayed(Message request)
     {
+        String gameId = request.getGameId();
+        // The id is written straight into the play-history file ("account|game|time" per line), so anything
+        // that isn't a plain game-id-shaped string is dropped rather than risking a forged or broken record.
+        if (gameId == null || !gameId.matches("[a-z0-9-]{1,40}"))
+        {
+            return null;
+        }
         if (loggedInAccountId != null)
         {
-            gameHistoryManager.recordPlay(loggedInAccountId, request.getGameId());
+            gameHistoryManager.recordPlay(loggedInAccountId, gameId);
 
-            String gameId = request.getGameId();
             if ("zombie-survival".equals(gameId) || "space-battle".equals(gameId))
             {
                 leaderboardManager.recordScore(gameId, loggedInAccountId, request.getScore());
@@ -1502,11 +1785,11 @@ public class ClientHandler implements Runnable
                 // Shape 2 (EconomyKernel.awardFlatCompletion): neither of these reports
                 // a real score (nothing meaningful to score - solved-or-not), so a flat
                 // reward is the honest fit, not folded into the score-scaled table below.
-                EconomyKernel.awardFlatCompletion(economyManager, this, EconomyConfig.PUZZLE_QUEST_REWARD, "Solved a Puzzle Quest puzzle");
+                economyManager.awardPracticeFlat(this, gameId, EconomyConfig.PUZZLE_QUEST_REWARD, "Solved a Puzzle Quest puzzle");
             }
             else if ("minesweeper".equals(gameId))
             {
-                EconomyKernel.awardFlatCompletion(economyManager, this, EconomyConfig.MINESWEEPER_REWARD, "Cleared a Minesweeper board");
+                economyManager.awardPracticeFlat(this, gameId, EconomyConfig.MINESWEEPER_REWARD, "Cleared a Minesweeper board");
             }
             else
             {
@@ -2040,7 +2323,9 @@ public class ClientHandler implements Runnable
         racingMatchManager.cancelWaiting(this);
         if (currentRacingMatch != null)
         {
+            leavingVoluntarily = true;
             currentRacingMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentRacingMatch = null;
         }
         return null;
@@ -2068,7 +2353,9 @@ public class ClientHandler implements Runnable
         zombieSurvivalMatchManager.cancelWaiting(this);
         if (currentZombieMatch != null)
         {
+            leavingVoluntarily = true;
             currentZombieMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentZombieMatch = null;
         }
         return null;
@@ -2096,7 +2383,9 @@ public class ClientHandler implements Runnable
         spaceBattleMatchManager.cancelWaiting(this);
         if (currentSpaceBattleMatch != null)
         {
+            leavingVoluntarily = true;
             currentSpaceBattleMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSpaceBattleMatch = null;
         }
         return null;
@@ -2124,7 +2413,9 @@ public class ClientHandler implements Runnable
         amongUsMatchManager.cancelWaiting(this);
         if (currentAmongMatch != null)
         {
+            leavingVoluntarily = true;
             currentAmongMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentAmongMatch = null;
         }
         return null;
@@ -2168,6 +2459,46 @@ public class ClientHandler implements Runnable
         return null;
     }
 
+    // ==================== Caption Chaos ====================
+
+    private Message handleCaptionChaosFindMatch()
+    {
+        if (loggedInUsername != null) captionChaosMatchManager.findMatch(this);
+        return null;
+    }
+
+    private Message handleCaptionChaosLeave()
+    {
+        captionChaosMatchManager.cancelWaiting(this);
+        if (currentCaptionChaosMatch != null)
+        {
+            leavingVoluntarily = true;
+            currentCaptionChaosMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
+            currentCaptionChaosMatch = null;
+        }
+        return null;
+    }
+
+    /** The match validates length/phase/duplicates; the client only ever sends text. */
+    private Message handleCaptionChaosSubmit(Message request)
+    {
+        if (currentCaptionChaosMatch != null)
+        {
+            currentCaptionChaosMatch.submitAnswer(this, request.getCaptionText());
+        }
+        return null;
+    }
+
+    private Message handleCaptionChaosVote(Message request)
+    {
+        if (currentCaptionChaosMatch != null)
+        {
+            currentCaptionChaosMatch.submitVote(this, request.getCaptionIndex());
+        }
+        return null;
+    }
+
     // ==================== Telephone ====================
 
     private Message handleTelephoneFindMatch()
@@ -2181,7 +2512,9 @@ public class ClientHandler implements Runnable
         telephoneMatchManager.cancelWaiting(this);
         if (currentTelephoneMatch != null)
         {
+            leavingVoluntarily = true;
             currentTelephoneMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTelephoneMatch = null;
         }
         return null;
@@ -2524,7 +2857,9 @@ public class ClientHandler implements Runnable
         fightArenaMatchManager.cancelWaiting(this);
         if (currentFightMatch != null)
         {
+            leavingVoluntarily = true;
             currentFightMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentFightMatch = null;
         }
         return null;
@@ -2575,7 +2910,9 @@ public class ClientHandler implements Runnable
         chessMatchManager.cancelWaiting(this);
         if (currentChessMatch != null)
         {
+            leavingVoluntarily = true;
             currentChessMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentChessMatch = null;
         }
         return null;
@@ -2630,7 +2967,9 @@ public class ClientHandler implements Runnable
         battleshipMatchManager.cancelWaiting(this);
         if (currentBattleshipMatch != null)
         {
+            leavingVoluntarily = true;
             currentBattleshipMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentBattleshipMatch = null;
         }
         return null;
@@ -2658,7 +2997,9 @@ public class ClientHandler implements Runnable
         rpsMatchManager.cancelWaiting(this);
         if (currentRpsMatch != null)
         {
+            leavingVoluntarily = true;
             currentRpsMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentRpsMatch = null;
         }
         return null;
@@ -2686,7 +3027,9 @@ public class ClientHandler implements Runnable
         connectFourMatchManager.cancelWaiting(this);
         if (currentConnectFourMatch != null)
         {
+            leavingVoluntarily = true;
             currentConnectFourMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentConnectFourMatch = null;
         }
         return null;
@@ -2714,7 +3057,9 @@ public class ClientHandler implements Runnable
         checkersMatchManager.cancelWaiting(this);
         if (currentCheckersMatch != null)
         {
+            leavingVoluntarily = true;
             currentCheckersMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentCheckersMatch = null;
         }
         return null;
@@ -2742,7 +3087,9 @@ public class ClientHandler implements Runnable
         squareWarsMatchManager.cancelWaiting(this);
         if (currentSquareWarsMatch != null)
         {
+            leavingVoluntarily = true;
             currentSquareWarsMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSquareWarsMatch = null;
         }
         return null;
@@ -2770,7 +3117,9 @@ public class ClientHandler implements Runnable
         triviaMatchManager.cancelWaiting(this);
         if (currentTriviaMatch != null)
         {
+            leavingVoluntarily = true;
             currentTriviaMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTriviaMatch = null;
         }
         return null;
@@ -2798,7 +3147,9 @@ public class ClientHandler implements Runnable
         dotsAndBoxesMatchManager.cancelWaiting(this);
         if (currentDotsAndBoxesMatch != null)
         {
+            leavingVoluntarily = true;
             currentDotsAndBoxesMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentDotsAndBoxesMatch = null;
         }
         return null;
@@ -2826,7 +3177,9 @@ public class ClientHandler implements Runnable
         reversiMatchManager.cancelWaiting(this);
         if (currentReversiMatch != null)
         {
+            leavingVoluntarily = true;
             currentReversiMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentReversiMatch = null;
         }
         return null;
@@ -2854,7 +3207,9 @@ public class ClientHandler implements Runnable
         memoryMatchMatchManager.cancelWaiting(this);
         if (currentMemoryMatchMatch != null)
         {
+            leavingVoluntarily = true;
             currentMemoryMatchMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentMemoryMatchMatch = null;
         }
         return null;
@@ -2882,7 +3237,9 @@ public class ClientHandler implements Runnable
         airHockeyMatchManager.cancelWaiting(this);
         if (currentAirHockeyMatch != null)
         {
+            leavingVoluntarily = true;
             currentAirHockeyMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentAirHockeyMatch = null;
         }
         return null;
@@ -2921,7 +3278,9 @@ public class ClientHandler implements Runnable
         wordDuelMatchManager.cancelWaiting(this);
         if (currentWordDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentWordDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentWordDuelMatch = null;
         }
         return null;
@@ -2950,7 +3309,9 @@ public class ClientHandler implements Runnable
         diceDuelMatchManager.cancelWaiting(this);
         if (currentDiceDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentDiceDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentDiceDuelMatch = null;
         }
         return null;
@@ -2998,7 +3359,9 @@ public class ClientHandler implements Runnable
         snakeArenaMatchManager.cancelWaiting(this);
         if (currentSnakeArenaMatch != null)
         {
+            leavingVoluntarily = true;
             currentSnakeArenaMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSnakeArenaMatch = null;
         }
         return null;
@@ -3026,7 +3389,9 @@ public class ClientHandler implements Runnable
         tetrisDuelMatchManager.cancelWaiting(this);
         if (currentTetrisDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentTetrisDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTetrisDuelMatch = null;
         }
         return null;
@@ -3055,7 +3420,9 @@ public class ClientHandler implements Runnable
         fusionGridMatchManager.cancelWaiting(this);
         if (currentFusionGridMatch != null)
         {
+            leavingVoluntarily = true;
             currentFusionGridMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentFusionGridMatch = null;
         }
         return null;
@@ -3083,7 +3450,9 @@ public class ClientHandler implements Runnable
         typingDuelMatchManager.cancelWaiting(this);
         if (currentTypingDuelMatch != null)
         {
+            leavingVoluntarily = true;
             currentTypingDuelMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentTypingDuelMatch = null;
         }
         return null;
@@ -3112,7 +3481,9 @@ public class ClientHandler implements Runnable
         signalGridMatchManager.cancelWaiting(this);
         if (currentSignalGridMatch != null)
         {
+            leavingVoluntarily = true;
             currentSignalGridMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentSignalGridMatch = null;
         }
         return null;
@@ -3145,7 +3516,9 @@ public class ClientHandler implements Runnable
         cardRushMatchManager.cancelWaiting(this);
         if (currentCardRushMatch != null)
         {
+            leavingVoluntarily = true;
             currentCardRushMatch.handleDisconnect(this);
+            leavingVoluntarily = false;
             currentCardRushMatch = null;
         }
         return null;

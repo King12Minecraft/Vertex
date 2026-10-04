@@ -1,4 +1,5 @@
 package games;
+import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
 import economy.EconomyManager;
@@ -26,11 +27,13 @@ public class BattleshipMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, BattleshipMatch> activeMatches = new HashMap<String, BattleshipMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("battleship");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
     private final EconomyManager economyManager;
+    private final ReconnectRegistry reconnectRegistry = ReconnectRegistry.shared();
 
     public BattleshipMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
@@ -40,6 +43,8 @@ public class BattleshipMatchManager
         this.replayManager = replayManager;
         this.economyManager = economyManager;
     }
+
+    public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
 
     public synchronized void findMatch(ClientHandler player)
     {
@@ -52,11 +57,12 @@ public class BattleshipMatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "battleship-" + (nextMatchId++);
-            BattleshipMatch match = new BattleshipMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager);
+            BattleshipMatch match = new BattleshipMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager, reconnectRegistry);
             activeMatches.put(matchId, match);
             opponent.setCurrentBattleshipMatch(match);
             player.setCurrentBattleshipMatch(match);
             match.start();
+            chatRooms.open(matchId, opponent, player);
 
             recordPlay(opponent);
             recordPlay(player);
@@ -90,16 +96,18 @@ public class BattleshipMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
     {
         String matchId = "battleship-" + (nextMatchId++);
-        BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager);
+        BattleshipMatch match = new BattleshipMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager, reconnectRegistry);
         activeMatches.put(matchId, match);
         playerA.setCurrentBattleshipMatch(match);
         playerB.setCurrentBattleshipMatch(match);
         match.start();
+            chatRooms.open(matchId, playerA, playerB);
 
         recordPlay(playerA);
         recordPlay(playerB);

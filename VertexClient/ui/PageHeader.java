@@ -26,23 +26,39 @@ import java.awt.LinearGradientPaint;
 public class PageHeader extends JPanel
 {
     private final JLabel titleLabel;
+    private JLabel subtitleLabel;
+    private final JPanel titleBox;
+
+    public PageHeader(String title, String subtitle)
+    {
+        this(title);
+        setSubtitle(subtitle);
+    }
 
     public PageHeader(String title)
     {
         setOpaque(false);
         setLayout(new BorderLayout());
-        setBorder(new EmptyBorder(24, 0, 18, 0));
+        setBorder(new EmptyBorder(28, 0, 22, 0));
 
-        titleLabel = new JLabel(title);
-        titleLabel.setFont(UITheme.FONT_NAV_BOLD);
+        titleLabel = new JLabel(TextCase.sentence(title));
+        titleLabel.setFont(UITheme.FONT_HEADING);
         titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
-        add(titleLabel, BorderLayout.WEST);
+        titleBox = new JPanel();
+        titleBox.setOpaque(false);
+        titleBox.setLayout(new javax.swing.BoxLayout(titleBox, javax.swing.BoxLayout.Y_AXIS));
+        titleBox.add(titleLabel);
+        add(titleBox, BorderLayout.WEST);
 
         ThemeManager.addListener(new Runnable()
         {
             public void run()
             {
                 titleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_PRIMARY));
+                if (subtitleLabel != null)
+                {
+                    subtitleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+                }
                 repaint();
             }
         });
@@ -50,33 +66,32 @@ public class PageHeader extends JPanel
 
     public void setTitle(String title)
     {
-        titleLabel.setText(title);
+        titleLabel.setText(TextCase.sentence(title));
+    }
+
+    /** A muted one-line description under the title; null or empty removes it. */
+    public void setSubtitle(String text)
+    {
+        if (subtitleLabel != null)
+        {
+            titleBox.remove(subtitleLabel);
+            subtitleLabel = null;
+        }
+        if (text != null && !text.isEmpty())
+        {
+            subtitleLabel = new JLabel(text);
+            subtitleLabel.setFont(UITheme.FONT_SUBHEAD);
+            subtitleLabel.setForeground(ThemeManager.getColor(ThemeColor.TEXT_MUTED));
+            subtitleLabel.setBorder(new EmptyBorder(6, 0, 0, 0));
+            titleBox.add(subtitleLabel);
+        }
+        titleBox.revalidate();
+        repaint();
     }
 
     /** Adds a right-aligned action area (e.g. a Refresh button) alongside the title. */
     public void setRightComponent(Component component)
     {
         add(component, BorderLayout.EAST);
-    }
-
-    @Override
-    protected void paintComponent(Graphics g)
-    {
-        super.paintComponent(g);
-
-        Graphics2D g2 = (Graphics2D) g.create();
-        UITheme.applyAntialiasing(g2);
-
-        int w = getWidth();
-        int titleWidth = Math.min(titleLabel.getPreferredSize().width + 40, w);
-
-        Color accentStart = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_START);
-        Color accentEnd = ThemeManager.getColor(ThemeColor.ACCENT_GRADIENT_END);
-        LinearGradientPaint gradient = new LinearGradientPaint(
-            0, 0, Math.max(titleWidth, 1), 0, new float[] {0f, 1f}, new Color[] {accentStart, accentEnd});
-        g2.setPaint(gradient);
-        g2.fillRect(0, getHeight() - 3, titleWidth, 2);
-
-        g2.dispose();
     }
 }

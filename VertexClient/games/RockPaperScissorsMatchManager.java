@@ -1,4 +1,5 @@
 package games;
+import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
 import economy.EconomyManager;
@@ -25,11 +26,13 @@ public class RockPaperScissorsMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, RockPaperScissorsMatch> activeMatches = new HashMap<String, RockPaperScissorsMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("rock-paper-scissors");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
     private final EconomyManager economyManager;
+    private final ReconnectRegistry reconnectRegistry = ReconnectRegistry.shared();
 
     public RockPaperScissorsMatchManager(GameHistoryManager gameHistoryManager, ChatManager chatManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
     {
@@ -39,6 +42,8 @@ public class RockPaperScissorsMatchManager
         this.replayManager = replayManager;
         this.economyManager = economyManager;
     }
+
+    public ReconnectRegistry getReconnectRegistry() { return reconnectRegistry; }
 
     public synchronized void findMatch(ClientHandler player)
     {
@@ -51,11 +56,12 @@ public class RockPaperScissorsMatchManager
         {
             ClientHandler opponent = waitingPlayers.remove(0);
             String matchId = "rps-" + (nextMatchId++);
-            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager);
+            RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, opponent, player, this, leaderboardManager, replayManager, economyManager, reconnectRegistry);
             activeMatches.put(matchId, match);
             opponent.setCurrentRpsMatch(match);
             player.setCurrentRpsMatch(match);
             match.start();
+            chatRooms.open(matchId, opponent, player);
 
             recordPlay(opponent);
             recordPlay(player);
@@ -89,16 +95,18 @@ public class RockPaperScissorsMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized void createDirectMatch(ClientHandler playerA, ClientHandler playerB)
     {
         String matchId = "rps-" + (nextMatchId++);
-        RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager);
+        RockPaperScissorsMatch match = new RockPaperScissorsMatch(matchId, playerA, playerB, this, leaderboardManager, replayManager, economyManager, reconnectRegistry);
         activeMatches.put(matchId, match);
         playerA.setCurrentRpsMatch(match);
         playerB.setCurrentRpsMatch(match);
         match.start();
+            chatRooms.open(matchId, playerA, playerB);
 
         recordPlay(playerA);
         recordPlay(playerB);

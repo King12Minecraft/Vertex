@@ -1,4 +1,6 @@
 package games;
+import mechanics.ReconnectPolicy;
+import mechanics.ReconnectRegistry;
 import net.MessageType;
 import net.Message;
 import economy.EconomyManager;
@@ -16,16 +18,21 @@ import net.ClientHandler;
 public class RockPaperScissorsMatch
 {
     private static final int WINS_NEEDED = 3;
+    private static final String GAME_ID = "rock-paper-scissors";
 
     private final String matchId;
-    private final ClientHandler playerA;
-    private final ClientHandler playerB;
+    private ClientHandler playerA;
+    private ClientHandler playerB;
     private final RockPaperScissorsMatchManager matchManager;
     private final LeaderboardManager leaderboardManager;
     private final ReplayManager replayManager;
     private final EconomyManager economyManager;
+    private final ReconnectRegistry reconnectRegistry;
     private final java.util.List<ClientHandler> spectators = new java.util.ArrayList<ClientHandler>();
     private final java.util.List<String> roundLog = new java.util.ArrayList<String>();
+
+    /** null when nobody is in a reconnect grace period; true/false for whichever of playerA/playerB just dropped - same Boolean-slot shape BattleshipMatch/WordDuelMatch use. There's no board or turn to preserve here (moves are blind and simultaneous, not turn-based) - the only state a reconnect needs to restore is the running score, which scoreA/scoreB already track untouched by a disconnect. */
+    private Boolean disconnectedIsA = null;
 
     private String moveA;
     private String moveB;
@@ -34,7 +41,7 @@ public class RockPaperScissorsMatch
     private boolean over = false;
     private TournamentMatchListener tournamentListener;
 
-    public RockPaperScissorsMatch(String matchId, ClientHandler playerA, ClientHandler playerB, RockPaperScissorsMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager)
+    public RockPaperScissorsMatch(String matchId, ClientHandler playerA, ClientHandler playerB, RockPaperScissorsMatchManager matchManager, LeaderboardManager leaderboardManager, ReplayManager replayManager, EconomyManager economyManager, ReconnectRegistry reconnectRegistry)
     {
         this.matchId = matchId;
         this.playerA = playerA;
@@ -43,6 +50,7 @@ public class RockPaperScissorsMatch
         this.leaderboardManager = leaderboardManager;
         this.replayManager = replayManager;
         this.economyManager = economyManager;
+        this.reconnectRegistry = reconnectRegistry;
     }
 
     public String getPlayerAUsername() { return playerA.getLoggedInUsername(); }
@@ -76,8 +84,12 @@ public class RockPaperScissorsMatch
 
     public synchronized void submitMove(ClientHandler requester, String move)
     {
-        if (over || move == null)
+        if (over || move == null || disconnectedIsA != null)
         {
+            // Never trusts the client's own input-blocking, same as
+            // BattleshipMatch.fire()'s freeze check - a move submitted while the
+            // opponent is mid-grace-period is rejected server-side, not just
+            // discouraged client-side.
             return;
         }
 
@@ -236,21 +248,139 @@ public class RockPaperScissorsMatch
         to.sendMessage(msg);
     }
 
-    public synchronized void handleDisconnect(ClientHandler who)
+    public void handleDisconnect(ClientHandler who)
     {
-        if (over)
+        Integer accountIdToRegister = null;
+        ClientHandler remainingForNotice = null;
+        boolean bothNowGone = false;
+
+        synchronized (this)
         {
+            if (over) return;
+            boolean isA = who == playerA;
+            boolean isB = who == playerB;
+            if (!isA && !isB) return;
+
+            if (disconnectedIsA != null)
+            {
+                // The other player was already in a grace period and has now ALSO
+                // disconnected - nobody left to wait for or to notify.
+                over = true;
+                bothNowGone = true;
+            }
+            else if (!ReconnectPolicy.canReconnect(who, GAME_ID))
+            {
+                // Guests never get a grace period - no stable identity to reconnect
+                // against, so a guest disconnect finalizes immediately exactly as
+                // every disconnect here did before reconnect support existed.
+                finalizeAbandoned(isA);
+                return;
+            }
+            else
+            {
+                disconnectedIsA = isA;
+                remainingForNotice = isA ? playerB : playerA;
+                accountIdToRegister = who.getAccountId();
+
+                Message notice = new Message();
+                notice.setType(MessageType.OPPONENT_DISCONNECTED_NOTICE);
+                notice.setMatchId(matchId);
+                notice.setErrorText(ReconnectPolicy.waitingNotice());
+                remainingForNotice.sendMessage(notice);
+            }
+        }
+
+        if (bothNowGone)
+        {
+            matchManager.endMatch(matchId);
             return;
         }
+
+        // See ReconnectRegistry's class-level threading note - never call this while
+        // holding this match's own lock.
+        reconnectRegistry.beginGracePeriod(accountIdToRegister, new ReconnectRegistry.ReconnectableMatch()
+        {
+            public void onReconnectTimeout()
+            {
+                RockPaperScissorsMatch.this.onReconnectTimeout();
+            }
+
+            public ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+            {
+                return RockPaperScissorsMatch.this.onReconnect(newHandler);
+            }
+
+            public void attachToHandler(ClientHandler handler)
+            {
+                handler.setCurrentRpsMatch(RockPaperScissorsMatch.this);
+            }
+        });
+    }
+
+    /** Must be called only while holding this match's own lock (see handleDisconnect/onReconnectTimeout). Finalizes exactly as every disconnect did before reconnect support existed - the remaining player wins the series by default. */
+    private void finalizeAbandoned(boolean disconnectedWasA)
+    {
         over = true;
         matchManager.endMatch(matchId);
-
-        ClientHandler remaining = (who == playerA) ? playerB : playerA;
+        ClientHandler remaining = disconnectedWasA ? playerB : playerA;
         Message msg = new Message();
         msg.setType(MessageType.RPS_MATCH_OVER);
         msg.setMatchId(matchId);
         msg.setMatchResult("OPPONENT_LEFT");
         remaining.sendMessage(msg);
         notifySpectatorsEnded();
+    }
+
+    private synchronized void onReconnectTimeout()
+    {
+        if (over) return;
+        boolean disconnectedWasA = disconnectedIsA;
+        disconnectedIsA = null;
+        finalizeAbandoned(disconnectedWasA);
+    }
+
+    /**
+     * Called by ReconnectRegistry.tryReconnect() while it holds the registry's own
+     * lock - must never call back into the registry from here. scoreA/scoreB were
+     * never touched by the disconnect (there's no board or in-flight round state to
+     * preserve, just the running score), so the resumed match is fully correct.
+     * There's no natural "symbol"/"boardState" for a turnless, boardless game like
+     * this one, so the running score is packed into ReconnectResult.boardState as
+     * "myScore:opponentScore" (recipient-relative) - the same repurposing shape
+     * WordDuelMatch/BattleshipMatch each use for their own game's real shape -
+     * for AuthWindow.resumeMatchIfPending() to unpack back into rpsMyScore/
+     * rpsOpponentScore on the synthetic RPS_MATCH_FOUND it replays locally.
+     */
+    private synchronized ReconnectRegistry.ReconnectResult onReconnect(ClientHandler newHandler)
+    {
+        if (over || disconnectedIsA == null)
+        {
+            return null;
+        }
+
+        boolean reconnectedIsA = disconnectedIsA;
+        if (reconnectedIsA) { playerA = newHandler; } else { playerB = newHandler; }
+        disconnectedIsA = null;
+
+        ClientHandler opponent = reconnectedIsA ? playerB : playerA;
+        int myScoreNow = reconnectedIsA ? scoreA : scoreB;
+        int opponentScoreNow = reconnectedIsA ? scoreB : scoreA;
+
+        // Nudges the still-connected opponent's UI out of its "waiting to reconnect"
+        // state - reuses RPS_MATCH_FOUND (the same message a fresh match start
+        // sends) since there's no board/turn state to disturb by re-showing it, and
+        // it already carries real rpsMyScore/rpsOpponentScore fields on a live push
+        // (unlike the login-response DTO, which only has the repurposed boardState
+        // slot to work with - see this method's own javadoc).
+        Message resumeNotice = new Message();
+        resumeNotice.setType(MessageType.RPS_MATCH_FOUND);
+        resumeNotice.setMatchId(matchId);
+        resumeNotice.setOpponentUsername(newHandler.getLoggedInUsername());
+        resumeNotice.setRpsMyScore(opponentScoreNow);
+        resumeNotice.setRpsOpponentScore(myScoreNow);
+        opponent.sendMessage(resumeNotice);
+
+        return new ReconnectRegistry.ReconnectResult(matchId, GAME_ID, "", opponent.getLoggedInUsername(),
+            myScoreNow + ":" + opponentScoreNow, "");
     }
 }

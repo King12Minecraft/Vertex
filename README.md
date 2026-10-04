@@ -28,6 +28,8 @@ The server has to be running before a client can connect. On a weaker machine, u
 
 **With BlueJ:** open `VertexServer` and `VertexClient` as separate projects, compile the server first, run `ServerMain` (headless - no window opens, just a console log line once it's listening), then run `Vertex` from one or more client instances.
 
+**Obfuscated client for release (Mac/Linux, optional):** `./build.sh --obfuscate` also writes `VertexClient-release.jar` - the same client with class/method/field names scrambled and debug info removed. It needs a full JDK (with a `jmods/` folder) and downloads ProGuard once into `.tools/` (checksum-verified). A speed bump against casual copying, not a lock: the server stays the authority. The build verifies that nothing sent over the wire changed (`proguard/WireCompatCheck`). There is no `build.bat` equivalent yet.
+
 **Building fresh jars from source (no BlueJ):** run `build.sh` (Mac/Linux) or `build.bat` (Windows) from the repo root. Compiles both projects and overwrites `VertexClient.jar`/`VertexServer.jar` in place, stamped with the version from the `VERSION` file. This is what actually produces the jars above - BlueJ's own "Create Application" export still works too, this is just a one-command alternative that doesn't need BlueJ installed at all.
 
 Either way, the client's first screen asks whether you want to **host a server** or **connect to one** — see below.
@@ -116,6 +118,7 @@ Someone who wants the old "start a server and get a playable window in the same 
 Only `Vertex.java` and `ServerMain.java` — the two actual entry points `java -jar` runs — stay in the default (unpackaged) package; everything else lives in one of the packages above. If you're adding a new class, put it in the package that matches what it's for, and add `package <name>;` as its first line.
 
 - `VertexClient.jar` / `VertexServer.jar` — pre-built runnable JARs; rebuild with `build.sh`/`build.bat`
+- `test.sh` — runs the committed regression suite (`VertexServerTests/`, a sibling to `VertexServer/`, never shipped in the jar) against a fresh `VertexServer` build; nonzero exit if anything fails
 - `VERSION` — the current release number (semver), read by the build script and shown in-app
 - `Run-*-LowEnd.*` — launcher scripts tuned for weaker hardware
 - `Sync-Feedback.sh`/`.bat` — pushes bug reports/suggestions the server has collected back to this repo (see `.gitignore`'s comments for why only those two files, not the rest of the server's data)

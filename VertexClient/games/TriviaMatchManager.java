@@ -28,6 +28,7 @@ public class TriviaMatchManager
     private final List<ClientHandler> waitingPlayers = new ArrayList<ClientHandler>();
     private final Map<String, TriviaMatch> activeMatches = new HashMap<String, TriviaMatch>();
     private int nextMatchId = 1;
+    private final chat.MatchChatRooms chatRooms = new chat.MatchChatRooms("trivia-blitz");
     private final GameHistoryManager gameHistoryManager;
     private final ChatManager chatManager;
     private final EconomyManager economyManager;
@@ -72,6 +73,7 @@ public class TriviaMatchManager
                 recordPlay(group.get(i));
             }
             match.start();
+            chatRooms.open(matchId, group);
         }
 
         broadcastQueueCount();
@@ -97,6 +99,7 @@ public class TriviaMatchManager
     public synchronized void endMatch(String matchId)
     {
         activeMatches.remove(matchId);
+        chatRooms.close(matchId);
     }
 
     public synchronized int getQueueCount()
